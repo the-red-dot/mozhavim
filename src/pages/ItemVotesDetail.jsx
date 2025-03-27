@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { db } from '../firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
-import { doc, getDoc } from 'firebase/firestore';
 
 function ItemVotesDetail() {
   const { itemName } = useParams();
@@ -32,25 +31,8 @@ function ItemVotesDetail() {
         const assumptionsSnapshot = await getDocs(assumptionsQuery);
         const assumptionsData = assumptionsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        // Fetch user data for votes and assumptions
-        const userIds = [...new Set([...votesData.map(v => v.userId), ...assumptionsData.map(a => a.userId)])];
-        const usersData = await Promise.all(
-          userIds.map(async (uid) => {
-            const userDoc = await getDoc(doc(db, 'users', uid));
-            return { uid, username: userDoc.exists() ? userDoc.data().robloxUsername : 'לא ידוע' };
-          })
-        );
-        const usersMap = Object.fromEntries(usersData.map(u => [u.uid, u.username]));
-
-        // Attach usernames to votes and assumptions
-        const votesWithUsers = votesData.map(vote => ({ ...vote, username: usersMap[vote.userId] }));
-        const assumptionsWithUsers = assumptionsData.map(assumption => ({
-          ...assumption,
-          username: usersMap[assumption.userId]
-        }));
-
-        setVotes(votesWithUsers);
-        setAssumptions(assumptionsWithUsers);
+        setVotes(votesData);
+        setAssumptions(assumptionsData);
         setLoading(false);
       } catch (err) {
         console.error('Error fetching data:', err);
@@ -79,7 +61,7 @@ function ItemVotesDetail() {
         <ul>
           {votes.map(vote => (
             <li key={vote.id}>
-              <p><strong>משתמש:</strong> {vote.username}</p>
+              <p><strong>משתמש:</strong> {vote.username || 'משתמש לא ידוע'}</p>
               <p>
                 <strong>הצבעה:</strong>{' '}
                 {vote.vote === 'reasonable' ? 'המחיר הגיוני' : vote.vote === 'too_low' ? 'המחיר נמוך מדי' : 'המחיר גבוה מדי'}
@@ -97,7 +79,7 @@ function ItemVotesDetail() {
         <ul>
           {assumptions.map(assumption => (
             <li key={assumption.id}>
-              <p><strong>משתמש:</strong> {assumption.username}</p>
+              <p><strong>משתמש:</strong> {assumption.username || 'משתמש לא ידוע'}</p>
               <p><strong>תאריך:</strong> {assumption.timestamp.toDate().toLocaleString('he-IL')}</p>
               {Object.entries(assumption.prices).map(([currency, price]) => (
                 price !== null && (

@@ -5,7 +5,7 @@ import { db } from '../firebase';
 import { collection, addDoc, getDocs, query, where, limit } from 'firebase/firestore';
 
 function PriceOpinion({ itemName, discordAverage }) {
-  const { currentUser, isEmailVerified } = useAuth();
+  const { currentUser, isEmailVerified, userData } = useAuth(); // Added userData to access robloxUsername
   const [vote, setVote] = useState(null);
   const [hasVoted, setHasVoted] = useState(false);
   const [nextVoteTime, setNextVoteTime] = useState(null);
@@ -130,6 +130,7 @@ function PriceOpinion({ itemName, discordAverage }) {
         itemName,
         userId: currentUser.uid,
         vote: selectedVote,
+        username: userData.robloxUsername, // Store username directly
         timestamp: new Date(),
       });
       setVote(selectedVote);
@@ -180,6 +181,7 @@ function PriceOpinion({ itemName, discordAverage }) {
         itemName,
         userId: currentUser.uid,
         prices,
+        username: userData.robloxUsername, // Store username directly
         timestamp: new Date(),
       });
       setAssumptions({ regular: '', gold: '', diamond: '', emerald: '' });

@@ -1,7 +1,7 @@
 // SearchSection.jsx
 import { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { collection, getDocs, doc, updateDoc, query, where, getDoc } from 'firebase/firestore'; // Added getDoc
+import { collection, getDocs, doc, updateDoc, query, where, getDoc } from 'firebase/firestore';
 import { useAuth } from '../AuthContext';
 import PriceOpinion from './PriceOpinion';
 
@@ -40,7 +40,10 @@ const isSimilar = (search, itemName) => {
 
 function SearchSection() {
   const [keyword, setKeyword] = useState('');
-  const [items, setItems] = useState([]);
+  const [items, setItems] = useState(() => {
+    const cachedItems = localStorage.getItem('items');
+    return cachedItems ? JSON.parse(cachedItems) : [];
+  });
   const [filteredItems, setFilteredItems] = useState([]);
   const [overallAverage, setOverallAverage] = useState(null);
   const [editingItemId, setEditingItemId] = useState(null);
@@ -58,20 +61,23 @@ function SearchSection() {
     emerald: 'אמרלד'
   };
 
-  // Load items from Firestore
+  // Load items from Firestore only if not cached
   useEffect(() => {
     const fetchItems = async () => {
       try {
         const querySnapshot = await getDocs(collection(db, 'items'));
         const itemsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setItems(itemsData);
+        localStorage.setItem('items', JSON.stringify(itemsData));
       } catch (err) {
         console.error('Error fetching items:', err);
         setError('שגיאה בטעינת הפריטים. אנא נסה שוב מאוחר יותר.');
       }
     };
-    fetchItems();
-  }, []);
+    if (items.length === 0) {
+      fetchItems();
+    }
+  }, [items.length]);
 
   // Check admin status
   const [isAdmin, setIsAdmin] = useState(false);
@@ -89,21 +95,32 @@ function SearchSection() {
     checkAdminStatus();
   }, [currentUser]);
 
-  // Fetch community assumptions
+  // Fetch community assumptions with batching
   const fetchCommunityAssumptions = async (itemName) => {
     if (!itemName) return;
     try {
       const q = query(collection(db, 'assumptions'), where('itemName', '==', itemName));
       const snapshot = await getDocs(q);
       const assumptionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      const assumptionsWithUsers = await Promise.all(
-        assumptionsData.map(async (assumption) => {
-          const userDocRef = doc(db, 'users', assumption.userId);
-          const userDoc = await getDoc(userDocRef);
-          const username = userDoc.exists() ? userDoc.data().robloxUsername : 'לא ידוע';
-          return { ...assumption, username };
-        })
-      );
+
+      // Batch fetch user data
+      const userIds = assumptionsData.map(assumption => assumption.userId);
+      const uniqueUserIds = [...new Set(userIds)];
+      const usersMap = {};
+      const chunkSize = 10;
+      for (let i = 0; i < uniqueUserIds.length; i += chunkSize) {
+        const chunk = uniqueUserIds.slice(i, i + chunkSize);
+        const userQuery = query(collection(db, 'users'), where('__name__', 'in', chunk));
+        const userSnapshot = await getDocs(userQuery);
+        userSnapshot.forEach(doc => {
+          usersMap[doc.id] = doc.data().robloxUsername || 'לא ידוע';
+        });
+      }
+
+      const assumptionsWithUsers = assumptionsData.map(assumption => ({
+        ...assumption,
+        username: usersMap[assumption.userId] || 'לא ידוע'
+      }));
       setCommunityAssumptions(assumptionsWithUsers);
     } catch (err) {
       console.error('Error fetching community assumptions:', err);
@@ -111,9 +128,13 @@ function SearchSection() {
     }
   };
 
+  // Debounce fetchCommunityAssumptions
   useEffect(() => {
     if (showCommunityPrices && selectedItemName) {
-      fetchCommunityAssumptions(selectedItemName);
+      const debounceFetch = setTimeout(() => {
+        fetchCommunityAssumptions(selectedItemName);
+      }, 500); // 500ms debounce
+      return () => clearTimeout(debounceFetch);
     }
   }, [showCommunityPrices, selectedItemName]);
 

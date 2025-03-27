@@ -45,7 +45,7 @@ const MenuBar = ({ editor }) => {
   );
 };
 
-// New component for editing posts
+// Component for editing posts
 const EditPostEditor = ({ post, onSave, onCancel }) => {
   const [editingTitle, setEditingTitle] = useState(post.title || '');
   const editor = useEditor({
@@ -99,17 +99,31 @@ function InfoUpdates() {
     content: '',
   });
 
-  // Fetch posts on component mount
+  // Fetch posts on component mount with caching
   useEffect(() => {
     fetchPosts();
   }, []);
 
   const fetchPosts = async () => {
+    // Check cache first
+    const cachedPostsData = localStorage.getItem('postsData');
+    if (cachedPostsData) {
+      const { posts, timestamp } = JSON.parse(cachedPostsData);
+      const now = Date.now();
+      if (now - timestamp < 15 * 60 * 1000) { // Cache valid for 15 minutes
+        setPosts(posts);
+        setLoading(false);
+        return;
+      }
+    }
+
+    // Fetch from Firestore if cache is missing or stale
     try {
       const q = query(collection(db, 'posts'), orderBy('pinned', 'desc'), orderBy('timestamp', 'desc'));
       const querySnapshot = await getDocs(q);
       const postsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setPosts(postsData);
+      localStorage.setItem('postsData', JSON.stringify({ posts: postsData, timestamp: Date.now() }));
       setLoading(false);
     } catch (err) {
       console.error('Error fetching posts:', err);
@@ -143,7 +157,7 @@ function InfoUpdates() {
       setTitle('');
       editor.commands.clearContent();
       setIsPinned(false);
-      fetchPosts();
+      await fetchPosts(); // Refetch to update state and cache
     } catch (err) {
       console.error('Error creating post:', err);
       setError('שגיאה ביצירת הפוסט.');
@@ -164,7 +178,7 @@ function InfoUpdates() {
         body: newBody,
       });
       setEditingPostId(null);
-      fetchPosts();
+      await fetchPosts(); // Refetch to update state and cache
     } catch (err) {
       console.error('Error updating post:', err);
       setError('שגיאה בעדכון הפוסט.');
@@ -182,7 +196,7 @@ function InfoUpdates() {
       try {
         const postRef = doc(db, 'posts', postId);
         await deleteDoc(postRef);
-        fetchPosts();
+        await fetchPosts(); // Refetch to update state and cache
       } catch (err) {
         console.error('Error deleting post:', err);
         setError('שגיאה במחיקת הפוסט.');
