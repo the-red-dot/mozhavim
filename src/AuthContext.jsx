@@ -40,7 +40,13 @@ export function AuthProvider({ children }) {
 
   const logout = () => auth.signOut();
 
-  const value = { currentUser, userRole, userData, logout };
+  const value = {
+    currentUser,
+    userRole,
+    userData,
+    logout,
+    isEmailVerified: currentUser ? currentUser.emailVerified : false, // Add email verification status
+  };
 
   return (
     <AuthContext.Provider value={value}>

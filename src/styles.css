@@ -358,3 +358,53 @@ form button:hover {
 
 /* Add these styles to your existing styles.css */
 
+
+.email-verification-prompt button {
+  margin: 5px;
+  padding: 5px 10px;
+  background: #4285F4;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.email-verification-prompt button:hover {
+  background: #357abd;
+}
+
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5); /* Semi-transparent gray backdrop */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000; /* Ensures it appears above other content */
+}
+
+.modal {
+  background: white;
+  padding: 20px;
+  border-radius: 5px;
+  text-align: center;
+  max-width: 400px;
+  width: 100%;
+}
+
+.modal button {
+  margin: 10px;
+  padding: 10px 20px;
+  background: #4285F4; /* Blue button color */
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.modal button:hover {
+  background: #357abd; /* Darker blue on hover */
+}

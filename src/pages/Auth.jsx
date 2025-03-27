@@ -1,27 +1,26 @@
 import { useState } from 'react';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, sendEmailVerification } from 'firebase/auth';
 import { auth, db } from '../firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 
 function Auth() {
-  const [isLogin, setIsLogin] = useState(true); // Toggle between login and register
+  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [robloxUsername, setRobloxUsername] = useState(''); // Roblox Username
-  const [robloxNickname, setRobloxNickname] = useState(''); // Roblox Nickname
+  const [robloxUsername, setRobloxUsername] = useState('');
+  const [robloxNickname, setRobloxNickname] = useState('');
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-  const [showForgotPassword, setShowForgotPassword] = useState(false); // Toggle forgot password form
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const navigate = useNavigate();
 
   const handleAuth = async (e) => {
     e.preventDefault();
     setError('');
     setMessage('');
-    
+
     if (!isLogin) {
-      // Validate Roblox fields during registration
       if (!robloxUsername.trim() || !robloxNickname.trim()) {
         setError('שם המשתמש ושם הכינוי ברובלוקס הם שדות חובה.');
         return;
@@ -30,18 +29,19 @@ function Auth() {
 
     try {
       if (isLogin) {
-        // Login
         await signInWithEmailAndPassword(auth, email, password);
         navigate('/');
       } else {
-        // Register
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        await setDoc(doc(db, 'users', userCredential.user.uid), {
+        const user = userCredential.user;
+        await sendEmailVerification(user); // Send verification email
+        await setDoc(doc(db, 'users', user.uid), {
           isAdmin: false,
           robloxUsername: robloxUsername.trim(),
           robloxNickname: robloxNickname.trim(),
         });
-        navigate('/');
+        setMessage('נא לאמת את כתובת האימייל שלך. בדוק את תיבת הדואר שלך.');
+        // Keep user on auth page to see the message
       }
     } catch (err) {
       setError(err.message);
@@ -123,6 +123,7 @@ function Auth() {
                 setRobloxUsername('');
                 setRobloxNickname('');
                 setError('');
+                setMessage('');
               }}
             >
               {isLogin ? 'אין לך חשבון? הירשם' : 'כבר יש לך חשבון? התחבר'}
@@ -131,6 +132,7 @@ function Auth() {
               <button onClick={() => setShowForgotPassword(true)}>שכחתי סיסמה</button>
             )}
           </div>
+          {message && <p className="success">{message}</p>}
           {error && <p className="error">{error}</p>}
         </>
       )}

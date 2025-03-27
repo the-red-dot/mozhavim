@@ -5,10 +5,10 @@ import { db } from '../firebase';
 import { collection, addDoc, getDocs, query, where, limit } from 'firebase/firestore';
 
 function PriceOpinion({ itemName, discordAverage }) {
-  const { currentUser } = useAuth();
+  const { currentUser, isEmailVerified } = useAuth(); // Added isEmailVerified
   const [vote, setVote] = useState(null);
   const [hasVoted, setHasVoted] = useState(false);
-  const [nextVoteTime, setNextVoteTime] = useState(null); // מצב חדש לזמן ההצבעה הבאה
+  const [nextVoteTime, setNextVoteTime] = useState(null);
   const [voteCounts, setVoteCounts] = useState({ reasonable: 0, too_low: 0, too_high: 0 });
   const [assumptions, setAssumptions] = useState({
     regular: '',
@@ -98,6 +98,10 @@ function PriceOpinion({ itemName, discordAverage }) {
       alert('עליך להירשם כדי להצביע.');
       return;
     }
+    if (!isEmailVerified) { // Restrict voting to email-verified users
+      alert('עליך לאמת את כתובת האימייל שלך כדי להצביע.');
+      return;
+    }
     if (hasVoted) {
       const nextVoteDateStr = nextVoteTime.toLocaleString('he-IL');
       setError(`אתה יכול להצביע שוב רק לאחר ${nextVoteDateStr}.`);
@@ -112,9 +116,8 @@ function PriceOpinion({ itemName, discordAverage }) {
       });
       setVote(selectedVote);
       setHasVoted(true);
-      setShowAssumptionInput(true); // תמיד מציג שדות להזנת השערות
+      setShowAssumptionInput(true);
       fetchVoteCounts();
-      // עדכון הזמן להצבעה הבאה
       const nextVoteDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
       setNextVoteTime(nextVoteDate);
     } catch (err) {
@@ -136,17 +139,15 @@ function PriceOpinion({ itemName, discordAverage }) {
       return;
     }
 
-    // בדיקת תקינות המחירים לפי היחסים
     for (const [currency, price] of Object.entries(prices)) {
       if (price !== null) {
         if (isNaN(price)) {
           setError(`המחיר עבור ${currencyLabels[currency]} חייב להיות מספר.`);
           return;
         }
-        // חישוב המחיר הצפוי לפי היחס
         const expectedPrice = discordAverage * currencyRatios[currency];
-        const lowerBound = expectedPrice * 0.3; // 30% מהמחיר הצפוי
-        const upperBound = expectedPrice * 2.0; // 200% מהמחיר הצפוי
+        const lowerBound = expectedPrice * 0.3;
+        const upperBound = expectedPrice * 2.0;
         if (price < lowerBound || price > upperBound) {
           setError(
             `השערת ${currencyLabels[currency]} לא ריאלית. אנא הזן ערך בין ${Math.round(lowerBound).toLocaleString()} ל-${Math.round(upperBound).toLocaleString()}.`
@@ -174,7 +175,7 @@ function PriceOpinion({ itemName, discordAverage }) {
   return (
     <div className="price-opinion">
       <h4>מה דעתך על המחיר הממוצע של "{itemName}" בדיסקורד?</h4>
-      {currentUser ? (
+      {currentUser && isEmailVerified ? ( // Restrict voting UI to verified users
         <div className="vote-buttons">
           <button onClick={() => handleVote('reasonable')} disabled={hasVoted}>
             המחיר הגיוני ({voteCounts.reasonable})
@@ -187,7 +188,7 @@ function PriceOpinion({ itemName, discordAverage }) {
           </button>
         </div>
       ) : (
-        <p>עליך להירשם כדי להצביע.</p>
+        <p>עליך להירשם ולאמת את האימייל כדי להצביע.</p>
       )}
       {vote && (
         <p>

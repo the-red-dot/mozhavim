@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import SideMenu from './SideMenu.jsx';
+import EmailVerificationPrompt from './EmailVerificationPrompt.jsx'; // Import the new component
 import '../styles.css';
 
 function Layout({ children }) {
@@ -11,6 +12,7 @@ function Layout({ children }) {
         ☰
       </button>
       <SideMenu isOpen={isMenuOpen} setIsOpen={setIsMenuOpen} />
+      <EmailVerificationPrompt /> {/* Add the prompt here */}
       <main className="content">{children}</main>
     </div>
   );
