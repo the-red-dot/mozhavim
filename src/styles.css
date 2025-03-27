@@ -47,14 +47,16 @@ body {
   flex-direction: column;
 }
 
-.side-menu a, .side-menu button {
+.side-menu a,
+.side-menu button {
   color: #fff;
   text-decoration: none;
   padding: 15px 20px;
   border-bottom: 1px solid #34495e;
 }
 
-.side-menu a:hover, .side-menu button:hover {
+.side-menu a:hover,
+.side-menu button:hover {
   background: #34495e;
 }
 
@@ -74,11 +76,15 @@ body {
   padding: 20px;
 }
 
-h1, h2, h3, h4 {
+h1,
+h2,
+h3,
+h4 {
   margin-bottom: 1rem;
 }
 
-.search-section, .admin-section {
+.search-section,
+.admin-section {
   margin-bottom: 2rem;
   padding: 10px;
   background: #fff;
@@ -92,7 +98,8 @@ h1, h2, h3, h4 {
   border: 1px solid #ccc;
 }
 
-.item-result {
+.item-result,
+.assumption-item { /* Added .assumption-item */
   margin-bottom: 10px;
   border-bottom: 1px dashed #ccc;
   padding-bottom: 10px;
@@ -103,7 +110,9 @@ h1, h2, h3, h4 {
   font-weight: bold;
 }
 
-input, button, textarea {
+input,
+button,
+textarea {
   margin-right: 10px;
 }
 
@@ -133,7 +142,7 @@ button:hover {
   align-items: center;
   background: #fff;
   border-radius: 20px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   padding: 5px 10px;
   max-width: 600px;
   margin: 0 auto 20px;
@@ -229,7 +238,8 @@ form {
   margin: 0 auto;
 }
 
-form input, form textarea {
+form input,
+form textarea {
   margin: 10px 0;
   padding: 10px;
   border: 1px solid #ddd;
@@ -356,9 +366,6 @@ form button:hover {
   box-sizing: border-box;
 }
 
-/* Add these styles to your existing styles.css */
-
-
 .email-verification-prompt button {
   margin: 5px;
   padding: 5px 10px;
@@ -379,11 +386,11 @@ form button:hover {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.5); /* Semi-transparent gray backdrop */
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000; /* Ensures it appears above other content */
+  z-index: 1000;
 }
 
 .modal {
@@ -398,7 +405,7 @@ form button:hover {
 .modal button {
   margin: 10px;
   padding: 10px 20px;
-  background: #4285F4; /* Blue button color */
+  background: #4285F4;
   color: white;
   border: none;
   border-radius: 5px;
@@ -406,5 +413,5 @@ form button:hover {
 }
 
 .modal button:hover {
-  background: #357abd; /* Darker blue on hover */
+  background: #357abd;
 }

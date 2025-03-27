@@ -1,16 +1,16 @@
 // SearchSection.jsx
 import { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, query, where, getDoc } from 'firebase/firestore'; // Added getDoc
 import { useAuth } from '../AuthContext';
 import PriceOpinion from './PriceOpinion';
 
-// נורמליזציה של מחרוזות
+// Normalize strings
 const normalize = (str) => {
   return str.toLowerCase().replace(/[^א-תa-z0-9\s]/gi, '').replace(/\s+/g, ' ').trim();
 };
 
-// חישוב מרחק Levenshtein
+// Calculate Levenshtein distance
 const levenshteinDistance = (a, b) => {
   const matrix = Array(b.length + 1).fill(null).map(() => Array(a.length + 1).fill(null));
   for (let i = 0; i <= a.length; i++) matrix[0][i] = i;
@@ -28,7 +28,7 @@ const levenshteinDistance = (a, b) => {
   return matrix[b.length][a.length];
 };
 
-// בדיקת דמיון
+// Check similarity
 const isSimilar = (search, itemName) => {
   const normSearch = normalize(search);
   const normItem = normalize(itemName);
@@ -48,8 +48,17 @@ function SearchSection() {
   const [error, setError] = useState('');
   const { currentUser } = useAuth();
   const [selectedItemName, setSelectedItemName] = useState(null);
+  const [showCommunityPrices, setShowCommunityPrices] = useState(false);
+  const [communityAssumptions, setCommunityAssumptions] = useState([]);
 
-  // טעינת פריטים מ-Firestore
+  const currencyLabels = {
+    regular: 'רגיל',
+    gold: 'זהב',
+    diamond: 'יהלום',
+    emerald: 'אמרלד'
+  };
+
+  // Load items from Firestore
   useEffect(() => {
     const fetchItems = async () => {
       try {
@@ -64,14 +73,15 @@ function SearchSection() {
     fetchItems();
   }, []);
 
-  // בדיקת סטטוס מנהל
+  // Check admin status
   const [isAdmin, setIsAdmin] = useState(false);
   useEffect(() => {
     const checkAdminStatus = async () => {
       if (currentUser) {
-        const userDoc = await getDocs(collection(db, 'users'));
-        const userData = userDoc.docs.find(doc => doc.id === currentUser.uid)?.data();
-        setIsAdmin(userData?.isAdmin === true);
+        const userDocRef = doc(db, 'users', currentUser.uid);
+        const userDoc = await getDoc(userDocRef);
+        const userData = userDoc.exists() ? userDoc.data() : {};
+        setIsAdmin(userData.isAdmin === true);
       } else {
         setIsAdmin(false);
       }
@@ -79,12 +89,41 @@ function SearchSection() {
     checkAdminStatus();
   }, [currentUser]);
 
-  // פונקציית חיפוש
+  // Fetch community assumptions
+  const fetchCommunityAssumptions = async (itemName) => {
+    if (!itemName) return;
+    try {
+      const q = query(collection(db, 'assumptions'), where('itemName', '==', itemName));
+      const snapshot = await getDocs(q);
+      const assumptionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const assumptionsWithUsers = await Promise.all(
+        assumptionsData.map(async (assumption) => {
+          const userDocRef = doc(db, 'users', assumption.userId);
+          const userDoc = await getDoc(userDocRef);
+          const username = userDoc.exists() ? userDoc.data().robloxUsername : 'לא ידוע';
+          return { ...assumption, username };
+        })
+      );
+      setCommunityAssumptions(assumptionsWithUsers);
+    } catch (err) {
+      console.error('Error fetching community assumptions:', err);
+      setError('שגיאה בטעינת השערות הקהילה.');
+    }
+  };
+
+  useEffect(() => {
+    if (showCommunityPrices && selectedItemName) {
+      fetchCommunityAssumptions(selectedItemName);
+    }
+  }, [showCommunityPrices, selectedItemName]);
+
+  // Search function
   const searchItems = (searchKeyword) => {
     if (!items.length || !searchKeyword.trim()) {
       setFilteredItems([]);
       setOverallAverage(null);
       setSelectedItemName(null);
+      setShowCommunityPrices(false);
       return;
     }
     const filtered = items.filter(item => isSimilar(searchKeyword, item.name));
@@ -105,7 +144,7 @@ function SearchSection() {
     if (e.key === 'Enter') searchItems(e.target.value);
   };
 
-  // ניתוח מחירים
+  // Parse prices
   function parsePrice(priceStr) {
     if (!priceStr) return null;
     const trimmedStr = priceStr.trim().toLowerCase();
@@ -114,14 +153,13 @@ function SearchSection() {
     const match = cleanedStr.match(/(\d+(?:\.\d+)?)/);
     if (!match) return null;
     const num = parseFloat(match[0]);
-
     if (hasMillion) return num * 1000000;
     else if (num < 10) return num * 1000000;
     else if (num < 1000) return num * 1000;
     else return num;
   }
 
-  // חישוב ממוצע
+  // Calculate average
   function calculateAverage(items) {
     if (items.length === 0) return null;
     const uniquePrices = new Set();
@@ -134,7 +172,7 @@ function SearchSection() {
     return Math.round(sum / uniquePrices.size);
   }
 
-  // התחלת עריכת פריט
+  // Start editing item
   const startEditing = (item) => {
     const buyFields = Object.keys(item).filter(key => key.startsWith('buy'));
     const temp = {};
@@ -145,13 +183,13 @@ function SearchSection() {
     setEditingItemId(item.id);
   };
 
-  // ביטול עריכה
+  // Cancel edit
   const cancelEdit = () => {
     setEditingItemId(null);
     setTempValues({});
   };
 
-  // שמירת פריט ערוך
+  // Save edited item
   const saveEdit = async (itemId) => {
     try {
       const itemRef = doc(db, 'items', itemId);
@@ -166,7 +204,6 @@ function SearchSection() {
     }
   };
 
-  // מיפוי תוויות
   const buyLabels = {
     buyRegular: 'קנייה (רגיל)',
     buyGold: 'קנייה (זהב)',
@@ -199,6 +236,11 @@ function SearchSection() {
           {overallAverage !== null && (
             <PriceOpinion itemName={selectedItemName} discordAverage={overallAverage} />
           )}
+          {selectedItemName && (
+            <button onClick={() => setShowCommunityPrices(!showCommunityPrices)}>
+              {showCommunityPrices ? 'מחירי דיסקורד' : 'מחירי קהילה'}
+            </button>
+          )}
         </div>
       )}
 
@@ -206,46 +248,69 @@ function SearchSection() {
         {error && <p className="error">{error}</p>}
         {items.length === 0 && !error && <p>לא נמצאו נתונים. על המנהל להעלות תחילה!</p>}
         {keyword && filteredItems.length === 0 && <p>לא נמצאו פריטים תואמים.</p>}
-        {filteredItems.map(item => (
-          <div key={item.id} className="item-result">
-            <p><strong>שם מוזהב:</strong> {item.name}</p>
-            {editingItemId === item.id && isAdmin ? (
-              Object.keys(tempValues).map(key => (
-                <p key={key}>
-                  <strong>{buyLabels[key]}:</strong>
-                  <input
-                    type="text"
-                    value={tempValues[key]}
-                    onChange={(e) => setTempValues({ ...tempValues, [key]: e.target.value })}
-                  />
-                </p>
+        {showCommunityPrices ? (
+          <div>
+            <h3>השערות קהילה עבור "{selectedItemName}"</h3>
+            {communityAssumptions.length > 0 ? (
+              communityAssumptions.map(assumption => (
+                <div key={assumption.id} className="assumption-item">
+                  <p><strong>משתמש:</strong> {assumption.username}</p>
+                  <p><strong>תאריך:</strong> {assumption.timestamp.toDate().toLocaleString('he-IL')}</p>
+                  {Object.entries(assumption.prices).map(([currency, price]) => (
+                    price !== null && (
+                      <p key={currency}>
+                        <strong>{currencyLabels[currency]}:</strong> {price.toLocaleString()}
+                      </p>
+                    )
+                  ))}
+                </div>
               ))
             ) : (
-              Object.keys(item)
-                .filter(key => key.startsWith('buy') && item[key])
-                .map(key => (
-                  <p key={key}>
-                    <strong>{buyLabels[key]}:</strong> {item[key]}
-                  </p>
-                ))
-            )}
-            {item.sellRegular && <p><strong>מכירה (רגיל):</strong> {item.sellRegular}</p>}
-            {item.sellGold && <p><strong>מכירה (זהב):</strong> {item.sellGold}</p>}
-            {item.sellDiamond && <p><strong>מכירה (יהלום):</strong> {item.sellDiamond}</p>}
-            {item.sellEmerald && <p><strong>מכירה (אמרלד):</strong> {item.sellEmerald}</p>}
-            <p><strong>פורסם ע"י:</strong> {item.publisher}</p>
-            <p><strong>תאריך פרסום:</strong> {item.date}</p>
-            {isAdmin && editingItemId !== item.id && (
-              <button onClick={() => startEditing(item)}>ערוך</button>
-            )}
-            {isAdmin && editingItemId === item.id && (
-              <div>
-                <button onClick={() => saveEdit(item.id)}>שמור</button>
-                <button onClick={cancelEdit}>ביטול</button>
-              </div>
+              <p>אין השערות קהילה זמינות.</p>
             )}
           </div>
-        ))}
+        ) : (
+          filteredItems.map(item => (
+            <div key={item.id} className="item-result">
+              <p><strong>שם מוזהב:</strong> {item.name}</p>
+              {editingItemId === item.id && isAdmin ? (
+                Object.keys(tempValues).map(key => (
+                  <p key={key}>
+                    <strong>{buyLabels[key]}:</strong>
+                    <input
+                      type="text"
+                      value={tempValues[key]}
+                      onChange={(e) => setTempValues({ ...tempValues, [key]: e.target.value })}
+                    />
+                  </p>
+                ))
+              ) : (
+                Object.keys(item)
+                  .filter(key => key.startsWith('buy') && item[key])
+                  .map(key => (
+                    <p key={key}>
+                      <strong>{buyLabels[key]}:</strong> {item[key]}
+                    </p>
+                  ))
+              )}
+              {item.sellRegular && <p><strong>מכירה (רגיל):</strong> {item.sellRegular}</p>}
+              {item.sellGold && <p><strong>מכירה (זהב):</strong> {item.sellGold}</p>}
+              {item.sellDiamond && <p><strong>מכירה (יהלום):</strong> {item.sellDiamond}</p>}
+              {item.sellEmerald && <p><strong>מכירה (אמרלד):</strong> {item.sellEmerald}</p>}
+              <p><strong>פורסם ע"י:</strong> {item.publisher}</p>
+              <p><strong>תאריך פרסום:</strong> {item.date}</p>
+              {isAdmin && editingItemId !== item.id && (
+                <button onClick={() => startEditing(item)}>ערוך</button>
+              )}
+              {isAdmin && editingItemId === item.id && (
+                <div>
+                  <button onClick={() => saveEdit(item.id)}>שמור</button>
+                  <button onClick={cancelEdit}>ביטול</button>
+                </div>
+              )}
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

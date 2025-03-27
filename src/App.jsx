@@ -5,6 +5,7 @@ import Home from './pages/Home.jsx';
 import Auth from './pages/Auth.jsx';
 import Admin from './pages/Admin.jsx';
 import InfoUpdates from './pages/InfoUpdates.jsx';
+import ItemVotesDetail from './pages/ItemVotesDetail.jsx'; // Import new page
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
             <Route path="/auth" element={<Auth />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/info-updates" element={<InfoUpdates />} />
+            <Route path="/item-votes/:itemName" element={<ItemVotesDetail />} /> {/* New route */}
           </Routes>
         </Layout>
       </AuthProvider>

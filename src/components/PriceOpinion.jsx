@@ -5,7 +5,7 @@ import { db } from '../firebase';
 import { collection, addDoc, getDocs, query, where, limit } from 'firebase/firestore';
 
 function PriceOpinion({ itemName, discordAverage }) {
-  const { currentUser, isEmailVerified } = useAuth(); // Added isEmailVerified
+  const { currentUser, isEmailVerified } = useAuth();
   const [vote, setVote] = useState(null);
   const [hasVoted, setHasVoted] = useState(false);
   const [nextVoteTime, setNextVoteTime] = useState(null);
@@ -17,7 +17,12 @@ function PriceOpinion({ itemName, discordAverage }) {
     emerald: ''
   });
   const [showAssumptionInput, setShowAssumptionInput] = useState(false);
-  const [userAverage, setUserAverage] = useState(null);
+  const [userAverages, setUserAverages] = useState({
+    regular: null,
+    gold: null,
+    diamond: null,
+    emerald: null
+  });
   const [error, setError] = useState('');
 
   // יחסי המרה בין סוגי המטבעות
@@ -71,25 +76,38 @@ function PriceOpinion({ itemName, discordAverage }) {
     setVoteCounts(counts);
   };
 
-  // טעינת השערות מחיר וחישוב ממוצע אם יש לפחות 3
-  const fetchUserAverage = async () => {
+  // טעינת השערות מחיר וחישוב ממוצעים עבור כל סוג מטבע אם יש לפחות 3
+  const fetchUserAverages = async () => {
     const q = query(collection(db, 'assumptions'), where('itemName', '==', itemName));
     const snapshot = await getDocs(q);
-    const regularPrices = snapshot.docs.map(doc => doc.data().prices.regular).filter(p => p !== null);
-    if (regularPrices.length >= 3) {
-      const sum = regularPrices.reduce((a, b) => a + b, 0);
-      const average = Math.round(sum / regularPrices.length);
-      setUserAverage(average);
-    } else {
-      setUserAverage(null);
-    }
+    
+    // חילוץ המחירים עבור כל סוג מטבע
+    const prices = {
+      regular: snapshot.docs.map(doc => doc.data().prices.regular).filter(p => p !== null),
+      gold: snapshot.docs.map(doc => doc.data().prices.gold).filter(p => p !== null),
+      diamond: snapshot.docs.map(doc => doc.data().prices.diamond).filter(p => p !== null),
+      emerald: snapshot.docs.map(doc => doc.data().prices.emerald).filter(p => p !== null),
+    };
+
+    // חישוב ממוצעים עבור כל סוג מטבע אם יש לפחות 3 השערות
+    const averages = {};
+    Object.keys(prices).forEach(currency => {
+      if (prices[currency].length >= 3) {
+        const sum = prices[currency].reduce((a, b) => a + b, 0);
+        averages[currency] = Math.round(sum / prices[currency].length);
+      } else {
+        averages[currency] = null;
+      }
+    });
+
+    setUserAverages(averages);
   };
 
   // טעינת נתונים ראשוניים
   useEffect(() => {
     checkUserVote();
     fetchVoteCounts();
-    fetchUserAverage();
+    fetchUserAverages();
   }, [itemName, currentUser]);
 
   // טיפול בלחיצה על כפתורי ההצבעה
@@ -98,7 +116,7 @@ function PriceOpinion({ itemName, discordAverage }) {
       alert('עליך להירשם כדי להצביע.');
       return;
     }
-    if (!isEmailVerified) { // Restrict voting to email-verified users
+    if (!isEmailVerified) {
       alert('עליך לאמת את כתובת האימייל שלך כדי להצביע.');
       return;
     }
@@ -166,7 +184,7 @@ function PriceOpinion({ itemName, discordAverage }) {
       });
       setAssumptions({ regular: '', gold: '', diamond: '', emerald: '' });
       setShowAssumptionInput(false);
-      fetchUserAverage();
+      fetchUserAverages();
     } catch (err) {
       setError('שגיאה בשמירת ההשערה.');
     }
@@ -175,7 +193,7 @@ function PriceOpinion({ itemName, discordAverage }) {
   return (
     <div className="price-opinion">
       <h4>מה דעתך על המחיר הממוצע של "{itemName}" בדיסקורד?</h4>
-      {currentUser && isEmailVerified ? ( // Restrict voting UI to verified users
+      {currentUser && isEmailVerified ? (
         <div className="vote-buttons">
           <button onClick={() => handleVote('reasonable')} disabled={hasVoted}>
             המחיר הגיוני ({voteCounts.reasonable})
@@ -240,9 +258,21 @@ function PriceOpinion({ itemName, discordAverage }) {
           <button onClick={handleAssumptionSubmit}>שלח</button>
         </div>
       )}
-      {userAverage !== null && (
-        <h4>חברי האתר מעריכים שמחיר המוזהב של "{itemName}" הוא: {userAverage.toLocaleString()} (רגיל)</h4>
+      {/* הצגת ממוצעים עבור כל סוגי המטבעות */}
+      {userAverages.regular !== null && (
+        <h4>חברי האתר מעריכים שמחיר המוזהב של "{itemName}" הוא: {userAverages.regular.toLocaleString()} (רגיל)</h4>
       )}
+      <div className="other-currencies">
+        {userAverages.gold !== null && (
+          <p>חברי האתר מעריכים שמחיר המוזהב של "{itemName}" הוא: {userAverages.gold.toLocaleString()} (זהב)</p>
+        )}
+        {userAverages.diamond !== null && (
+          <p>חברי האתר מעריכים שמחיר המוזהב של "{itemName}" הוא: {userAverages.diamond.toLocaleString()} (יהלום)</p>
+        )}
+        {userAverages.emerald !== null && (
+          <p>חברי האתר מעריכים שמחיר המוזהב של "{itemName}" הוא: {userAverages.emerald.toLocaleString()} (אמרלד)</p>
+        )}
+      </div>
       {error && <p className="error">{error}</p>}
     </div>
   );
