@@ -1,7 +1,8 @@
 // src/app/page.tsx
 import SearchComponent from "./components/SearchComponent";
 // Import DepreciationSummary types, but the component itself will be rendered by SearchComponent
-import { DepreciationStatsDisplay, StatsSourceType } from "./components/DepreciationSummary"; 
+// Removed unused StatsSourceType
+import { DepreciationStatsDisplay } from "./components/DepreciationSummary"; 
 import { fetchAndManageDepreciationStats, getSearchComponentItems, Item as DepreciationItem } from "./lib/depreciationService";
 
 export default async function Home() {
@@ -10,12 +11,13 @@ export default async function Home() {
   const { 
     data: generalDepreciationDataRaw, 
     source: generalStatsSource, 
-    itemFetchError: depreciationServiceItemFetchError 
+    // itemFetchError: depreciationServiceItemFetchError // This part of pageDisplayError is not used.
   } = await fetchAndManageDepreciationStats();
 
   const { items: searchComponentItems, error: searchItemsError } = await getSearchComponentItems();
 
-  const pageDisplayError = searchItemsError || depreciationServiceItemFetchError;
+  // Removed unused pageDisplayError variable
+  // const pageDisplayError = searchItemsError || depreciationServiceItemFetchError;
 
   if (searchItemsError && !searchComponentItems?.length) {
     console.error("Home: Critical error fetching items for SearchComponent:", searchItemsError);
@@ -43,7 +45,10 @@ export default async function Home() {
     diamond_items_count: generalDepreciationDataRaw.diamond_items_count,
     average_emerald_depreciation: generalDepreciationDataRaw.average_emerald_depreciation,
     emerald_items_count: generalDepreciationDataRaw.emerald_items_count,
-    updated_at: 'updated_at' in generalDepreciationDataRaw ? generalDepreciationDataRaw.updated_at : undefined,
+    // Safely access updated_at
+    updated_at: ('updated_at' in generalDepreciationDataRaw && typeof generalDepreciationDataRaw.updated_at === 'string') 
+                ? generalDepreciationDataRaw.updated_at 
+                : undefined,
   };
 
   return (
@@ -59,8 +64,8 @@ export default async function Home() {
       </h1>
       <SearchComponent 
         initialItems={safeItems as DepreciationItem[]} 
-        generalDepreciationStats={generalDisplayStats} // This should be a valid object
-        generalDepreciationSource={generalStatsSource} // This should be a valid string
+        generalDepreciationStats={generalDisplayStats} 
+        generalDepreciationSource={generalStatsSource} 
       />
     </div>
   );

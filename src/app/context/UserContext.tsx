@@ -3,7 +3,7 @@
 
 import React, { createContext, useState, useContext, useEffect, ReactNode, useCallback, useRef } from "react";
 import { supabase } from "../lib/supabaseClient";
-import { User, Session } from "@supabase/supabase-js";
+import { User } from "@supabase/supabase-js"; // Removed unused Session import
 
 export type UserProfile = {
   id: string;
@@ -36,16 +36,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [loadingUserProfile, setLoadingUserProfile] = useState(false);
   const [sessionInitiallyChecked, setSessionInitiallyChecked] = useState(false);
 
-  // Use a ref to track the current user ID to avoid stale closures in onAuthStateChange
   const currentUserIdRef = useRef<string | null>(null);
 
   const fetchUserProfile = useCallback(async (userId: string) => {
-    // console.log(`UserContext: Fetching profile for user ${userId}`);
     setLoadingUserProfile(true);
-    // Clear profile only if the target userId is different from the current profile's userId
-    // This check is more robust if profile state itself is used.
     setProfile(prevProfile => {
-        if (prevProfile?.id === userId) return prevProfile; // Avoid clearing if fetching for the same profile
+        if (prevProfile?.id === userId) return prevProfile;
         return null;
     });
 
@@ -58,61 +54,63 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
       if (profileError) {
         console.error(`UserContext: Error fetching profile for user ${userId}: ${profileError.message}`, profileError);
-        setProfile(null); // Ensure profile is null on error
+        setProfile(null);
       } else {
         setProfile(profileData as UserProfile || null);
       }
-    } catch (e: any) {
-      console.error(`UserContext: Exception fetching profile for user ${userId}: ${e.message}`, e);
-      setProfile(null); // Ensure profile is null on exception
+    } catch (e: unknown) { // Changed from 'any' to 'unknown'
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      console.error(`UserContext: Exception fetching profile for user ${userId}: ${errorMessage}`, e);
+      setProfile(null);
     } finally {
       setLoadingUserProfile(false);
     }
-  }, []); // fetchUserProfile is stable as it doesn't depend on changing state from UserProvider scope directly
+  }, []); 
 
   useEffect(() => {
-    // console.log("UserContext: Mounting. Setting up initial session check and auth listener.");
     setLoadingUserSession(true);
-    setSessionInitiallyChecked(false);
+    // setSessionInitiallyChecked(false); // This was already part of the onAuthStateChange logic for INITIAL_SESSION
 
     supabase.auth.getSession().then(async ({ data: { session }, error: sessionGetError }) => {
       if (sessionGetError) {
         console.error("UserContext: Error in initial getSession():", sessionGetError.message);
       }
       const initialUser = session?.user ?? null;
-      currentUserIdRef.current = initialUser?.id ?? null; // Update ref
+      currentUserIdRef.current = initialUser?.id ?? null;
       setUser(initialUser);
       
       if (initialUser) {
         await fetchUserProfile(initialUser.id);
       } else {
         setProfile(null);
-        setLoadingUserProfile(false);
+        setLoadingUserProfile(false); 
       }
       setLoadingUserSession(false);
-      setSessionInitiallyChecked(true);
+      if (!sessionInitiallyChecked) { // Set only if not already set by onAuthStateChange quickly
+        setSessionInitiallyChecked(true);
+      }
     }).catch(err => {
-        console.error("UserContext: Catch block for initial getSession():", err);
-        currentUserIdRef.current = null; // Update ref
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        console.error("UserContext: Catch block for initial getSession():", errorMessage);
+        currentUserIdRef.current = null;
         setUser(null);
         setProfile(null);
         setLoadingUserSession(false);
         setLoadingUserProfile(false);
-        setSessionInitiallyChecked(true);
+        if (!sessionInitiallyChecked) {
+         setSessionInitiallyChecked(true);
+        }
     });
 
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        // console.log("UserContext: onAuthStateChange event:", event, "session:", session);
-        
         const newAuthUser = session?.user ?? null;
         const newUserId = newAuthUser?.id ?? null;
-        const previousUserId = currentUserIdRef.current; // Use ref for the most recent user ID
+        const previousUserId = currentUserIdRef.current;
 
         if (newUserId !== previousUserId) {
-          // console.log(`UserContext: User identity changed. Event: ${event}. From ${previousUserId} to ${newUserId}`);
-          setLoadingUserSession(true); // Indicate session change processing
-          currentUserIdRef.current = newUserId; // Update ref immediately
+          setLoadingUserSession(true); 
+          currentUserIdRef.current = newUserId;
           setUser(newAuthUser); 
 
           if (newAuthUser) {
@@ -123,18 +121,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
           }
           setLoadingUserSession(false);
         } else if (newAuthUser && event === "USER_UPDATED") {
-          // console.log(`UserContext: User updated. Event: ${event}. User: ${newUserId}`);
           setUser(newAuthUser); 
           await fetchUserProfile(newAuthUser.id); 
         } else if (newAuthUser && event === "TOKEN_REFRESHED") {
-          // console.log(`UserContext: Token refreshed. Event: ${event}. User: ${newUserId}`);
           setUser(newAuthUser); 
-          // No need to trigger loading states if user identity is the same and profile is presumably current
           setLoadingUserSession(false);
           setLoadingUserProfile(false);
         } else if (!newAuthUser && previousUserId) {
-            // This case might occur if a SIGNED_OUT event happens but newUserId was already null (e.g. multiple events)
-            // console.log(`UserContext: User signed out (event without session but previous user existed). Event: ${event}`);
             currentUserIdRef.current = null;
             setUser(null);
             setProfile(null);
@@ -142,6 +135,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
             setLoadingUserProfile(false);
         }
         
+        // Ensure sessionInitiallyChecked is set reliably after the first relevant event
         if (!sessionInitiallyChecked && (event === "INITIAL_SESSION" || event === "SIGNED_IN" || (event === "SIGNED_OUT" && !newAuthUser))) {
             setSessionInitiallyChecked(true);
         }
@@ -151,26 +145,22 @@ export function UserProvider({ children }: { children: ReactNode }) {
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [fetchUserProfile]); // Main useEffect depends only on the stable fetchUserProfile
+  }, [fetchUserProfile, sessionInitiallyChecked]); // Added sessionInitiallyChecked to dependency array
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
       console.error("UserContext: Error during sign out:", error.message);
-      // Fallback: if signOut errors, ensure states are cleared
       currentUserIdRef.current = null;
       setUser(null);
       setProfile(null);
       setLoadingUserSession(false);
       setLoadingUserProfile(false);
     }
-    // onAuthStateChange will typically handle setting user to null.
   };
 
   const overallIsLoading = !sessionInitiallyChecked || loadingUserSession || (!!user && loadingUserProfile);
-
-  // console.log(`UserContext Render: isLoading: ${overallIsLoading} (sessionChecked: ${sessionInitiallyChecked}, loadingSession: ${loadingUserSession}, userExists: ${!!user}, loadingProfile: ${loadingUserProfile}), User: ${user?.id}, Profile: ${profile?.username}`);
-  
+ 
   return (
     <UserContext.Provider value={{
       user,

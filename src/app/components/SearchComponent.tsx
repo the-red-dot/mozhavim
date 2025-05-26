@@ -59,7 +59,7 @@ export default function SearchComponent({
   const [viewDiscord, setView] = useState(true);
   const [assumps, setAssumps] = useState<Assumption[]>([]);
   const box = useRef<HTMLDivElement>(null);
-  const [imageHasError, setImageHasError] = useState(false); // State for image error
+  const [imageHasError, setImageHasError] = useState(false);
 
   useEffect(() => {
     if (!term.trim()) {
@@ -103,7 +103,6 @@ export default function SearchComponent({
 
   const firstSelectedItem = itemsForSel[0];
 
-  // Reset image error state when the selected item or its image changes
   useEffect(() => {
     setImageHasError(false);
   }, [firstSelectedItem?.image]);
@@ -172,14 +171,13 @@ export default function SearchComponent({
     };
   }, [blended.final, generalDepreciationStats]);
 
-  // Define price lines for cleaner rendering
   const priceLinesToDisplay = useMemo(() => {
     const lines = [
       {
         key: 'final',
         label: 'מחיר סופי (רגיל):',
         value: blended.final,
-        valueClassName: '', // Default class for 'regular' price value
+        valueClassName: '',
         condition: blended.final !== null,
       },
       {
@@ -247,19 +245,19 @@ export default function SearchComponent({
               imageHasError ? (
                 <Image
                   className="item-image"
-                  src="https://placehold.co/200x150/1a1a1a/ededed?text=Error" // Fallback image
+                  src="https://placehold.co/200x150/1a1a1a/ededed?text=Error"
                   alt={firstSelectedItem.name ? `${firstSelectedItem.name} (תמונה לא זמינה)` : "תמונה לא זמינה"}
                   width={200}
                   height={150}
-                  unoptimized={true} // Placeholder might not need optimization
+                  unoptimized={true}
                 />
               ) : (
                 <Image
                   className="item-image"
                   src={firstSelectedItem.image}
                   alt={firstSelectedItem.name || "תמונת פריט"}
-                  width={200} // Specify your desired width
-                  height={150} // Specify your desired height
+                  width={200}
+                  height={150}
                   onError={() => {
                     setImageHasError(true);
                   }}
@@ -270,7 +268,6 @@ export default function SearchComponent({
             )}
             <p>{firstSelectedItem.description || "אין תיאור זמין"}</p>
 
-            {/* === MODIFIED PRICE DISPLAY AREA START === */}
             {priceLinesToDisplay.length > 0 && (
               <div className="item-average-container">
                 {priceLinesToDisplay.map((line) => (
@@ -287,7 +284,6 @@ export default function SearchComponent({
                 </div>
               </div>
             )}
-            {/* === MODIFIED PRICE DISPLAY AREA END === */}
           </div>
 
           {generalDepreciationStats && generalDepreciationSource ? (
@@ -366,7 +362,8 @@ export default function SearchComponent({
 
       {!sel && term.trim() && !sugs.length && (
         <div style={{ marginTop: '20px', textAlign: 'center', color: '#aaa' }}>
-          לא נמצאו פריטים תואמים עבור "{term}".
+          {/* Corrected line for unescaped entities */}
+          לא נמצאו פריטים תואמים עבור "{`${term}`}".
         </div>
       )}
     </div>

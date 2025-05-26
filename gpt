@@ -1207,15 +1207,35 @@ Folder: src
                 // src/app/admin/page.tsx
                 "use client";
                 
-                import { useState, useEffect } from "react";
+                import { useState } from "react"; // Removed useEffect
                 import { supabase } from "../lib/supabaseClient";
                 import { useUser } from "../context/UserContext";
                 import { revalidateItemsCacheAction } from "../actions";
                 import Link from "next/link"; // Import Link for navigation
                 
                 /* -------------------------------------------------
-                  1️⃣  free‑form key → column mapping (Hebrew)
+                  1️⃣  Type Definitions & Mappings
                 -------------------------------------------------- */
+                
+                // Interface for the data structure after parsing (free-form or JSON)
+                interface ParsedItemData {
+                  name?: string | null;
+                  buyregular?: string | null;
+                  buygold?: string | null;
+                  buydiamond?: string | null;
+                  buyemerald?: string | null;
+                  sellregular?: string | null;
+                  sellgold?: string | null;
+                  selldiamond?: string | null;
+                  sellemerald?: string | null;
+                  publisher?: string | null;
+                  date?: string | null; // Assuming date is initially a string from input
+                  image?: string | null;
+                  description?: string | null;
+                  // Allow other potential keys from parsing, ensuring values are string or null
+                  [key: string]: string | null | undefined;
+                }
+                
                 const fieldMapping: Record<string, string> = {
                   "שם מוזהב": "name",
                   "קנייה (רגיל)": "buyregular",
@@ -1242,24 +1262,28 @@ Folder: src
                 /* -------------------------------------------------
                   2️⃣  helpers — parse free text / JSON
                 -------------------------------------------------- */
-                function normalizeJsonRecord(record: any): any {
-                  const out: any = {};
+                
+                function normalizeJsonRecord(record: Record<string, unknown> | null | undefined): ParsedItemData {
+                  const intermediateOut: Record<string, string | null> = {};
                   if (typeof record !== 'object' || record === null) {
                     return {};
                   }
                   for (const [k, v] of Object.entries(record)) {
-                    const key = String(k).replace(/\s/g, "").toLowerCase(); // Ensure k is string
-                    out[key] = v;
+                    const key = String(k).replace(/\s/g, "").toLowerCase(); // Ensure k is string and normalized
+                    intermediateOut[key] = v === "" || v === "אין נתון" || v === undefined ? null : String(v);
                   }
-                  const filtered: any = {};
-                  for (const k of Object.keys(out)) {
-                    if (allowedFields.includes(k)) filtered[k] = out[k];
+                
+                  const filtered: ParsedItemData = {};
+                  for (const k of Object.keys(intermediateOut)) {
+                    if (allowedFields.includes(k)) {
+                      filtered[k as keyof ParsedItemData] = intermediateOut[k];
+                    }
                   }
                   return filtered;
                 }
                 
-                function parseFreeForm(data: string): any {
-                  const out: any = {};
+                function parseFreeForm(data: string): ParsedItemData {
+                  const out: ParsedItemData = {};
                   if (typeof data !== 'string') return out;
                   for (const line of data.split("\n")) {
                     const parts = line.split(":");
@@ -1267,12 +1291,14 @@ Folder: src
                     const key = parts[0].trim();
                     const val = parts.slice(1).join(":").trim();
                     const col = fieldMapping[key];
-                    if (col) out[col] = val === "" || val === "אין נתון" ? null : val;
+                    if (col && allowedFields.includes(col)) { // Ensure col is an allowed field
+                        out[col as keyof ParsedItemData] = val === "" || val === "אין נתון" ? null : val;
+                    }
                   }
                   return out;
                 }
                 
-                function parseJsonObjects(block: string): any[] {
+                function parseJsonObjects(block: string): ParsedItemData[] {
                   if (typeof block !== 'string') return [];
                   const regex = /{[\s\S]*?}/g;
                   let matches: string[] = [];
@@ -1281,49 +1307,46 @@ Folder: src
                     if (regexMatches) {
                       matches = regexMatches;
                     }
-                  } catch (e) {
-                    // console.warn("Regex match failed for JSON parsing:", e);
+                  } catch (_e) { // Marked as unused
+                    // console.warn("Regex match failed for JSON parsing:", (_e as Error).message);
                   }
                   return matches
                     .map((m: string) => {
-                      try { return JSON.parse(m); }
-                      catch (e) {
+                      try {
+                        return JSON.parse(m) as Record<string, unknown>; // Parse to generic object
+                      }
+                      catch (_e) { // Marked as unused
                         return null;
                       }
                     })
-                    .filter(record => record !== null && typeof record === 'object')
-                    .map(normalizeJsonRecord);
+                    .filter((record): record is Record<string, unknown> => record !== null && typeof record === 'object')
+                    .map(normalizeJsonRecord); // normalizeJsonRecord handles Record<string, unknown>
                 }
                 
-                function parseRecords(text: string): any[] {
+                function parseRecords(text: string): ParsedItemData[] {
                   if (typeof text !== 'string') return [];
                   const trimmed = text.trim();
                   if (!trimmed) return [];
                 
-                  // Favor free-form if "שם מוזהב:" is present, as it's a strong indicator.
                   if (trimmed.includes("שם מוזהב:")) {
                     return trimmed.split(/\n\s*\n/).filter(Boolean).map(parseFreeForm);
                   }
                 
-                  // Try JSON parsing if it looks like JSON (array or object).
                   const firstChar = trimmed[0];
                   if (firstChar === "{" || firstChar === "[") {
                     try {
                       const obj = JSON.parse(trimmed);
-                      const arr = Array.isArray(obj) ? obj : [obj];
-                      // Check if the parsed result is an array of objects before mapping
+                      const arr = (Array.isArray(obj) ? obj : [obj]) as Record<string, unknown>[];
                       if (arr.every(record => typeof record === 'object' && record !== null)) {
                         return arr.map(normalizeJsonRecord);
                       }
                     } catch {
-                      // If JSON.parse fails, try to parse as a block of multiple JSON objects
                       const arrFromObjects = parseJsonObjects(trimmed);
                       if (arrFromObjects.length > 0 && arrFromObjects.some(obj => Object.keys(obj).length > 0)) {
                         return arrFromObjects;
                       }
                     }
                   }
-                  // Fallback to free-form if not clearly multi-record JSON or if specific key isn't found
                   return trimmed.split(/\n\s*\n/).filter(Boolean).map(parseFreeForm);
                 }
                 
@@ -1338,7 +1361,7 @@ Folder: src
                   const [error, setError] = useState("");
                   const [isPublishing, setIsPublishing] = useState(false);
                 
-                  async function getDefinitionId(rec: any): Promise<string | null> {
+                  async function getDefinitionId(rec: ParsedItemData): Promise<string | null> {
                     const name = rec.name?.trim();
                     if (!name) {
                       console.error("getDefinitionId: Record is missing a name.", rec);
@@ -1372,14 +1395,13 @@ Folder: src
                   }
                 
                   const handlePublish = async () => {
-                    // Gatekeeping for user status is handled by the main component render logic
                     if (isPublishing || isLoading || !user || !profile?.is_admin) return;
                 
                     setIsPublishing(true);
                     setMessage("");
                     setError("");
                 
-                    const records = parseRecords(inputData);
+                    const records: ParsedItemData[] = parseRecords(inputData);
                     if (!records.length || records.every(r => Object.keys(r).length === 0)) {
                       setError("לא נמצאו רשומות תקינות לייבוא מהטקסט שהוזן, או שהרשומות ריקות.");
                       setIsPublishing(false);
@@ -1392,7 +1414,7 @@ Folder: src
                     let successfullyPublishedAtLeastOne = false;
                 
                     for (const rec of records) {
-                      if (Object.keys(rec).length === 0) { // Skip fully empty records after parsing
+                      if (Object.keys(rec).length === 0) {
                           failCount++;
                           failMessages.push("רשומה ריקה זוהתה ודולגה.");
                           continue;
@@ -1415,7 +1437,7 @@ Folder: src
                         .select("id")
                         .eq("item_id", definitionId)
                         .eq("publisher", rec.publisher ?? null)
-                        .eq("date", rec.date ?? null)
+                        .eq("date", rec.date ?? null) // Ensure date is in ISO format if your DB expects a date/timestamp
                         .maybeSingle();
                 
                       if (duplicateCheckError) {
@@ -1442,8 +1464,8 @@ Folder: src
                         sellgold: rec.sellgold ?? null,
                         selldiamond: rec.selldiamond ?? null,
                         sellemerald: rec.sellemerald ?? null,
-                        date: rec.date ?? null,
-                        admin_id: user.id, // user is guaranteed to be non-null here due to page gate
+                        date: rec.date ?? null, // Consider converting to ISO string if needed: rec.date ? new Date(rec.date).toISOString() : null
+                        admin_id: user.id,
                       };
                 
                       const { error: insertError } = await supabase
@@ -1477,17 +1499,16 @@ Folder: src
                     }
                 
                     if (failCount === 0 && okCount > 0) {
-                      setInputData(""); // Clear input only if all were successful
+                      setInputData("");
                     }
                 
                     if (successfullyPublishedAtLeastOne) {
                       try {
-                        // console.log("Admin Page: Calling revalidateItemsCacheAction Server Action...");
                         await revalidateItemsCacheAction();
                         setMessage(prev => prev + " • ✅ מטמון הפריטים באתר התעדכן.");
-                        // console.log("Admin Page: Server Action for cache revalidation completed.");
-                      } catch (revalError: any) {
-                        console.error("Admin Page: Calling Server Action for cache revalidation failed:", revalError.message);
+                      } catch (revalError: unknown) { // Typed as unknown
+                        const errorMessage = revalError instanceof Error ? revalError.message : String(revalError);
+                        console.error("Admin Page: Calling Server Action for cache revalidation failed:", errorMessage);
                         setMessage(prev => prev + " • ⚠️ שגיאה בעדכון מטמון הפריטים באתר.");
                       }
                     }
@@ -1504,8 +1525,6 @@ Folder: src
                     );
                   }
                 
-                  // After initial loading (isLoading is false), sessionInitiallyChecked should be true.
-                  // If not, it implies an unexpected state, but typically covered by isLoading.
                   if (!sessionInitiallyChecked) {
                       return (
                            <div className="admin-post-creation" style={{ marginTop: "2rem", textAlign: "center", color: "var(--foreground)" }}>
@@ -1531,7 +1550,6 @@ Folder: src
                       );
                   }
                 
-                  // User is logged in and is an admin
                   const publishButtonText = isPublishing ? "מפרסם..." : "פרסם פריטים";
                 
                   return (
@@ -1553,26 +1571,25 @@ Folder: src
                 מכירה (יהלום): 300`}
                         value={inputData}
                         onChange={(e) => setInputData(e.target.value)}
-                        className="title-input" // Ensure this class exists and is styled in globals.css
-                        style={{ 
-                            width: "100%", 
-                            minHeight: "250px", 
-                            marginBottom: "1rem", 
-                            whiteSpace: "pre-wrap", 
-                            textAlign: "right", 
-                            direction: "rtl", 
-                            padding: "10px", 
+                        className="title-input"
+                        style={{
+                            width: "100%",
+                            minHeight: "250px",
+                            marginBottom: "1rem",
+                            whiteSpace: "pre-wrap",
+                            textAlign: "right",
+                            direction: "rtl",
+                            padding: "10px",
                             boxSizing: "border-box",
-                            backgroundColor: "var(--background-input, #1f1f1f)", // Example input background
-                            color: "var(--foreground-input, #ededed)", // Example input text color
-                            border: "1px solid var(--border-color, #444)", // Example border
+                            backgroundColor: "var(--background-input, #1f1f1f)",
+                            color: "var(--foreground-input, #ededed)",
+                            border: "1px solid var(--border-color, #444)",
                             borderRadius: "4px"
                         }}
                       />
-                      <button 
-                        onClick={handlePublish} 
+                      <button
+                        onClick={handlePublish}
                         disabled={isPublishing || !inputData.trim()}
-                        // Ensure button styles are present in globals.css or defined inline
                         style={{
                             padding: "0.75rem 1.5rem",
                             backgroundColor: (isPublishing || !inputData.trim()) ? "#555" : "#4285f4",
@@ -1861,7 +1878,7 @@ Folder: src
                 File: route.ts
                     Code:
                     // src/app/api/create-user/route.ts
-                    import { createClient, SupabaseClient } from '@supabase/supabase-js';
+                    import { createClient, SupabaseClient, AuthError, PostgrestError, AuthApiError } from '@supabase/supabase-js'; // Added AuthApiError
                     import { NextResponse } from 'next/server';
                     import { headers } from 'next/headers';
                     import crypto from 'crypto';
@@ -1877,7 +1894,7 @@ Folder: src
                     });
                     
                     const getClientIp = async (): Promise<string | null> => {
-                      const headersList = await headers(); // Await as per TypeScript's inference in your environment
+                      const headersList = await headers(); // Reverted: Added await back
                       const xForwardedFor = headersList.get('x-forwarded-for');
                       if (xForwardedFor) {
                         return xForwardedFor.split(',')[0].trim();
@@ -1904,14 +1921,13 @@ Folder: src
                           console.warn('Could not determine client IP for rate limiting. Allowing registration for now.');
                         } else {
                           const ipHash = hashIP(clientIp);
-                          // --- MODIFIED FOR TESTING: 3 minutes instead of 7 days ---
                           const threeMinutesAgo = new Date(Date.now() - 3 * 60 * 1000).toISOString();
                     
                           const { count, error: ipCheckError } = await supabaseAdmin
                             .from('username_ip_registrations')
                             .select('*', { count: 'exact', head: true })
                             .eq('ip_hash', ipHash)
-                            .gte('created_at', threeMinutesAgo); // Use threeMinutesAgo for check
+                            .gte('created_at', threeMinutesAgo);
                     
                           if (ipCheckError) {
                             console.error('Error checking IP registration history:', ipCheckError);
@@ -1919,10 +1935,9 @@ Folder: src
                           }
                     
                           if (count !== null && count > 0) {
-                            // --- MODIFIED USER MESSAGE: More generic ---
                             return NextResponse.json(
                               { error: 'ניסיונות רישום מרובים זוהו. אנא נסה שוב מאוחר יותר.' },
-                              { status: 429 } // 429 Too Many Requests
+                              { status: 429 }
                             );
                           }
                         }
@@ -1933,7 +1948,7 @@ Folder: src
                     
                         if (rpcError) {
                           console.error('Error calling check_username_exists RPC:', rpcError);
-                          throw rpcError;
+                          throw new Error(`RPC Error: ${rpcError.message}`); // Throw a generic error
                         }
                         if (usernameExists) {
                           return NextResponse.json({ error: 'שם משתמש כבר קיים' }, { status: 400 });
@@ -1988,26 +2003,50 @@ Folder: src
                     
                         return NextResponse.json({ message: 'המשתמש נוצר ואומת בהצלחה!', userId });
                     
-                      } catch (error: any) {
+                      } catch (error: unknown) {
                         console.error('Unhandled error in create-user route:', error);
                         let errorMessage = 'אירעה שגיאה פנימית בשרת.';
-                        if (error.message) {
-                            if (error.message.includes('duplicate key value violates unique constraint') && (error.message.includes('profiles_username_key') || error.message.includes('unique_username'))) {
+                        let statusCode = 500;
+                    
+                        if (error instanceof AuthApiError) { // Check for AuthApiError first as it has a status
+                            errorMessage = error.message;
+                            statusCode = error.status; // Safe to access status here
+                        } else if (error instanceof AuthError) { // Handle other AuthErrors
+                            errorMessage = error.message;
+                            // statusCode remains 500 or could be set based on specific messages below
+                        } else if (error instanceof PostgrestError) { // Handle PostgrestErrors
+                            errorMessage = error.message;
+                            // PostgrestError doesn't have a .status property in its type.
+                            // statusCode will be set by specific message checks below if applicable.
+                        } else if (error instanceof Error) { // Handle generic JavaScript errors
+                            errorMessage = error.message;
+                        } else if (typeof error === 'string') { // Handle cases where a string might have been thrown
+                            errorMessage = error;
+                        }
+                        
+                        // Refine messages and statusCodes based on known error message patterns
+                        // These checks apply after initial determination from error type
+                        if (typeof errorMessage === 'string') { // Ensure errorMessage is a string before .includes
+                            if (errorMessage.includes('duplicate key value violates unique constraint') && (errorMessage.includes('profiles_username_key') || errorMessage.includes('unique_username'))) {
                                 errorMessage = 'שם משתמש כבר קיים.';
-                            } else if (error.message.includes("User already registered") || error.message.includes("already exists")) {
+                                statusCode = 409; // Conflict is more appropriate
+                            } else if (errorMessage.includes("User already registered") || errorMessage.includes("already exists")) {
                                  errorMessage = 'משתמש עם אימייל זה (או שם משתמש מקושר) כבר קיים.';
-                            } else if (error.message.includes('check_username_exists')) {
+                                 statusCode = 400;
+                            } else if (errorMessage.includes('check_username_exists') || errorMessage.includes('RPC Error')) {
                                 errorMessage = 'שגיאה בבדיקת זמינות שם המשתמש.';
+                                // Keep previously set statusCode or default 500
                             }
                         }
-                        const status = typeof error.status === 'number' ? error.status : 500;
-                        return NextResponse.json({ error: errorMessage }, { status });
+                        
+                        return NextResponse.json({ error: errorMessage }, { status: statusCode });
                       }
                     }
 
         Folder: auth
             File: page.tsx
                 Code:
+                // src/app/auth/page.tsx
                 "use client";
                 
                 import { useState } from "react";
@@ -2072,16 +2111,17 @@ Folder: src
                       });
                       const result = await response.json();
                       if (!response.ok) {
-                        setMessage(result.error);
+                        setMessage(result.error || "אירעה שגיאה ברישום"); // Provide a fallback error message
                       } else {
                         setMessage("נרשמת בהצלחה! אתה יכול להתחבר עכשיו.");
                       }
                     } else {
                       // Register with real email
-                      const { data, error } = await supabase.auth.signUp({
+                      // FIX: Renamed 'data' to '_data' as it was not used.
+                      const { data: _data, error } = await supabase.auth.signUp({
                         email: emailOrUsername,
                         password,
-                        options: { data: { username } },
+                        options: { data: { username } }, // 'username' here is from the component's state
                       });
                       if (error) {
                         setMessage(error.message);
@@ -2094,6 +2134,11 @@ Folder: src
                   const handlePasswordReset = async (e: React.FormEvent) => {
                     e.preventDefault();
                     setMessage("");
+                    // Ensure emailOrUsername is provided for password reset if it's not empty.
+                    if (!emailOrUsername.trim()) {
+                        setMessage("אנא הזן אימייל לשחזור סיסמה.");
+                        return;
+                    }
                     const { error } = await supabase.auth.resetPasswordForEmail(emailOrUsername);
                     if (error) {
                       setMessage(error.message);
@@ -2107,12 +2152,13 @@ Folder: src
                       <h2>{mode === "login" ? "התחברות" : "רישום"}</h2>
                       <form onSubmit={mode === "login" ? handleLogin : handleRegister}>
                         <label>
-                          {mode === "login" ? "אימייל או שם משתמש:" : "אימייל (אופציונלי):"}
+                          {mode === "login" ? "אימייל או שם משתמש:" : "אימייל (אופציונלי, השאר ריק לרישום עם שם משתמש בלבד):"}
                           <input
                             type="text"
                             value={emailOrUsername}
                             onChange={(e) => setEmailOrUsername(e.target.value)}
-                            required={mode === "login"}
+                            placeholder={mode === "register" ? "example@example.com" : "אימייל או שם משתמש"}
+                            required={mode === "login"} // Email/Username is required for login
                           />
                         </label>
                         {mode === "register" && (
@@ -2122,7 +2168,7 @@ Folder: src
                               type="text"
                               value={username}
                               onChange={(e) => setUsername(e.target.value)}
-                              required
+                              required // Username is always required for registration
                             />
                           </label>
                         )}
@@ -2145,7 +2191,14 @@ Folder: src
                       {message && <p className="auth-message">{message}</p>}
                       <div className="auth-toggle">
                         <span>{mode === "login" ? "אין לך חשבון?" : "כבר יש לך חשבון?"}</span>
-                        <button onClick={() => setMode(mode === "login" ? "register" : "login")}>
+                        <button onClick={() => {
+                          setMode(mode === "login" ? "register" : "login");
+                          setMessage(""); // Clear message when toggling mode
+                          // Optionally clear form fields as well
+                          // setEmailOrUsername("");
+                          // setUsername("");
+                          // setPassword("");
+                        }}>
                           {mode === "login" ? "הרשם" : "התחבר"}
                         </button>
                       </div>
@@ -2872,6 +2925,7 @@ Folder: src
                 "use client";
                 
                 import { useState, useEffect, useRef, useMemo } from "react";
+                import Image from 'next/image'; // Import the Next.js Image component
                 import PriceOpinion from "./PriceOpinion";
                 import { supabase } from "../lib/supabaseClient";
                 import {
@@ -2880,10 +2934,10 @@ Folder: src
                   consensusStats,
                   blendPrices,
                 } from "../utils/pricing";
-                import DepreciationSummary, { 
-                  DepreciationStatsDisplay, 
-                  StatsSourceType as DepreciationStatsSourceType 
-                } from "./DepreciationSummary"; 
+                import DepreciationSummary, {
+                  DepreciationStatsDisplay,
+                  StatsSourceType as DepreciationStatsSourceType
+                } from "./DepreciationSummary";
                 import { Item as DepreciationItemFromService } from "../lib/depreciationService";
                 
                 type Item = DepreciationItemFromService;
@@ -2916,10 +2970,10 @@ Folder: src
                     return Number.isFinite(price) && date && !Number.isNaN(+date) ? [{ price, date }] : [];
                   });
                 
-                export default function SearchComponent({ 
-                  initialItems, 
-                  generalDepreciationStats, 
-                  generalDepreciationSource 
+                export default function SearchComponent({
+                  initialItems,
+                  generalDepreciationStats,
+                  generalDepreciationSource
                 }: Props) {
                   const [term, setTerm] = useState("");
                   const [sugs, setSugs] = useState<string[]>([]);
@@ -2928,6 +2982,7 @@ Folder: src
                   const [viewDiscord, setView] = useState(true);
                   const [assumps, setAssumps] = useState<Assumption[]>([]);
                   const box = useRef<HTMLDivElement>(null);
+                  const [imageHasError, setImageHasError] = useState(false); // State for image error
                 
                   useEffect(() => {
                     if (!term.trim()) {
@@ -2941,11 +2996,11 @@ Folder: src
                       return;
                     }
                     if (sel && term !== sel) {
-                        setSel(null);
+                      setSel(null);
                     }
-                    
+                
                     const uniqueNames = [...new Set(initialItems.map((i) => i.name))];
-                    const matchingSuggestions = uniqueNames.filter((name) => 
+                    const matchingSuggestions = uniqueNames.filter((name) =>
                       name.toLowerCase().includes(term.toLowerCase())
                     );
                     setSugs(matchingSuggestions);
@@ -2963,6 +3018,19 @@ Folder: src
                       document.removeEventListener("mousedown", handleClickOutside);
                     };
                   }, []);
+                
+                  const itemsForSel = useMemo(
+                    () => (sel ? initialItems.filter((i) => i.name === sel) : []),
+                    [sel, initialItems]
+                  );
+                
+                  const firstSelectedItem = itemsForSel[0];
+                
+                  // Reset image error state when the selected item or its image changes
+                  useEffect(() => {
+                    setImageHasError(false);
+                  }, [firstSelectedItem?.image]);
+                
                 
                   useEffect(() => {
                     if (!sel) {
@@ -2983,10 +3051,6 @@ Folder: src
                     })();
                   }, [sel]);
                 
-                  const itemsForSel = useMemo(
-                    () => (sel ? initialItems.filter((i) => i.name === sel) : []),
-                    [sel, initialItems]
-                  );
                 
                   const discordStats = useMemo(() => {
                     const pts = toQuotePoints(itemsForSel);
@@ -3005,7 +3069,6 @@ Folder: src
                     [discordStats, communityStats]
                   );
                 
-                  const firstSelectedItem = itemsForSel[0];
                 
                   const calculatedTierPrices = useMemo(() => {
                     if (!blended.final || !generalDepreciationStats) {
@@ -3013,18 +3076,18 @@ Folder: src
                     }
                 
                     const basePrice = blended.final;
-                    const { 
-                      average_gold_depreciation, 
-                      average_diamond_depreciation, 
-                      average_emerald_depreciation 
+                    const {
+                      average_gold_depreciation,
+                      average_diamond_depreciation,
+                      average_emerald_depreciation
                     } = generalDepreciationStats;
                 
                     const calculateTierPrice = (multiplier: number, depreciation: number | null) => {
                       if (depreciation === null || isNaN(depreciation)) return null;
-                      const effectiveDepreciation = Math.min(Math.max(depreciation, -200), 100); 
+                      const effectiveDepreciation = Math.min(Math.max(depreciation, -200), 100);
                       return Math.round((basePrice * multiplier) * (1 - (effectiveDepreciation / 100)));
                     };
-                    
+                
                     return {
                       gold: calculateTierPrice(4, average_gold_depreciation),
                       diamond: calculateTierPrice(16, average_diamond_depreciation),
@@ -3089,7 +3152,7 @@ Folder: src
                               key={n}
                               onClick={() => {
                                 setSel(n);
-                                setTerm(n); 
+                                setTerm(n);
                                 showDrop(false);
                               }}
                             >
@@ -3104,17 +3167,32 @@ Folder: src
                           <div className="item-representation">
                             <h2>{firstSelectedItem.name}</h2>
                             {firstSelectedItem.image ? (
-                              <img
-                                className="item-image"
-                                src={firstSelectedItem.image}
-                                alt={firstSelectedItem.name}
-                                onError={(e) => (e.currentTarget.src = "https://placehold.co/200x150/1a1a1a/ededed?text=Error")}
-                              />
+                              imageHasError ? (
+                                <Image
+                                  className="item-image"
+                                  src="https://placehold.co/200x150/1a1a1a/ededed?text=Error" // Fallback image
+                                  alt={firstSelectedItem.name ? `${firstSelectedItem.name} (תמונה לא זמינה)` : "תמונה לא זמינה"}
+                                  width={200}
+                                  height={150}
+                                  unoptimized={true} // Placeholder might not need optimization
+                                />
+                              ) : (
+                                <Image
+                                  className="item-image"
+                                  src={firstSelectedItem.image}
+                                  alt={firstSelectedItem.name || "תמונת פריט"}
+                                  width={200} // Specify your desired width
+                                  height={150} // Specify your desired height
+                                  onError={() => {
+                                    setImageHasError(true);
+                                  }}
+                                />
+                              )
                             ) : (
                               <p>אין תמונה זמינה</p>
                             )}
                             <p>{firstSelectedItem.description || "אין תיאור זמין"}</p>
-                            
+                
                             {/* === MODIFIED PRICE DISPLAY AREA START === */}
                             {priceLinesToDisplay.length > 0 && (
                               <div className="item-average-container">
@@ -3136,9 +3214,9 @@ Folder: src
                           </div>
                 
                           {generalDepreciationStats && generalDepreciationSource ? (
-                            <DepreciationSummary 
-                              stats={generalDepreciationStats} 
-                              source={generalDepreciationSource} 
+                            <DepreciationSummary
+                              stats={generalDepreciationStats}
+                              source={generalDepreciationSource}
                             />
                           ) : (
                             <div style={{ marginTop: '30px', textAlign: 'center', color: 'orange', padding: '10px', border: '1px dashed orange', borderRadius: '8px' }}>

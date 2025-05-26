@@ -1,5 +1,5 @@
 // src/app/lib/depreciationService.ts
-import { supabase } from "./supabaseClient"; // Assuming supabaseClient is in the same lib folder
+import { supabase } from "./supabaseClient";
 import { unstable_cache as nextCache } from 'next/cache';
 
 // Constants
@@ -30,11 +30,11 @@ export interface DepreciationStats {
   id: string;
   total_items_from_source: number;
   items_with_valid_regular_price: number;
-  average_gold_depreciation: number;
+  average_gold_depreciation: number; // Assuming this can be 0 if no items, not null
   gold_items_count: number;
-  average_diamond_depreciation: number;
+  average_diamond_depreciation: number; // Assuming this can be 0 if no items, not null
   diamond_items_count: number;
-  average_emerald_depreciation: number;
+  average_emerald_depreciation: number; // Assuming this can be 0 if no items, not null
   emerald_items_count: number;
   updated_at: string; // ISO string date
 }
@@ -65,9 +65,9 @@ const getCachedItems = nextCache(
       return { items: [], error: error.message };
     }
     console.log("depreciationService.getCachedItems: Fetched", data?.length || 0, "rows for cache.");
-    return { items: data as Item[], error: null };
+    return { items: data as Item[] || [], error: null }; // Ensure items is always an array
   },
-  ['items_flat_data_v1'], // Cache key should be unique if this function is defined elsewhere too
+  ['items_flat_data_v1'],
   {
     tags: ['items'],
   }
@@ -75,9 +75,10 @@ const getCachedItems = nextCache(
 
 const calculateDepreciationSummary = (items: Item[]): NewDepreciationStats => {
   console.log("\ndepreciationService.calculateDepreciationSummary: START CALCULATION");
-  let allGoldDepreciations: number[] = [];
-  let allDiamondDepreciations: number[] = [];
-  let allEmeraldDepreciations: number[] = [];
+  // Changed let to const as these arrays are mutated but not reassigned
+  const allGoldDepreciations: number[] = [];
+  const allDiamondDepreciations: number[] = [];
+  const allEmeraldDepreciations: number[] = [];
   let itemsWithAnyCalculableData = 0;
 
   if (!items || items.length === 0) {
@@ -94,7 +95,7 @@ const calculateDepreciationSummary = (items: Item[]): NewDepreciationStats => {
     };
   }
 
-  items.forEach((item) => { // Removed index as it wasn't used inside after item.id was preferred
+  items.forEach((item) => {
     const regularPrice = parsePrice(item.buyregular);
     const actualGoldPrice = parsePrice(item.buygold);
     const actualDiamondPrice = parsePrice(item.buydiamond);
@@ -107,15 +108,15 @@ const calculateDepreciationSummary = (items: Item[]): NewDepreciationStats => {
       const theoreticalMaxDiamond = regularPrice * 16;
       const theoreticalMaxEmerald = regularPrice * 64;
 
-      if (actualGoldPrice !== null) {
+      if (actualGoldPrice !== null && theoreticalMaxGold > 0) { // Avoid division by zero
         const depreciation = 100 * (1 - actualGoldPrice / theoreticalMaxGold);
         if (!isNaN(depreciation) && isFinite(depreciation)) allGoldDepreciations.push(depreciation);
       }
-      if (actualDiamondPrice !== null) {
+      if (actualDiamondPrice !== null && theoreticalMaxDiamond > 0) { // Avoid division by zero
         const depreciation = 100 * (1 - actualDiamondPrice / theoreticalMaxDiamond);
         if (!isNaN(depreciation) && isFinite(depreciation)) allDiamondDepreciations.push(depreciation);
       }
-      if (actualEmeraldPrice !== null) {
+      if (actualEmeraldPrice !== null && theoreticalMaxEmerald > 0) { // Avoid division by zero
         const depreciation = 100 * (1 - actualEmeraldPrice / theoreticalMaxEmerald);
         if (!isNaN(depreciation) && isFinite(depreciation)) allEmeraldDepreciations.push(depreciation);
       }
@@ -150,7 +151,7 @@ async function getDepreciationStatsFromDB(): Promise<DepreciationStats | null> {
     .select('*')
     .eq('id', DEPRECIATION_STATS_ID)
     .single();
-  if (error && error.code !== 'PGRST116') {
+  if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found, which is not an error here
     console.error("depreciationService.getDepreciationStatsFromDB: Error fetching:", error.message);
     return null;
   }
@@ -191,14 +192,12 @@ const defaultInitialStatsData: NewDepreciationStats & { updated_at?: string } = 
   diamond_items_count: 0,
   average_emerald_depreciation: 0,
   emerald_items_count: 0,
-  // updated_at is undefined here
 };
 
-// Main exported function
 export async function fetchAndManageDepreciationStats(): Promise<{
-  data: DepreciationStats | NewDepreciationStats; // Can return full stats or new if storage fails
+  data: DepreciationStats | NewDepreciationStats;
   source: StatsSourceType;
-  itemFetchError?: string; // Optional error message specific to item fetching for SearchComponent
+  itemFetchError?: string;
 }> {
   let currentData: DepreciationStats | NewDepreciationStats = { ...defaultInitialStatsData };
   let source: StatsSourceType = 'DEFAULT (ERROR/NO DATA)';
@@ -227,14 +226,13 @@ export async function fetchAndManageDepreciationStats(): Promise<{
 
     if (itemsError) {
       console.error("depreciationService: Failed to fetch items for calculation:", itemsError);
-      itemFetchErrorForPage = itemsError; // Pass this error back for SearchComponent
+      itemFetchErrorForPage = itemsError;
       if (existingStats) {
         console.warn("depreciationService: Using stale stats due to item fetch error.");
         currentData = existingStats;
         source = 'DATABASE (STALE - ITEM FETCH FAILED)';
       } else {
         console.error("depreciationService: No data available after item fetch error.");
-        // currentData remains defaultInitialStatsData
         source = 'DEFAULT (ERROR/NO DATA)';
       }
     } else if (rawItems && rawItems.length > 0) {
@@ -244,36 +242,32 @@ export async function fetchAndManageDepreciationStats(): Promise<{
         currentData = storedStats;
         source = 'NEWLY CALCULATED';
       } else {
-        currentData = newStats; // Use calculated data even if storage failed
-        source = 'NEWLY CALCULATED'; // But it's not persisted with a new updated_at from DB
+        currentData = newStats; 
+        source = 'NEWLY CALCULATED'; 
         console.warn("depreciationService: Used newly calculated stats, but failed to store them.");
       }
     } else {
       console.log("depreciationService: No items found for calculation.");
-      itemFetchErrorForPage = "No items found in the database."; // Specific message
+      itemFetchErrorForPage = "No items found in the database.";
       if (existingStats) {
         console.warn("depreciationService: No items for recalculation, using stale data.");
         currentData = existingStats;
         source = 'DATABASE (STALE - ITEM FETCH FAILED)';
       } else {
-        // currentData remains defaultInitialStatsData
-         source = 'DEFAULT (ERROR/NO DATA)';
+        source = 'DEFAULT (ERROR/NO DATA)';
       }
     }
   }
-  // Internal logging of what's being returned
-  const logSummary = currentData as any; // Cast to any for logging to access potential updated_at
+
   console.log(`\n--- depreciationService: Final Depreciation Summary to be returned (Source: ${source}) ---`);
-  console.log(`Total items: ${logSummary.total_items_from_source}, Valid for calc: ${logSummary.items_with_valid_regular_price}`);
-  if (logSummary.updated_at) {
-      console.log(`Last Updated: ${new Date(logSummary.updated_at).toLocaleString()}`);
+  console.log(`Total items: ${currentData.total_items_from_source}, Valid for calc: ${currentData.items_with_valid_regular_price}`);
+  // Safely access updated_at for logging
+  if ('updated_at' in currentData && currentData.updated_at) {
+      console.log(`Last Updated: ${new Date(currentData.updated_at).toLocaleString()}`);
   }
   console.log("---------------------------------------------------------------------\n");
 
   return { data: currentData, source, itemFetchError: itemFetchErrorForPage };
 }
 
-// Export getCachedItems separately if SearchComponent also needs to call it directly
-// or if you prefer page.tsx to fetch items for SearchComponent itself.
-// For now, SearchComponent in page.tsx was calling getCachedItems from page.tsx
 export { getCachedItems as getSearchComponentItems };

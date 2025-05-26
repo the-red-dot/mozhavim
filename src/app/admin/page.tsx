@@ -1,17 +1,16 @@
 // src/app/admin/page.tsx
 "use client";
 
-import { useState } from "react"; // Removed useEffect
+import { useState } from "react"; // useEffect was removed
 import { supabase } from "../lib/supabaseClient";
 import { useUser } from "../context/UserContext";
 import { revalidateItemsCacheAction } from "../actions";
-import Link from "next/link"; // Import Link for navigation
+import Link from "next/link";
 
 /* -------------------------------------------------
-  1️⃣  Type Definitions & Mappings
+  1️⃣  Type Definitions & Mappings
 -------------------------------------------------- */
 
-// Interface for the data structure after parsing (free-form or JSON)
 interface ParsedItemData {
   name?: string | null;
   buyregular?: string | null;
@@ -23,17 +22,16 @@ interface ParsedItemData {
   selldiamond?: string | null;
   sellemerald?: string | null;
   publisher?: string | null;
-  date?: string | null; // Assuming date is initially a string from input
+  date?: string | null;
   image?: string | null;
   description?: string | null;
-  // Allow other potential keys from parsing, ensuring values are string or null
   [key: string]: string | null | undefined;
 }
 
 const fieldMapping: Record<string, string> = {
   "שם מוזהב": "name",
   "קנייה (רגיל)": "buyregular",
-  "קנייה": "buyregular", // Alias for convenience
+  "קנייה": "buyregular",
   "קנייה (זהב)": "buygold",
   "קנייה (יהלום)": "buydiamond",
   "קנייה (אמרלד)": "buyemerald",
@@ -54,7 +52,7 @@ const allowedFields = [
 ];
 
 /* -------------------------------------------------
-  2️⃣  helpers — parse free text / JSON
+  2️⃣  helpers — parse free text / JSON
 -------------------------------------------------- */
 
 function normalizeJsonRecord(record: Record<string, unknown> | null | undefined): ParsedItemData {
@@ -63,8 +61,8 @@ function normalizeJsonRecord(record: Record<string, unknown> | null | undefined)
     return {};
   }
   for (const [k, v] of Object.entries(record)) {
-    const key = String(k).replace(/\s/g, "").toLowerCase(); // Ensure k is string and normalized
-    intermediateOut[key] = v === "" || v === "אין נתון" || v === undefined ? null : String(v);
+    const key = String(k).replace(/\s/g, "").toLowerCase();
+    intermediateOut[key] = v === "" || v === "אין נתון" || v === undefined || v === null ? null : String(v);
   }
 
   const filtered: ParsedItemData = {};
@@ -85,8 +83,8 @@ function parseFreeForm(data: string): ParsedItemData {
     const key = parts[0].trim();
     const val = parts.slice(1).join(":").trim();
     const col = fieldMapping[key];
-    if (col && allowedFields.includes(col)) { // Ensure col is an allowed field
-        out[col as keyof ParsedItemData] = val === "" || val === "אין נתון" ? null : val;
+    if (col && allowedFields.includes(col)) {
+      out[col as keyof ParsedItemData] = val === "" || val === "אין נתון" ? null : val;
     }
   }
   return out;
@@ -94,27 +92,28 @@ function parseFreeForm(data: string): ParsedItemData {
 
 function parseJsonObjects(block: string): ParsedItemData[] {
   if (typeof block !== 'string') return [];
-  const regex = /{[\s\S]*?}/g;
+  const regex = /{[\s\S]*?}/g; // Using curly braces for object matching
   let matches: string[] = [];
   try {
     const regexMatches = block.match(regex);
     if (regexMatches) {
       matches = regexMatches;
     }
-  } catch (_e) { // Marked as unused
-    // console.warn("Regex match failed for JSON parsing:", (_e as Error).message);
+  } catch { // No variable binding for the error object if it's not used
+    // console.warn("Regex match failed for JSON parsing (outer):");
   }
   return matches
     .map((m: string) => {
       try {
-        return JSON.parse(m) as Record<string, unknown>; // Parse to generic object
+        return JSON.parse(m) as Record<string, unknown>;
       }
-      catch (_e) { // Marked as unused
+      catch { // No variable binding for the error object if it's not used
+        // console.warn("Failed to parse individual JSON object:", m);
         return null;
       }
     })
     .filter((record): record is Record<string, unknown> => record !== null && typeof record === 'object')
-    .map(normalizeJsonRecord); // normalizeJsonRecord handles Record<string, unknown>
+    .map(normalizeJsonRecord);
 }
 
 function parseRecords(text: string): ParsedItemData[] {
@@ -131,10 +130,12 @@ function parseRecords(text: string): ParsedItemData[] {
     try {
       const obj = JSON.parse(trimmed);
       const arr = (Array.isArray(obj) ? obj : [obj]) as Record<string, unknown>[];
+      // Check if the parsed result is an array of objects before mapping
       if (arr.every(record => typeof record === 'object' && record !== null)) {
         return arr.map(normalizeJsonRecord);
       }
     } catch {
+      // If JSON.parse fails, try to parse as a block of multiple JSON objects
       const arrFromObjects = parseJsonObjects(trimmed);
       if (arrFromObjects.length > 0 && arrFromObjects.some(obj => Object.keys(obj).length > 0)) {
         return arrFromObjects;
@@ -146,7 +147,7 @@ function parseRecords(text: string): ParsedItemData[] {
 
 
 /* -------------------------------------------------
-  3️⃣  React component
+  3️⃣  React component
 -------------------------------------------------- */
 export default function AdminManagementPage() {
   const { user, profile, isLoading, sessionInitiallyChecked } = useUser();
@@ -209,9 +210,9 @@ export default function AdminManagementPage() {
 
     for (const rec of records) {
       if (Object.keys(rec).length === 0) {
-          failCount++;
-          failMessages.push("רשומה ריקה זוהתה ודולגה.");
-          continue;
+        failCount++;
+        failMessages.push("רשומה ריקה זוהתה ודולגה.");
+        continue;
       }
       if (!rec.name || typeof rec.name !== 'string' || !rec.name.trim()) {
         failCount++;
@@ -231,7 +232,7 @@ export default function AdminManagementPage() {
         .select("id")
         .eq("item_id", definitionId)
         .eq("publisher", rec.publisher ?? null)
-        .eq("date", rec.date ?? null) // Ensure date is in ISO format if your DB expects a date/timestamp
+        .eq("date", rec.date ?? null) 
         .maybeSingle();
 
       if (duplicateCheckError) {
@@ -258,7 +259,7 @@ export default function AdminManagementPage() {
         sellgold: rec.sellgold ?? null,
         selldiamond: rec.selldiamond ?? null,
         sellemerald: rec.sellemerald ?? null,
-        date: rec.date ?? null, // Consider converting to ISO string if needed: rec.date ? new Date(rec.date).toISOString() : null
+        date: rec.date ?? null,
         admin_id: user.id,
       };
 
@@ -278,10 +279,10 @@ export default function AdminManagementPage() {
 
     let finalMessageText = "";
     if (okCount > 0) {
-        finalMessageText += `✅ נוספו ${okCount} פריטים.`;
+      finalMessageText += `✅ נוספו ${okCount} פריטים.`;
     }
     if (failCount > 0) {
-        finalMessageText += `${okCount > 0 ? " • " : ""}❌ נכשלו ${failCount} פריטים.`;
+      finalMessageText += `${okCount > 0 ? " • " : ""}❌ נכשלו ${failCount} פריטים.`;
     }
     setMessage(finalMessageText || "תהליך הפרסום הסתיים.");
 
@@ -300,7 +301,7 @@ export default function AdminManagementPage() {
       try {
         await revalidateItemsCacheAction();
         setMessage(prev => prev + " • ✅ מטמון הפריטים באתר התעדכן.");
-      } catch (revalError: unknown) { // Typed as unknown
+      } catch (revalError: unknown) {
         const errorMessage = revalError instanceof Error ? revalError.message : String(revalError);
         console.error("Admin Page: Calling Server Action for cache revalidation failed:", errorMessage);
         setMessage(prev => prev + " • ⚠️ שגיאה בעדכון מטמון הפריטים באתר.");
@@ -321,7 +322,7 @@ export default function AdminManagementPage() {
 
   if (!sessionInitiallyChecked) {
       return (
-           <div className="admin-post-creation" style={{ marginTop: "2rem", textAlign: "center", color: "var(--foreground)" }}>
+          <div className="admin-post-creation" style={{ marginTop: "2rem", textAlign: "center", color: "var(--foreground)" }}>
               <h1>מערכת הוספת מוזהבים</h1>
               <p>ממתין לאימות סשן...</p>
           </div>
@@ -365,7 +366,7 @@ export default function AdminManagementPage() {
 מכירה (יהלום): 300`}
         value={inputData}
         onChange={(e) => setInputData(e.target.value)}
-        className="title-input"
+        className="title-input" // Ensure this class exists and is styled in globals.css
         style={{
             width: "100%",
             minHeight: "250px",
@@ -375,9 +376,9 @@ export default function AdminManagementPage() {
             direction: "rtl",
             padding: "10px",
             boxSizing: "border-box",
-            backgroundColor: "var(--background-input, #1f1f1f)",
-            color: "var(--foreground-input, #ededed)",
-            border: "1px solid var(--border-color, #444)",
+            backgroundColor: "var(--background-input, #1f1f1f)", // Example input background
+            color: "var(--foreground-input, #ededed)", // Example input text color
+            border: "1px solid var(--border-color, #444)", // Example border
             borderRadius: "4px"
         }}
       />
