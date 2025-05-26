@@ -1,5 +1,5 @@
 // src/app/api/create-user/route.ts
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient, AuthError, PostgrestError, AuthApiError } from '@supabase/supabase-js'; // Added AuthApiError
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import crypto from 'crypto';
@@ -15,7 +15,7 @@ const supabaseAdmin: SupabaseClient = createClient(supabaseUrl, supabaseServiceR
 });
 
 const getClientIp = async (): Promise<string | null> => {
-  const headersList = await headers(); // Await as per TypeScript's inference in your environment
+  const headersList = await headers(); // Reverted: Added await back
   const xForwardedFor = headersList.get('x-forwarded-for');
   if (xForwardedFor) {
     return xForwardedFor.split(',')[0].trim();
@@ -42,14 +42,13 @@ export async function POST(request: Request) {
       console.warn('Could not determine client IP for rate limiting. Allowing registration for now.');
     } else {
       const ipHash = hashIP(clientIp);
-      // --- MODIFIED FOR TESTING: 3 minutes instead of 7 days ---
       const threeMinutesAgo = new Date(Date.now() - 3 * 60 * 1000).toISOString();
 
       const { count, error: ipCheckError } = await supabaseAdmin
         .from('username_ip_registrations')
         .select('*', { count: 'exact', head: true })
         .eq('ip_hash', ipHash)
-        .gte('created_at', threeMinutesAgo); // Use threeMinutesAgo for check
+        .gte('created_at', threeMinutesAgo);
 
       if (ipCheckError) {
         console.error('Error checking IP registration history:', ipCheckError);
@@ -57,10 +56,9 @@ export async function POST(request: Request) {
       }
 
       if (count !== null && count > 0) {
-        // --- MODIFIED USER MESSAGE: More generic ---
         return NextResponse.json(
           { error: 'ניסיונות רישום מרובים זוהו. אנא נסה שוב מאוחר יותר.' },
-          { status: 429 } // 429 Too Many Requests
+          { status: 429 }
         );
       }
     }
@@ -71,7 +69,7 @@ export async function POST(request: Request) {
 
     if (rpcError) {
       console.error('Error calling check_username_exists RPC:', rpcError);
-      throw rpcError;
+      throw new Error(`RPC Error: ${rpcError.message}`); // Throw a generic error
     }
     if (usernameExists) {
       return NextResponse.json({ error: 'שם משתמש כבר קיים' }, { status: 400 });
@@ -126,19 +124,42 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ message: 'המשתמש נוצר ואומת בהצלחה!', userId });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Unhandled error in create-user route:', error);
     let errorMessage = 'אירעה שגיאה פנימית בשרת.';
-    if (error.message) {
-        if (error.message.includes('duplicate key value violates unique constraint') && (error.message.includes('profiles_username_key') || error.message.includes('unique_username'))) {
+    let statusCode = 500;
+
+    if (error instanceof AuthApiError) { // Check for AuthApiError first as it has a status
+        errorMessage = error.message;
+        statusCode = error.status; // Safe to access status here
+    } else if (error instanceof AuthError) { // Handle other AuthErrors
+        errorMessage = error.message;
+        // statusCode remains 500 or could be set based on specific messages below
+    } else if (error instanceof PostgrestError) { // Handle PostgrestErrors
+        errorMessage = error.message;
+        // PostgrestError doesn't have a .status property in its type.
+        // statusCode will be set by specific message checks below if applicable.
+    } else if (error instanceof Error) { // Handle generic JavaScript errors
+        errorMessage = error.message;
+    } else if (typeof error === 'string') { // Handle cases where a string might have been thrown
+        errorMessage = error;
+    }
+    
+    // Refine messages and statusCodes based on known error message patterns
+    // These checks apply after initial determination from error type
+    if (typeof errorMessage === 'string') { // Ensure errorMessage is a string before .includes
+        if (errorMessage.includes('duplicate key value violates unique constraint') && (errorMessage.includes('profiles_username_key') || errorMessage.includes('unique_username'))) {
             errorMessage = 'שם משתמש כבר קיים.';
-        } else if (error.message.includes("User already registered") || error.message.includes("already exists")) {
+            statusCode = 409; // Conflict is more appropriate
+        } else if (errorMessage.includes("User already registered") || errorMessage.includes("already exists")) {
              errorMessage = 'משתמש עם אימייל זה (או שם משתמש מקושר) כבר קיים.';
-        } else if (error.message.includes('check_username_exists')) {
+             statusCode = 400;
+        } else if (errorMessage.includes('check_username_exists') || errorMessage.includes('RPC Error')) {
             errorMessage = 'שגיאה בבדיקת זמינות שם המשתמש.';
+            // Keep previously set statusCode or default 500
         }
     }
-    const status = typeof error.status === 'number' ? error.status : 500;
-    return NextResponse.json({ error: errorMessage }, { status });
+    
+    return NextResponse.json({ error: errorMessage }, { status: statusCode });
   }
 }

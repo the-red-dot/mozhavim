@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
+import Image from 'next/image'; // Import the Next.js Image component
 import PriceOpinion from "./PriceOpinion";
 import { supabase } from "../lib/supabaseClient";
 import {
@@ -10,10 +11,10 @@ import {
   consensusStats,
   blendPrices,
 } from "../utils/pricing";
-import DepreciationSummary, { 
-  DepreciationStatsDisplay, 
-  StatsSourceType as DepreciationStatsSourceType 
-} from "./DepreciationSummary"; 
+import DepreciationSummary, {
+  DepreciationStatsDisplay,
+  StatsSourceType as DepreciationStatsSourceType
+} from "./DepreciationSummary";
 import { Item as DepreciationItemFromService } from "../lib/depreciationService";
 
 type Item = DepreciationItemFromService;
@@ -46,10 +47,10 @@ const toQuotePoints = (rows: Item[]): QuotePoint[] =>
     return Number.isFinite(price) && date && !Number.isNaN(+date) ? [{ price, date }] : [];
   });
 
-export default function SearchComponent({ 
-  initialItems, 
-  generalDepreciationStats, 
-  generalDepreciationSource 
+export default function SearchComponent({
+  initialItems,
+  generalDepreciationStats,
+  generalDepreciationSource
 }: Props) {
   const [term, setTerm] = useState("");
   const [sugs, setSugs] = useState<string[]>([]);
@@ -58,6 +59,7 @@ export default function SearchComponent({
   const [viewDiscord, setView] = useState(true);
   const [assumps, setAssumps] = useState<Assumption[]>([]);
   const box = useRef<HTMLDivElement>(null);
+  const [imageHasError, setImageHasError] = useState(false); // State for image error
 
   useEffect(() => {
     if (!term.trim()) {
@@ -71,11 +73,11 @@ export default function SearchComponent({
       return;
     }
     if (sel && term !== sel) {
-        setSel(null);
+      setSel(null);
     }
-    
+
     const uniqueNames = [...new Set(initialItems.map((i) => i.name))];
-    const matchingSuggestions = uniqueNames.filter((name) => 
+    const matchingSuggestions = uniqueNames.filter((name) =>
       name.toLowerCase().includes(term.toLowerCase())
     );
     setSugs(matchingSuggestions);
@@ -93,6 +95,19 @@ export default function SearchComponent({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+  const itemsForSel = useMemo(
+    () => (sel ? initialItems.filter((i) => i.name === sel) : []),
+    [sel, initialItems]
+  );
+
+  const firstSelectedItem = itemsForSel[0];
+
+  // Reset image error state when the selected item or its image changes
+  useEffect(() => {
+    setImageHasError(false);
+  }, [firstSelectedItem?.image]);
+
 
   useEffect(() => {
     if (!sel) {
@@ -113,10 +128,6 @@ export default function SearchComponent({
     })();
   }, [sel]);
 
-  const itemsForSel = useMemo(
-    () => (sel ? initialItems.filter((i) => i.name === sel) : []),
-    [sel, initialItems]
-  );
 
   const discordStats = useMemo(() => {
     const pts = toQuotePoints(itemsForSel);
@@ -135,7 +146,6 @@ export default function SearchComponent({
     [discordStats, communityStats]
   );
 
-  const firstSelectedItem = itemsForSel[0];
 
   const calculatedTierPrices = useMemo(() => {
     if (!blended.final || !generalDepreciationStats) {
@@ -143,18 +153,18 @@ export default function SearchComponent({
     }
 
     const basePrice = blended.final;
-    const { 
-      average_gold_depreciation, 
-      average_diamond_depreciation, 
-      average_emerald_depreciation 
+    const {
+      average_gold_depreciation,
+      average_diamond_depreciation,
+      average_emerald_depreciation
     } = generalDepreciationStats;
 
     const calculateTierPrice = (multiplier: number, depreciation: number | null) => {
       if (depreciation === null || isNaN(depreciation)) return null;
-      const effectiveDepreciation = Math.min(Math.max(depreciation, -200), 100); 
+      const effectiveDepreciation = Math.min(Math.max(depreciation, -200), 100);
       return Math.round((basePrice * multiplier) * (1 - (effectiveDepreciation / 100)));
     };
-    
+
     return {
       gold: calculateTierPrice(4, average_gold_depreciation),
       diamond: calculateTierPrice(16, average_diamond_depreciation),
@@ -219,7 +229,7 @@ export default function SearchComponent({
               key={n}
               onClick={() => {
                 setSel(n);
-                setTerm(n); 
+                setTerm(n);
                 showDrop(false);
               }}
             >
@@ -234,17 +244,32 @@ export default function SearchComponent({
           <div className="item-representation">
             <h2>{firstSelectedItem.name}</h2>
             {firstSelectedItem.image ? (
-              <img
-                className="item-image"
-                src={firstSelectedItem.image}
-                alt={firstSelectedItem.name}
-                onError={(e) => (e.currentTarget.src = "https://placehold.co/200x150/1a1a1a/ededed?text=Error")}
-              />
+              imageHasError ? (
+                <Image
+                  className="item-image"
+                  src="https://placehold.co/200x150/1a1a1a/ededed?text=Error" // Fallback image
+                  alt={firstSelectedItem.name ? `${firstSelectedItem.name} (תמונה לא זמינה)` : "תמונה לא זמינה"}
+                  width={200}
+                  height={150}
+                  unoptimized={true} // Placeholder might not need optimization
+                />
+              ) : (
+                <Image
+                  className="item-image"
+                  src={firstSelectedItem.image}
+                  alt={firstSelectedItem.name || "תמונת פריט"}
+                  width={200} // Specify your desired width
+                  height={150} // Specify your desired height
+                  onError={() => {
+                    setImageHasError(true);
+                  }}
+                />
+              )
             ) : (
               <p>אין תמונה זמינה</p>
             )}
             <p>{firstSelectedItem.description || "אין תיאור זמין"}</p>
-            
+
             {/* === MODIFIED PRICE DISPLAY AREA START === */}
             {priceLinesToDisplay.length > 0 && (
               <div className="item-average-container">
@@ -266,9 +291,9 @@ export default function SearchComponent({
           </div>
 
           {generalDepreciationStats && generalDepreciationSource ? (
-            <DepreciationSummary 
-              stats={generalDepreciationStats} 
-              source={generalDepreciationSource} 
+            <DepreciationSummary
+              stats={generalDepreciationStats}
+              source={generalDepreciationSource}
             />
           ) : (
             <div style={{ marginTop: '30px', textAlign: 'center', color: 'orange', padding: '10px', border: '1px dashed orange', borderRadius: '8px' }}>

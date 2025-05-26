@@ -1,3 +1,4 @@
+// src/app/auth/page.tsx
 "use client";
 
 import { useState } from "react";
@@ -62,16 +63,17 @@ export default function AuthPage() {
       });
       const result = await response.json();
       if (!response.ok) {
-        setMessage(result.error);
+        setMessage(result.error || "אירעה שגיאה ברישום"); // Provide a fallback error message
       } else {
         setMessage("נרשמת בהצלחה! אתה יכול להתחבר עכשיו.");
       }
     } else {
       // Register with real email
-      const { data, error } = await supabase.auth.signUp({
+      // FIX: Renamed 'data' to '_data' as it was not used.
+      const { data: _data, error } = await supabase.auth.signUp({
         email: emailOrUsername,
         password,
-        options: { data: { username } },
+        options: { data: { username } }, // 'username' here is from the component's state
       });
       if (error) {
         setMessage(error.message);
@@ -84,6 +86,11 @@ export default function AuthPage() {
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage("");
+    // Ensure emailOrUsername is provided for password reset if it's not empty.
+    if (!emailOrUsername.trim()) {
+        setMessage("אנא הזן אימייל לשחזור סיסמה.");
+        return;
+    }
     const { error } = await supabase.auth.resetPasswordForEmail(emailOrUsername);
     if (error) {
       setMessage(error.message);
@@ -97,12 +104,13 @@ export default function AuthPage() {
       <h2>{mode === "login" ? "התחברות" : "רישום"}</h2>
       <form onSubmit={mode === "login" ? handleLogin : handleRegister}>
         <label>
-          {mode === "login" ? "אימייל או שם משתמש:" : "אימייל (אופציונלי):"}
+          {mode === "login" ? "אימייל או שם משתמש:" : "אימייל (אופציונלי, השאר ריק לרישום עם שם משתמש בלבד):"}
           <input
             type="text"
             value={emailOrUsername}
             onChange={(e) => setEmailOrUsername(e.target.value)}
-            required={mode === "login"}
+            placeholder={mode === "register" ? "example@example.com" : "אימייל או שם משתמש"}
+            required={mode === "login"} // Email/Username is required for login
           />
         </label>
         {mode === "register" && (
@@ -112,7 +120,7 @@ export default function AuthPage() {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              required
+              required // Username is always required for registration
             />
           </label>
         )}
@@ -135,7 +143,14 @@ export default function AuthPage() {
       {message && <p className="auth-message">{message}</p>}
       <div className="auth-toggle">
         <span>{mode === "login" ? "אין לך חשבון?" : "כבר יש לך חשבון?"}</span>
-        <button onClick={() => setMode(mode === "login" ? "register" : "login")}>
+        <button onClick={() => {
+          setMode(mode === "login" ? "register" : "login");
+          setMessage(""); // Clear message when toggling mode
+          // Optionally clear form fields as well
+          // setEmailOrUsername("");
+          // setUsername("");
+          // setPassword("");
+        }}>
           {mode === "login" ? "הרשם" : "התחבר"}
         </button>
       </div>

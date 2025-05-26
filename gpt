@@ -1,0 +1,3845 @@
+Folder: src
+
+    Folder: app
+        File: actions.ts
+            Code:
+            // src/app/actions.ts
+            "use server"; // This directive must be at the very top of the file
+            
+            import { revalidateTag } from "next/cache";
+            
+            export async function revalidateItemsCacheAction() {
+              console.log("Server Action (from actions.ts): Revalidating 'items' tag...");
+              try {
+                revalidateTag("items");
+                console.log("Server Action (from actions.ts): 'items' tag successfully revalidated.");
+              } catch (error) {
+                console.error("Server Action (from actions.ts): Error revalidating 'items' tag:", error);
+                // Optionally, re-throw the error if you want the calling component to handle it
+                // throw new Error("Cache revalidation failed."); 
+              }
+            }
+        File: globals.css
+            Code:
+            /* src/app/globals.css */
+            
+            /* Dark mode defaults using CSS Variables */
+            :root {
+              --background: #0a0a0a;
+              --foreground: #ededed;
+              --font-family: "Assistant", sans-serif;
+            }
+            
+            body {
+              background: var(--background);
+              color: var(--foreground);
+              font-family: var(--font-family);
+              direction: rtl;
+              text-align: right;
+              margin: 0;
+              padding: 0;
+            }
+            
+            /* Homepage Styles */
+            .page-container {
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              margin-top: 5rem;
+            }
+            
+            .title {
+              font-size: 3.75rem;
+              font-weight: bold;
+              text-align: center;
+              margin-bottom: 20px;
+            }
+            
+            .title-letter-blue {
+              color: #4285f4;
+            }
+            .title-letter-red {
+              color: #ea4335;
+            }
+            .title-letter-yellow {
+              color: #fbbc05;
+            }
+            .title-letter-green {
+              color: #34a853;
+            }
+            
+            /* Search Container */
+            .search-container {
+              position: relative;
+              width: 100%;
+              max-width: 28rem;
+              margin-top: 2rem;
+              margin-left: auto;
+              margin-right: auto;
+              padding: 0; 
+              box-sizing: border-box;
+            }
+            
+            .search-input {
+              display: block;
+              width: 100%;
+              padding: 0.75rem 1.5rem;
+              font-size: 1rem;
+              border: 1px solid #444;
+              border-radius: 9999px;
+              background: #1a1a1a;
+              color: var(--foreground);
+              outline: none;
+              text-align: center;
+              transition: border-color 0.2s ease, box-shadow 0.2s ease, border-radius 0.2s ease;
+              box-sizing: border-box;
+              position: relative;
+              z-index: 1001;
+            }
+            
+            .search-input:focus {
+              border-color: #3b82f6;
+              box-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
+              border-bottom-left-radius: 0;
+              border-bottom-right-radius: 0;
+              border-bottom-color: transparent;
+            }
+            
+            /* Suggestions Dropdown - Google Style */
+            .suggestions-dropdown {
+              position: absolute;
+              top: 100%;
+              left: 0;
+              right: 0;
+              width: 100%;
+              background: #1a1a1a;
+              border-left: 1px solid #3b82f6;
+              border-right: 1px solid #3b82f6;
+              border-bottom: 1px solid #3b82f6;
+              border-top: none;
+              border-bottom-left-radius: 12px;
+              border-bottom-right-radius: 12px;
+              border-top-left-radius: 0;
+              border-top-right-radius: 0;
+              box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+              z-index: 1000;
+              max-height: 250px;
+              overflow-y: auto;
+              list-style: none;
+              padding: 0;
+              margin: 0;
+              opacity: 0;
+              transform: translateY(0);
+              transition: opacity 0.1s ease;
+              box-sizing: border-box;
+            }
+            
+            .suggestions-dropdown::-webkit-scrollbar {
+              display: none;
+            }
+            
+            .suggestions-dropdown {
+              scrollbar-width: none; /* Firefox */
+            }
+            
+            .search-input:focus + .suggestions-dropdown.show,
+            .search-container:focus-within .suggestions-dropdown.show {
+              opacity: 1;
+            }
+            
+            .search-input:focus ~ .suggestions-dropdown.show {
+              opacity: 1;
+              border-color: #3b82f6;
+            }
+            
+            .suggestions-dropdown li {
+              padding: 0.75rem 1.5rem;
+              cursor: pointer;
+              transition: background 0.1s ease;
+              font-size: 1rem;
+              text-align: right;
+            }
+            
+            .suggestions-dropdown li:hover {
+              background: #2a2a2a;
+            }
+            
+            .suggestions-dropdown li + li {
+               border-top: none;
+            }
+            
+            .search-container.suggestions-visible .search-input {
+              border-bottom-left-radius: 0;
+              border-bottom-right-radius: 0;
+              border-bottom-color: transparent;
+            }
+            
+            .search-container.suggestions-visible .suggestions-dropdown {
+              border-top: 1px solid #3b82f6;
+              top: calc(100% - 1px);
+            }
+            
+            /* Results Container */
+            .results-container {
+              margin-top: 2rem;
+              width: 100%;
+              max-width: 600px; /* Ensures this container itself is not overly wide */
+              margin-left: auto;
+              margin-right: auto;
+              margin-bottom: 3rem;
+            }
+            
+            /* Item Representation */
+            .item-representation {
+              background: #1a1a1a;
+              padding: 20px;
+              border-radius: 8px;
+              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+              text-align: center; /* Default alignment for content like image/description if not overridden */
+              margin-bottom: 1.5rem; /* Space between this card and next elements if any */
+            }
+            
+            .item-representation h2 {
+              font-size: 2rem; /* Increased size for main item title */
+              font-weight: bold;
+              text-align: center; /* Or 'right' if preferred for titles */
+              margin-bottom: 15px; /* More space below title */
+              color: var(--foreground); /* Ensure title color is consistent */
+            }
+            
+            .item-image {
+              max-width: 200px;
+              border-radius: 8px;
+              margin: 10px auto 15px auto; /* Center image and add more bottom margin */
+              display: block; /* Ensure margin auto works for centering */
+            }
+            
+            /* --- START: Updated Price Presentation Styles --- */
+            .item-average-container {
+              margin-top: 1.5rem; 
+              background: #222222; 
+              padding: 18px 22px; 
+              border-radius: 10px; 
+              text-align: right;   
+              font-size: 1.05rem;  
+              box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3); 
+              margin-bottom: 1.5rem; 
+              max-width: 480px;    
+              margin-left: auto;   
+              margin-right: auto;  
+              border: 1px solid #383838; 
+            }
+            
+            .item-average-container .price-line {
+              display: flex;
+              justify-content: space-between; 
+              align-items: center;
+              padding: 8px 0; 
+            }
+            
+            .item-average-container .price-line + .price-line {
+              margin-top: 4px; 
+            }
+            
+            .item-average-container .price-label {
+              font-weight: 500;
+              color: #b0b0b0; 
+              flex-shrink: 0; 
+              margin-left: 10px; 
+              font-size: 0.9em; 
+            }
+            
+            .item-average-container .price-value {
+              font-weight: 700; 
+              font-size: 1.15em; 
+              color: var(--foreground); 
+              direction: ltr; 
+              display: flex;         
+              align-items: baseline; 
+            }
+            
+            .item-average-container .price-value .currency-symbol {
+              margin-left: 5px; 
+              font-size: 0.8em; 
+              color: #999999;    
+              font-weight: 500; 
+            }
+            
+            .item-average-container .price-value.gold { color: #ffd700; }
+            .item-average-container .price-value.diamond { color: #b9f2ff; }
+            .item-average-container .price-value.emerald { color: #50c878; }
+            
+            .item-average-container .price-source-info {
+              margin-top: 14px; 
+              padding-top: 10px; 
+              border-top: 1px dashed #4a4a4a; 
+              font-size: 0.85rem; 
+              color: #aaaaaa;    
+              text-align: center; 
+            }
+            /* --- END: Updated Price Presentation Styles --- */
+            
+            /* Voting / Assumptions Container */
+            .price-opinion-container {
+              margin-top: 1rem;
+              background: #1a1a1a;
+              padding: 16px;
+              border-radius: 8px;
+              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+              margin-bottom: 1rem;
+            }
+            .vote-question {
+              font-size: 1.1rem;
+              margin-bottom: 0.5rem;
+            }
+            .voting-buttons {
+              display: flex;
+              gap: 0.5rem;
+              margin: 0.5rem 0;
+              flex-wrap: wrap; /* Allow buttons to wrap on smaller screens */
+              justify-content: center; /* Center buttons if they wrap */
+            }
+            .voting-buttons button {
+              background: #333;
+              border: none;
+              border-radius: 4px;
+              color: #fff;
+              padding: 0.5rem 1rem;
+              cursor: pointer;
+              transition: background 0.2s ease;
+              font-size: 0.95rem;
+              flex-grow: 1; /* Allow buttons to grow */
+              min-width: 100px; /* Minimum width for buttons */
+            }
+            .voting-buttons button:hover {
+              background: #444;
+            }
+            .voting-buttons button:disabled {
+              background: #555;
+              cursor: not-allowed;
+            }
+            .vote-selected {
+              background: #357abd !important;
+            }
+            
+            .assumption-form {
+              margin-top: 1rem;
+              text-align: right; /* Ensures labels and inputs align right */
+            }
+            .assumption-form label {
+              display: block; 
+              margin-bottom: 0.75rem; /* Increased spacing */
+            }
+            .assumption-form input {
+              width: 100%; /* Take full width of label container */
+              max-width: 220px; /* But cap it */
+              background: #282828; /* Slightly lighter input background */
+              border: 1px solid #444;
+              border-radius: 4px;
+              color: #ededed;
+              padding: 0.6rem; /* Slightly more padding */
+              margin-top: 4px; 
+              box-sizing: border-box; /* Include padding in width */
+              text-align: right; /* Ensure text input is RTL */
+            }
+            .assumption-form button {
+              margin-top: 0.75rem;
+              background: #4285f4;
+              border: none;
+              border-radius: 4px;
+              color: #fff;
+              padding: 0.6rem 1.2rem; /* Bigger button */
+              cursor: pointer;
+              transition: background 0.3s ease;
+              font-size: 1rem;
+            }
+            .assumption-form button:hover {
+              background: #357abd;
+            }
+            
+            /* Community Averages */
+            .community-container {
+              margin-top: 1rem;
+              background: #1a1a1a;
+              padding: 16px;
+              border-radius: 8px;
+              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            }
+            .community-container h4 {
+              font-size: 1.1rem;
+              margin-bottom: 0.75rem;
+            }
+            .community-container ul {
+              list-style: none;
+              padding: 0;
+              margin: 0;
+            }
+            .community-container li {
+              margin-bottom: 4px;
+              font-size: 0.95rem;
+            }
+            
+            /* Matching Results */
+            .matching-results {
+              background: #1a1a1a;
+              padding: 20px;
+              border-radius: 8px;
+              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+              margin-top: 1rem; /* Add space if it follows other content */
+            }
+            .matching-results h3 {
+              font-size: 1.25rem;
+              margin-bottom: 15px;
+              color: #4285f4;
+            }
+            .matching-results ul {
+              list-style: none;
+              padding: 0;
+              margin: 0;
+            }
+            .result-item {
+              padding: 15px;
+              border-bottom: 1px solid #333;
+            }
+            .result-item:last-child {
+              border-bottom: none;
+            }
+            .price-info span {
+              display: block;
+              margin: 5px 0;
+              font-size: 0.95rem;
+            }
+            .meta-info {
+              margin-top: 10px;
+              font-size: 0.9rem;
+              color: #aaa;
+            }
+            .meta-info span {
+              display: block;
+            }
+            
+            /* List Toggle Buttons */
+            .list-toggle {
+              display: flex;
+              justify-content: center;
+              gap: 1rem;
+              margin: 1.5rem 0; /* Increased margin */
+            }
+            
+            .list-toggle button {
+              padding: 0.6rem 1.2rem; /* Consistent button padding */
+              border: 1px solid #333; /* Add subtle border */
+              background: #282828; /* Darker inactive state */
+              color: #ccc;
+              cursor: pointer;
+              transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+              border-radius: 6px; /* Rounded buttons */
+              font-size: 0.95rem;
+            }
+            
+            .list-toggle button.active {
+              background: #4285f4;
+              color: #fff;
+              border-color: #4285f4;
+            }
+            
+            .list-toggle button:hover:not(.active) {
+              background: #333;
+              border-color: #444;
+              color: #fff;
+            }
+            
+            /* Assumptions List */
+            .assumptions-list {
+              background: #1a1a1a;
+              padding: 20px;
+              border-radius: 8px;
+              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+              margin-top: 1rem; /* Add space if it follows other content */
+            }
+            
+            .assumptions-list h3 {
+              font-size: 1.25rem;
+              margin-bottom: 15px;
+              color: #4285f4;
+            }
+            
+            .assumptions-list ul {
+              list-style: none;
+              padding: 0;
+              margin: 0;
+            }
+            
+            .assumptions-list li {
+              padding: 15px;
+              border-bottom: 1px solid #333;
+            }
+            
+            .assumptions-list li:last-child {
+              border-bottom: none;
+            }
+            
+            .assumptions-list li > div:first-child {
+              font-weight: bold;
+              margin-bottom: 5px;
+            }
+            
+            .assumptions-list li > div:last-child span {
+              display: inline-block;
+              margin-right: 10px; 
+            }
+            
+            .assumptions-list.scrollable {
+              max-height: 60vh;
+              overflow-y: auto;
+              margin-bottom: 2rem; 
+            }
+            
+            /* .results-container duplication was noted, ensure styles are harmonized or use distinct classes if needed.
+               The one at line ~100 already has margin-bottom: 3rem. The one at ~270 is identical. This is fine.
+            */
+            
+            .success {
+              color: #4CAF50; /* Brighter green for success */
+              text-align: center;
+              margin-top: 0.75rem; /* Consistent spacing */
+              font-weight: 500;
+            }
+            
+            /* NavMenu / Sidebar Styles */
+            .nav-burger {
+              position: fixed;
+              top: 1.5rem;
+              right: 1.5rem;
+              z-index: 1050; /* Ensure above most elements, slightly higher than sidebar when closed */
+              background: transparent;
+              border: none;
+              font-size: 24px;
+              color: var(--foreground);
+              cursor: pointer;
+              padding: 5px; /* Easier to click */
+            }
+            .burger-line {
+              width: 2rem;
+              height: 0.25rem;
+              background-color: var(--foreground);
+              margin-bottom: 0.375rem;
+              transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out, background-color 0.3s ease;
+              border-radius: 2px; /* Slightly rounded lines */
+            }
+            .burger-line:last-child {
+              margin-bottom: 0;
+            }
+            .sidebar {
+              position: fixed;
+              top: 0;
+              right: -280px; /* Start further off-screen for a smoother slide */
+              width: 280px; /* Slightly wider sidebar */
+              height: 100%;
+              background: #1c1c1c; /* Slightly darker for depth */
+              color: var(--foreground);
+              transition: right 0.35s cubic-bezier(0.25, 0.1, 0.25, 1); /* Smoother animation */
+              padding-top: 70px; /* More space for close button */
+              z-index: 1040; 
+              box-shadow: -5px 0 15px rgba(0,0,0,0.3); /* Shadow for depth when open */
+            }
+            .sidebar.open {
+              right: 0;
+            }
+            .sidebar nav {
+              display: flex;
+              flex-direction: column;
+            }
+            .sidebar ul {
+              list-style: none;
+              padding: 0;
+              margin: 0;
+            }
+            .sidebar ul li {
+              margin-bottom: 0; /* Remove bottom margin, use padding on links */
+            }
+            .sidebar ul li a,
+            .sidebar ul li button {
+              display: block;
+              padding: 18px 25px; /* Increased padding */
+              color: #e0e0e0; /* Slightly softer white */
+              text-decoration: none;
+              border-bottom: 1px solid #2a2a2a; /* Darker separator */
+              cursor: pointer;
+              transition: background 0.2s ease, color 0.2s ease;
+              text-align: right; 
+              font-size: 1.05rem;
+            }
+            .sidebar ul li a:hover,
+            .sidebar ul li button:not(.logout):hover {
+              background: #282828;
+              color: #ffffff; 
+            }
+            .user-greeting {
+              display: block;
+              padding: 18px 25px;
+              border-bottom: 1px solid #2a2a2a;
+              margin-bottom: 1rem; /* Spacing after greeting */
+              font-size: 1.1rem; /* Slightly smaller greeting */
+              font-weight: 500;
+              text-align: right; 
+              color: #b0b0b0;
+            }
+            .close-btn {
+              position: absolute;
+              top: 15px; /* Adjusted position */
+              left: 15px; 
+              font-size: 28px; /* Larger close icon */
+              background: transparent;
+              border: none;
+              color: #aaa;
+              cursor: pointer;
+              transition: color 0.2s ease, transform 0.2s ease;
+              padding: 5px;
+            }
+            .close-btn:hover {
+              color: #fff;
+              transform: rotate(90deg);
+            }
+            .sidebar ul li button.logout {
+              background: #d32f2f; /* Red for logout */
+              border: none;
+              border-radius: 6px; /* Consistent radius */
+              color: #fff;
+              padding: 15px 20px; 
+              text-decoration: none;
+              cursor: pointer;
+              transition: background 0.2s ease;
+              width: calc(100% - 50px); 
+              margin: 1rem 25px; /* Margin top/bottom and sides */
+              box-sizing: border-box;
+              text-align: center;
+              font-weight: 500;
+            }
+            .sidebar ul li button.logout:hover {
+              background: #c62828; /* Darker red on hover */
+            }
+            
+            /* Authentication Page Styles */
+            .auth-container {
+              max-width: 400px;
+              margin: 3rem auto; 
+              padding: 2.5rem; /* More padding */
+              background: #1e1e1e;
+              border: 1px solid #333;
+              border-radius: 10px; /* More rounded */
+              box-shadow: 0 5px 15px rgba(0, 0, 0, 0.35);
+              text-align: center; 
+            }
+            .auth-container h2 {
+              font-size: 2rem; /* Larger title */
+              margin-bottom: 2rem; /* More space */
+            }
+            .auth-container form {
+              display: flex;
+              flex-direction: column;
+              gap: 1.25rem; /* Increased gap */
+            }
+            .auth-container form label {
+              display: flex;
+              flex-direction: column;
+              text-align: right; 
+              font-size: 1rem;
+              color: #ccc; /* Lighter label text */
+            }
+            .auth-container form input {
+              padding: 0.75rem; /* More padding */
+              border: 1px solid #444;
+              border-radius: 6px;
+              background: #282828; /* Input background */
+              color: var(--foreground);
+              text-align: right; 
+              font-size: 1rem;
+            }
+            .auth-container form input:focus {
+                border-color: #4285f4;
+                box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.3);
+                outline: none;
+            }
+            .auth-container form button {
+              padding: 0.85rem; /* More padding */
+              background: #4285f4;
+              border: none;
+              border-radius: 6px;
+              color: #fff;
+              font-size: 1.05rem; /* Slightly larger font */
+              font-weight: 500;
+              cursor: pointer;
+              transition: background 0.3s ease;
+            }
+            .auth-container form button:hover {
+              background: #357abd;
+            }
+            .recover-btn {
+              margin-top: 1.25rem;
+              background: none;
+              border: none;
+              color: #4285f4;
+              cursor: pointer;
+              text-decoration: underline;
+              font-size: 0.95rem;
+            }
+            .auth-toggle {
+              margin-top: 2rem;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              gap: 0.5rem;
+              font-size: 0.95rem;
+              color: #ccc;
+            }
+            .auth-toggle button {
+              background: none;
+              border: none;
+              color: #4285f4;
+              cursor: pointer;
+              font-size: 0.95rem;
+              text-decoration: underline;
+              padding: 0; /* Remove default padding */
+            }
+            .auth-message {
+              margin-top: 1.25rem;
+              font-size: 0.95rem;
+              color: #ccc; 
+              line-height: 1.5;
+            }
+            
+            /* InfoUpdates Page Styles */
+            .info-updates-container {
+              max-width: 800px;
+              margin: 2rem auto;
+              padding: 1rem;
+              box-sizing: border-box;
+            }
+            .info-updates-container h1 {
+              text-align: center;
+              margin-bottom: 1rem;
+              font-size: 2.25rem;
+            }
+            .greeting {
+              text-align: center;
+              margin-bottom: 2rem;
+              font-size: 1.2rem;
+              color: #b0b0b0;
+            }
+            .admin-post-creation {
+              margin: 0 auto 2rem auto; 
+              padding: 1.5rem; /* Increased padding */
+              background: #1e1e1e; /* Consistent with auth container */
+              border: 1px solid #333;
+              border-radius: 10px;
+              max-width: 600px;
+              display: flex;
+              flex-direction: column;
+              align-items: stretch; /* Stretch children to full width */
+            }
+            .admin-post-creation h2 {
+                text-align: center;
+                margin-bottom: 1.5rem;
+                font-size: 1.5rem;
+            }
+            .title-input,
+            .body-input { 
+              width: 100%; /* Take full width */
+              margin-bottom: 1rem; /* Increased spacing */
+              border: 1px solid #444;
+              border-radius: 6px;
+              background: #282828;
+              color: var(--foreground);
+              padding: 0.75rem;
+              text-align: right; 
+              box-sizing: border-box;
+            }
+            .body-input .ProseMirror { 
+              min-height: 180px;
+              outline: none;
+              text-align: right; 
+            }
+            .admin-post-creation button {
+              padding: 0.75rem 1.5rem;
+              background: #4285f4;
+              border: none;
+              border-radius: 6px;
+              color: #fff;
+              cursor: pointer;
+              transition: background 0.3s ease;
+              margin-top: 0.5rem; 
+              font-size: 1rem;
+              font-weight: 500;
+              align-self: center; /* Center button if form is align-items:stretch */
+              min-width: 150px;
+            }
+            .admin-post-creation button:hover {
+              background: #357abd;
+            }
+            .posts {
+              margin-top: 2rem;
+            }
+            .post {
+              padding: 1.5rem; /* Increased padding */
+              margin-bottom: 1.5rem; /* Increased spacing */
+              border: 1px solid #333;
+              border-radius: 10px;
+              background: #1e1e1e;
+              text-align: right; 
+            }
+            .post h1 { /* This is the title of the post */
+              text-align: right; 
+              font-size: 1.75rem; /* Larger post titles */
+              margin-bottom: 0.75rem;
+            }
+            .post div[dangerouslySetInnerHTML] { 
+                text-align: right;
+                line-height: 1.6;
+                color: #e0e0e0;
+            }
+            .post button {
+              margin-top: 1rem; 
+              margin-left: 0.5rem; 
+              padding: 0.6rem 1.2rem;
+              background: #4285f4;
+              border: none;
+              border-radius: 6px;
+              color: #fff;
+              cursor: pointer;
+              transition: background 0.3s ease;
+              font-size: 0.9rem;
+            }
+            .post button:first-of-type { 
+                margin-left: 0;
+                margin-right: 0.5rem; 
+            }
+            .post button:hover {
+              background: #357abd;
+            }
+            
+            /* Error Message */
+            .error {
+              color: #FF5252; /* Brighter red for errors */
+              text-align: center;
+              margin-top: 0.75rem; /* Consistent spacing */
+              font-weight: 500;
+            }
+            
+            /* Responsive Adjustments */
+            @media (max-width: 768px) { /* Slightly larger breakpoint for some adjustments */
+                .voting-buttons button {
+                    font-size: 0.9rem; /* Adjust font size for smaller screens */
+                    padding: 0.4rem 0.8rem;
+                }
+                .sidebar {
+                    width: 250px; /* Adjust sidebar width if needed */
+                    right: -250px;
+                }
+            }
+            
+            @media (max-width: 600px) {
+              .page-container {
+                margin-top: 3rem;
+              }
+              .title {
+                font-size: 2.5rem; /* Smaller title on mobile */
+              }
+              .search-container {
+                padding: 0 0.5rem; 
+                max-width: 95%; /* Allow more width */
+              }
+              .search-input {
+                font-size: 14px;
+                padding: 0.6rem 1rem;
+              }
+              .item-representation h2 {
+                font-size: 1.5rem; /* Adjusted based on previous change */
+              }
+              .matching-results h3, .assumptions-list h3 {
+                font-size: 1.1rem;
+              }
+              
+              .item-average-container {
+                padding: 12px 15px;
+                font-size: 1rem;
+              }
+              .item-average-container .price-value {
+                font-size: 1.1em;
+              }
+              .item-average-container .price-label {
+                font-size: 0.85em;
+              }
+            
+              .admin-post-creation {
+                width: 95%; 
+                padding: 1rem;
+              }
+              .title-input,
+              .body-input {
+                width: 100%; /* Take full width in admin form on mobile */
+              }
+              .auth-container {
+                margin: 2rem auto;
+                padding: 1.5rem;
+                max-width: 90%;
+              }
+              .auth-container h2 {
+                font-size: 1.6rem;
+              }
+              .sidebar ul li a, .sidebar ul li button {
+                padding: 15px 20px;
+                font-size: 1rem;
+              }
+              .close-btn {
+                font-size: 24px;
+              }
+              .post {
+                padding: 1rem;
+              }
+              .post h1 {
+                font-size: 1.5rem;
+              }
+            }
+        File: layout.tsx
+            Code:
+            import "./globals.css";
+            import NavMenu from "./components/NavMenu";
+            import { UserProvider } from "./context/UserContext";
+            
+            export default function RootLayout({
+              children,
+            }: {
+              children: React.ReactNode;
+            }) {
+              return (
+                <html lang="he" dir="rtl">
+                  <body>
+                    {/* Wrap the entire app in UserProvider */}
+                    <UserProvider>
+                      <NavMenu />
+                      {children}
+                    </UserProvider>
+                  </body>
+                </html>
+              );
+            }
+        File: page.tsx
+            Code:
+            // src/app/page.tsx
+            import SearchComponent from "./components/SearchComponent";
+            // Import DepreciationSummary types, but the component itself will be rendered by SearchComponent
+            import { DepreciationStatsDisplay, StatsSourceType } from "./components/DepreciationSummary"; 
+            import { fetchAndManageDepreciationStats, getSearchComponentItems, Item as DepreciationItem } from "./lib/depreciationService";
+            
+            export default async function Home() {
+              console.log("Home: Page load initiated.");
+            
+              const { 
+                data: generalDepreciationDataRaw, 
+                source: generalStatsSource, 
+                itemFetchError: depreciationServiceItemFetchError 
+              } = await fetchAndManageDepreciationStats();
+            
+              const { items: searchComponentItems, error: searchItemsError } = await getSearchComponentItems();
+            
+              const pageDisplayError = searchItemsError || depreciationServiceItemFetchError;
+            
+              if (searchItemsError && !searchComponentItems?.length) {
+                console.error("Home: Critical error fetching items for SearchComponent:", searchItemsError);
+                return (
+                    <div className="page-container" style={{ textAlign: 'center', paddingTop: '50px' }}>
+                        <h1>שגיאה</h1>
+                        <p>אירעה שגיאה בטעינת נתוני הפריטים. נסו לרענן את הדף.</p>
+                        <pre style={{ fontSize: '0.8em', color: 'grey' }}>{searchItemsError}</pre>
+                    </div>
+                );
+              }
+              
+              const safeItems = searchComponentItems || [];
+              console.log("Home: Received", safeItems.length, "items for SearchComponent.");
+            
+              // It's crucial that generalDepreciationDataRaw is an object with the expected fields
+              // The depreciationService is designed to return defaultInitialStatsData if other fetches fail,
+              // so generalDepreciationDataRaw should always be an object.
+              const generalDisplayStats: DepreciationStatsDisplay = {
+                total_items_from_source: generalDepreciationDataRaw.total_items_from_source,
+                items_with_valid_regular_price: generalDepreciationDataRaw.items_with_valid_regular_price,
+                average_gold_depreciation: generalDepreciationDataRaw.average_gold_depreciation,
+                gold_items_count: generalDepreciationDataRaw.gold_items_count,
+                average_diamond_depreciation: generalDepreciationDataRaw.average_diamond_depreciation,
+                diamond_items_count: generalDepreciationDataRaw.diamond_items_count,
+                average_emerald_depreciation: generalDepreciationDataRaw.average_emerald_depreciation,
+                emerald_items_count: generalDepreciationDataRaw.emerald_items_count,
+                updated_at: 'updated_at' in generalDepreciationDataRaw ? generalDepreciationDataRaw.updated_at : undefined,
+              };
+            
+              return (
+                <div className="page-container">
+                  <h1 className="title">
+                    <span className="title-letter-blue">מ</span>
+                    <span className="title-letter-red">ו</span>
+                    <span className="title-letter-yellow">ז</span>
+                    <span className="title-letter-blue">ה</span>
+                    <span className="title-letter-green">ב</span>
+                    <span className="title-letter-red">י</span>
+                    <span className="title-letter-yellow">ם</span>
+                  </h1>
+                  <SearchComponent 
+                    initialItems={safeItems as DepreciationItem[]} 
+                    generalDepreciationStats={generalDisplayStats} // This should be a valid object
+                    generalDepreciationSource={generalStatsSource} // This should be a valid string
+                  />
+                </div>
+              );
+            }
+        File: scoreActions.ts
+            Code:
+            // src/app/actions.ts (or a new dedicated scoreActions.ts)
+            "use server";
+            
+            import { supabase } from "./lib/supabaseClient"; // Assuming your admin/service client is configured here if needed for privileged ops
+                                                            // Or use the regular client if RLS allows score updates
+            import { createClient } from '@supabase/supabase-js';
+            import { revalidatePath } from "next/cache";
+            
+            // Define score constants (could be in a separate config file)
+            const SCORE_VALUES = {
+              DAILY_VISIT: 5,
+              VOTE: 2,
+              ADD_ASSUMPTION_BASE: 10,
+              ADD_ASSUMPTION_GOLD_BONUS: 5,
+              ADD_ASSUMPTION_DIAMOND_BONUS: 10,
+              ADD_ASSUMPTION_EMERALD_BONUS: 15,
+              MILESTONE_ASSUMPTIONS_5: 25,
+              MILESTONE_ASSUMPTIONS_10: 50,
+              MILESTONE_ASSUMPTIONS_25: 125,
+              MILESTONE_ASSUMPTIONS_50: 250,
+            };
+            
+            // Helper to create a Supabase client with service_role if needed for protected operations
+            // Ensure SUPABASE_SERVICE_ROLE_KEY is set in your environment variables
+            const getSupabaseAdmin = () => {
+              const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+              const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+              if (!supabaseServiceRoleKey) {
+                console.warn("Supabase service role key is not configured. Score updates might fail if RLS restricts anon key.");
+                return supabase; // Fallback to anon client, hoping RLS allows
+              }
+              return createClient(supabaseUrl, supabaseServiceRoleKey, {
+                auth: {
+                  autoRefreshToken: false,
+                  persistSession: false,
+                },
+              });
+            };
+            
+            
+            async function awardPoints(userId: string, points: number) {
+              if (!userId || points === 0) return;
+              const supabaseAdmin = getSupabaseAdmin(); // Use admin client for reliable updates
+            
+              try {
+                const { error } = await supabaseAdmin.rpc('increment_user_score', {
+                  user_id_input: userId,
+                  score_to_add: points,
+                });
+                if (error) {
+                  console.error(`Error in RPC increment_user_score for user ${userId}, points ${points}:`, error);
+                } else {
+                  // console.log(`Awarded ${points} points to user ${userId}`);
+                  // Revalidate user profile path if you have a public profile page showing scores
+                  // revalidatePath(`/users/${userId}`); // Example
+                }
+              } catch (e) {
+                console.error(`Exception in awardPoints for user ${userId}, points ${points}:`, e);
+              }
+            }
+            
+            export async function awardDailyVisitScore(userId: string) {
+              if (!userId) return { success: false, message: "User ID is required." };
+              const supabaseAdmin = getSupabaseAdmin();
+            
+              try {
+                const { data: profile, error: profileError } = await supabaseAdmin
+                  .from('profiles')
+                  .select('last_daily_visit_reward_at, score')
+                  .eq('id', userId)
+                  .single();
+            
+                if (profileError || !profile) {
+                  console.error("Error fetching profile for daily score:", profileError?.message);
+                  return { success: false, message: "Could not fetch user profile." };
+                }
+            
+                const today = new Date().setHours(0, 0, 0, 0);
+                const lastRewardDate = profile.last_daily_visit_reward_at 
+                  ? new Date(profile.last_daily_visit_reward_at).setHours(0, 0, 0, 0) 
+                  : null;
+            
+                if (lastRewardDate === null || lastRewardDate < today) {
+                  await awardPoints(userId, SCORE_VALUES.DAILY_VISIT);
+                  const { error: updateError } = await supabaseAdmin
+                    .from('profiles')
+                    .update({ last_daily_visit_reward_at: new Date().toISOString() })
+                    .eq('id', userId);
+            
+                  if (updateError) {
+                    console.error("Error updating last_daily_visit_reward_at:", updateError.message);
+                    // Score was awarded, but timestamp update failed. Consider how to handle.
+                  }
+                  // console.log(`Daily visit score awarded to user ${userId}`);
+                  return { success: true, message: `+${SCORE_VALUES.DAILY_VISIT} points for daily visit!`, newScore: (profile.score || 0) + SCORE_VALUES.DAILY_VISIT };
+                } else {
+                  // console.log(`Daily visit score already awarded today for user ${userId}`);
+                  return { success: false, message: "Daily score already awarded today." };
+                }
+              } catch (e: any) {
+                console.error("Exception in awardDailyVisitScore:", e.message);
+                return { success: false, message: "An error occurred." };
+              }
+            }
+            
+            export async function awardVoteScore(userId: string, itemName: string) {
+              if (!userId) return;
+              // Here you could add logic to prevent multiple vote scores for the same item in a short period if needed,
+              // similar to how `PriceOpinion.tsx` handles `hasVotedRecently`.
+              // For now, let's assume each valid vote confirmation triggers this.
+              await awardPoints(userId, SCORE_VALUES.VOTE);
+              // console.log(`Vote score awarded to user ${userId} for item ${itemName}`);
+            }
+            
+            interface AssumptionDetails {
+              regular?: boolean;
+              gold?: boolean;
+              diamond?: boolean;
+              emerald?: boolean;
+            }
+            
+            export async function awardAssumptionScore(userId: string, itemName: string, assumptionDetails: AssumptionDetails) {
+              if (!userId) return;
+            
+              let pointsForThisAssumption = 0;
+              if (assumptionDetails.regular) pointsForThisAssumption += SCORE_VALUES.ADD_ASSUMPTION_BASE;
+              if (assumptionDetails.gold) pointsForThisAssumption += SCORE_VALUES.ADD_ASSUMPTION_GOLD_BONUS;
+              if (assumptionDetails.diamond) pointsForThisAssumption += SCORE_VALUES.ADD_ASSUMPTION_DIAMOND_BONUS;
+              if (assumptionDetails.emerald) pointsForThisAssumption += SCORE_VALUES.ADD_ASSUMPTION_EMERALD_BONUS;
+              
+              if (pointsForThisAssumption > 0) {
+                await awardPoints(userId, pointsForThisAssumption);
+                // console.log(`Assumption score (${pointsForThisAssumption}) awarded to user ${userId} for item ${itemName}`);
+              }
+              
+              // Check and award milestone bonuses
+              await checkAndAwardAssumptionMilestones(userId);
+            }
+            
+            async function checkAndAwardAssumptionMilestones(userId: string) {
+              const supabaseAdmin = getSupabaseAdmin();
+              try {
+                const { data: profile, error: profileError } = await supabaseAdmin
+                  .from('profiles')
+                  .select('awarded_milestones, score') // also fetch score to return updated total
+                  .eq('id', userId)
+                  .single();
+            
+                if (profileError || !profile) {
+                  console.error("Error fetching profile for milestone check:", profileError?.message);
+                  return;
+                }
+            
+                const { data: assumptionCountData, error: countError } = await supabaseAdmin
+                  .from('assumptions') // Assuming your table for price assumptions is named 'assumptions'
+                  .select('item_name', { count: 'exact', head: false }) // Count distinct items
+                  .eq('user_id', userId);
+                  // .rpc('count_distinct_item_assumptions_by_user', {p_user_id: userId}) // if using a specific RPC for this
+            
+                if (countError) {
+                  console.error("Error counting user assumptions:", countError.message);
+                  return;
+                }
+                
+                // To count distinct items, we need to process assumptionCountData
+                const distinctItemsCount = new Set(assumptionCountData?.map(a => a.item_name)).size;
+                // console.log(`User ${userId} has assumptions for ${distinctItemsCount} distinct items.`);
+            
+                let totalBonusAwarded = 0;
+                let awardedMilestones = profile.awarded_milestones || {};
+                const milestones = [
+                  { count: 5, bonus: SCORE_VALUES.MILESTONE_ASSUMPTIONS_5, key: 'assumptions_5' },
+                  { count: 10, bonus: SCORE_VALUES.MILESTONE_ASSUMPTIONS_10, key: 'assumptions_10' },
+                  { count: 25, bonus: SCORE_VALUES.MILESTONE_ASSUMPTIONS_25, key: 'assumptions_25' },
+                  { count: 50, bonus: SCORE_VALUES.MILESTONE_ASSUMPTIONS_50, key: 'assumptions_50' },
+                ];
+            
+                for (const milestone of milestones) {
+                  if (distinctItemsCount >= milestone.count && !awardedMilestones[milestone.key]) {
+                    await awardPoints(userId, milestone.bonus);
+                    totalBonusAwarded += milestone.bonus;
+                    awardedMilestones[milestone.key] = true;
+                    // console.log(`Milestone bonus ${milestone.key} (${milestone.bonus} points) awarded to ${userId}`);
+                  }
+                }
+            
+                if (totalBonusAwarded > 0) {
+                  const { error: updateMilestoneError } = await supabaseAdmin
+                    .from('profiles')
+                    .update({ awarded_milestones: awardedMilestones })
+                    .eq('id', userId);
+                  if (updateMilestoneError) {
+                    console.error("Error updating awarded_milestones:", updateMilestoneError.message);
+                  }
+                }
+              } catch (e:any) {
+                console.error("Exception in checkAndAwardAssumptionMilestones:", e.message);
+              }
+            }
+            
+            // Existing revalidateItemsCacheAction (keep as is)
+            export async function revalidateItemsCacheAction() {
+              // ... (your existing code)
+            }
+
+        Folder: admin
+            File: page.tsx
+                Code:
+                // src/app/admin/page.tsx
+                "use client";
+                
+                import { useState, useEffect } from "react";
+                import { supabase } from "../lib/supabaseClient";
+                import { useUser } from "../context/UserContext";
+                import { revalidateItemsCacheAction } from "../actions";
+                import Link from "next/link"; // Import Link for navigation
+                
+                /* -------------------------------------------------
+                  1️⃣  free‑form key → column mapping (Hebrew)
+                -------------------------------------------------- */
+                const fieldMapping: Record<string, string> = {
+                  "שם מוזהב": "name",
+                  "קנייה (רגיל)": "buyregular",
+                  "קנייה": "buyregular", // Alias for convenience
+                  "קנייה (זהב)": "buygold",
+                  "קנייה (יהלום)": "buydiamond",
+                  "קנייה (אמרלד)": "buyemerald",
+                  "מכירה (רגיל)": "sellregular",
+                  "מכירה (זהב)": "sellgold",
+                  "מכירה (יהלום)": "selldiamond",
+                  "מכירה (אמרלד)": "sellemerald",
+                  "פורסם ע\"י": "publisher",
+                  "תאריך פרסום": "date",
+                  "תמונה": "image",
+                  "תיאור": "description",
+                };
+                
+                const allowedFields = [
+                  "name", "buyregular", "buygold", "buydiamond", "buyemerald",
+                  "sellregular", "sellgold", "selldiamond", "sellemerald",
+                  "publisher", "date", "image", "description",
+                ];
+                
+                /* -------------------------------------------------
+                  2️⃣  helpers — parse free text / JSON
+                -------------------------------------------------- */
+                function normalizeJsonRecord(record: any): any {
+                  const out: any = {};
+                  if (typeof record !== 'object' || record === null) {
+                    return {};
+                  }
+                  for (const [k, v] of Object.entries(record)) {
+                    const key = String(k).replace(/\s/g, "").toLowerCase(); // Ensure k is string
+                    out[key] = v;
+                  }
+                  const filtered: any = {};
+                  for (const k of Object.keys(out)) {
+                    if (allowedFields.includes(k)) filtered[k] = out[k];
+                  }
+                  return filtered;
+                }
+                
+                function parseFreeForm(data: string): any {
+                  const out: any = {};
+                  if (typeof data !== 'string') return out;
+                  for (const line of data.split("\n")) {
+                    const parts = line.split(":");
+                    if (parts.length < 2) continue;
+                    const key = parts[0].trim();
+                    const val = parts.slice(1).join(":").trim();
+                    const col = fieldMapping[key];
+                    if (col) out[col] = val === "" || val === "אין נתון" ? null : val;
+                  }
+                  return out;
+                }
+                
+                function parseJsonObjects(block: string): any[] {
+                  if (typeof block !== 'string') return [];
+                  const regex = /{[\s\S]*?}/g;
+                  let matches: string[] = [];
+                  try {
+                    const regexMatches = block.match(regex);
+                    if (regexMatches) {
+                      matches = regexMatches;
+                    }
+                  } catch (e) {
+                    // console.warn("Regex match failed for JSON parsing:", e);
+                  }
+                  return matches
+                    .map((m: string) => {
+                      try { return JSON.parse(m); }
+                      catch (e) {
+                        return null;
+                      }
+                    })
+                    .filter(record => record !== null && typeof record === 'object')
+                    .map(normalizeJsonRecord);
+                }
+                
+                function parseRecords(text: string): any[] {
+                  if (typeof text !== 'string') return [];
+                  const trimmed = text.trim();
+                  if (!trimmed) return [];
+                
+                  // Favor free-form if "שם מוזהב:" is present, as it's a strong indicator.
+                  if (trimmed.includes("שם מוזהב:")) {
+                    return trimmed.split(/\n\s*\n/).filter(Boolean).map(parseFreeForm);
+                  }
+                
+                  // Try JSON parsing if it looks like JSON (array or object).
+                  const firstChar = trimmed[0];
+                  if (firstChar === "{" || firstChar === "[") {
+                    try {
+                      const obj = JSON.parse(trimmed);
+                      const arr = Array.isArray(obj) ? obj : [obj];
+                      // Check if the parsed result is an array of objects before mapping
+                      if (arr.every(record => typeof record === 'object' && record !== null)) {
+                        return arr.map(normalizeJsonRecord);
+                      }
+                    } catch {
+                      // If JSON.parse fails, try to parse as a block of multiple JSON objects
+                      const arrFromObjects = parseJsonObjects(trimmed);
+                      if (arrFromObjects.length > 0 && arrFromObjects.some(obj => Object.keys(obj).length > 0)) {
+                        return arrFromObjects;
+                      }
+                    }
+                  }
+                  // Fallback to free-form if not clearly multi-record JSON or if specific key isn't found
+                  return trimmed.split(/\n\s*\n/).filter(Boolean).map(parseFreeForm);
+                }
+                
+                
+                /* -------------------------------------------------
+                  3️⃣  React component
+                -------------------------------------------------- */
+                export default function AdminManagementPage() {
+                  const { user, profile, isLoading, sessionInitiallyChecked } = useUser();
+                  const [inputData, setInputData] = useState("");
+                  const [message, setMessage] = useState("");
+                  const [error, setError] = useState("");
+                  const [isPublishing, setIsPublishing] = useState(false);
+                
+                  async function getDefinitionId(rec: any): Promise<string | null> {
+                    const name = rec.name?.trim();
+                    if (!name) {
+                      console.error("getDefinitionId: Record is missing a name.", rec);
+                      return null;
+                    }
+                
+                    const upsertDefinitionData: {
+                      name: string;
+                      description?: string | null;
+                      image?: string | null;
+                    } = { name };
+                
+                    if (rec.description !== undefined) {
+                      upsertDefinitionData.description = rec.description ?? null;
+                    }
+                    if (rec.image !== undefined) {
+                      upsertDefinitionData.image = rec.image ?? null;
+                    }
+                
+                    const { data, error: upsertError } = await supabase
+                      .from("item_definitions")
+                      .upsert(upsertDefinitionData, { onConflict: "name" })
+                      .select("id")
+                      .single();
+                
+                    if (upsertError) {
+                      console.error("Definition upsert error for '" + name + "':", upsertError.message);
+                      return null;
+                    }
+                    return data?.id ?? null;
+                  }
+                
+                  const handlePublish = async () => {
+                    // Gatekeeping for user status is handled by the main component render logic
+                    if (isPublishing || isLoading || !user || !profile?.is_admin) return;
+                
+                    setIsPublishing(true);
+                    setMessage("");
+                    setError("");
+                
+                    const records = parseRecords(inputData);
+                    if (!records.length || records.every(r => Object.keys(r).length === 0)) {
+                      setError("לא נמצאו רשומות תקינות לייבוא מהטקסט שהוזן, או שהרשומות ריקות.");
+                      setIsPublishing(false);
+                      return;
+                    }
+                
+                    let okCount = 0;
+                    let failCount = 0;
+                    const failMessages: string[] = [];
+                    let successfullyPublishedAtLeastOne = false;
+                
+                    for (const rec of records) {
+                      if (Object.keys(rec).length === 0) { // Skip fully empty records after parsing
+                          failCount++;
+                          failMessages.push("רשומה ריקה זוהתה ודולגה.");
+                          continue;
+                      }
+                      if (!rec.name || typeof rec.name !== 'string' || !rec.name.trim()) {
+                        failCount++;
+                        failMessages.push("רשומה ללא שם מוזהב תקין לא תתווסף. תוכן רשומה: " + JSON.stringify(rec));
+                        continue;
+                      }
+                
+                      const definitionId = await getDefinitionId(rec);
+                      if (!definitionId) {
+                        failCount++;
+                        failMessages.push(`שגיאה ביצירת/אחזור הגדרת פריט (definition) עבור "${rec.name}".`);
+                        continue;
+                      }
+                
+                      const { data: duplicateCheck, error: duplicateCheckError } = await supabase
+                        .from("item_listings")
+                        .select("id")
+                        .eq("item_id", definitionId)
+                        .eq("publisher", rec.publisher ?? null)
+                        .eq("date", rec.date ?? null)
+                        .maybeSingle();
+                
+                      if (duplicateCheckError) {
+                        failCount++;
+                        failMessages.push(`שגיאה בבדיקת כפילויות עבור "${rec.name}": ${duplicateCheckError.message}`);
+                        console.error("Duplicate check error for", rec.name, duplicateCheckError);
+                        continue;
+                      }
+                
+                      if (duplicateCheck) {
+                        failCount++;
+                        failMessages.push(`כפילות: "${rec.name}" כבר קיים עם אותו מפרסם ותאריך.`);
+                        continue;
+                      }
+                
+                      const listingData = {
+                        item_id: definitionId,
+                        publisher: rec.publisher ?? null,
+                        buyregular: rec.buyregular ?? null,
+                        buygold: rec.buygold ?? null,
+                        buydiamond: rec.buydiamond ?? null,
+                        buyemerald: rec.buyemerald ?? null,
+                        sellregular: rec.sellregular ?? null,
+                        sellgold: rec.sellgold ?? null,
+                        selldiamond: rec.selldiamond ?? null,
+                        sellemerald: rec.sellemerald ?? null,
+                        date: rec.date ?? null,
+                        admin_id: user.id, // user is guaranteed to be non-null here due to page gate
+                      };
+                
+                      const { error: insertError } = await supabase
+                        .from("item_listings")
+                        .insert(listingData);
+                
+                      if (insertError) {
+                        failCount++;
+                        failMessages.push(`שגיאת הוספה לטבלת listings עבור "${rec.name}": ${insertError.message}`);
+                        console.error("Insert error for item_listings for", rec.name, insertError);
+                      } else {
+                        okCount++;
+                        successfullyPublishedAtLeastOne = true;
+                      }
+                    }
+                
+                    let finalMessageText = "";
+                    if (okCount > 0) {
+                        finalMessageText += `✅ נוספו ${okCount} פריטים.`;
+                    }
+                    if (failCount > 0) {
+                        finalMessageText += `${okCount > 0 ? " • " : ""}❌ נכשלו ${failCount} פריטים.`;
+                    }
+                    setMessage(finalMessageText || "תהליך הפרסום הסתיים.");
+                
+                
+                    if (failMessages.length > 0) {
+                      setError("פירוט שגיאות:\n" + failMessages.join("\n"));
+                    } else {
+                      setError("");
+                    }
+                
+                    if (failCount === 0 && okCount > 0) {
+                      setInputData(""); // Clear input only if all were successful
+                    }
+                
+                    if (successfullyPublishedAtLeastOne) {
+                      try {
+                        // console.log("Admin Page: Calling revalidateItemsCacheAction Server Action...");
+                        await revalidateItemsCacheAction();
+                        setMessage(prev => prev + " • ✅ מטמון הפריטים באתר התעדכן.");
+                        // console.log("Admin Page: Server Action for cache revalidation completed.");
+                      } catch (revalError: any) {
+                        console.error("Admin Page: Calling Server Action for cache revalidation failed:", revalError.message);
+                        setMessage(prev => prev + " • ⚠️ שגיאה בעדכון מטמון הפריטים באתר.");
+                      }
+                    }
+                    setIsPublishing(false);
+                  };
+                
+                  /* --------------- UI --------------- */
+                  if (isLoading) {
+                    return (
+                        <div className="admin-post-creation" style={{ marginTop: "2rem", textAlign: "center", color: "var(--foreground)" }}>
+                            <h1>מערכת הוספת מוזהבים</h1>
+                            <p>טוען נתוני משתמש...</p>
+                        </div>
+                    );
+                  }
+                
+                  // After initial loading (isLoading is false), sessionInitiallyChecked should be true.
+                  // If not, it implies an unexpected state, but typically covered by isLoading.
+                  if (!sessionInitiallyChecked) {
+                      return (
+                           <div className="admin-post-creation" style={{ marginTop: "2rem", textAlign: "center", color: "var(--foreground)" }}>
+                              <h1>מערכת הוספת מוזהבים</h1>
+                              <p>ממתין לאימות סשן...</p>
+                          </div>
+                      );
+                  }
+                
+                  if (!user || !profile?.is_admin) {
+                      return (
+                          <div className="admin-post-creation" style={{ marginTop: "2rem", textAlign: "center", color: "var(--foreground)" }}>
+                              <h1>מערכת הוספת מוזהבים</h1>
+                              <p className="error" style={{ color: "#FF6B6B", fontSize: "1.1rem", marginTop: "1rem" }}>
+                                  {!user ? "אינך מחובר. " : "אין לך הרשאות אדמין לגשת לדף זה."}
+                              </p>
+                              {!user && (
+                                  <Link href="/auth" style={{color: "#4285f4", textDecoration: "underline", fontSize: "1rem", marginTop: "0.5rem", display: "inline-block"}}>
+                                      עבור לדף התחברות
+                                  </Link>
+                              )}
+                          </div>
+                      );
+                  }
+                
+                  // User is logged in and is an admin
+                  const publishButtonText = isPublishing ? "מפרסם..." : "פרסם פריטים";
+                
+                  return (
+                    <div className="admin-post-creation" style={{ marginTop: "2rem" }}>
+                      <h1>מערכת הוספת מוזהבים</h1>
+                      <textarea
+                        placeholder={`הזן JSON או טקסט חופשי. רשומות מפרידים בשורה ריקה ("enter enter").
+                דוגמה לטקסט חופשי:
+                שם מוזהב: פריט לדוגמה חדש
+                קנייה (רגיל): 1000
+                מכירה (רגיל): 1200
+                פורסם ע"י: אדמין בדיקה
+                תאריך פרסום: 2025-05-17
+                תיאור: זהו פריט בדיקה חדש להדגמת המערכת.
+                תמונה: (אופציונלי) https://example.com/image.png
+                
+                שם מוזהב: פריט נוסף
+                קנייה (זהב): 50
+                מכירה (יהלום): 300`}
+                        value={inputData}
+                        onChange={(e) => setInputData(e.target.value)}
+                        className="title-input" // Ensure this class exists and is styled in globals.css
+                        style={{ 
+                            width: "100%", 
+                            minHeight: "250px", 
+                            marginBottom: "1rem", 
+                            whiteSpace: "pre-wrap", 
+                            textAlign: "right", 
+                            direction: "rtl", 
+                            padding: "10px", 
+                            boxSizing: "border-box",
+                            backgroundColor: "var(--background-input, #1f1f1f)", // Example input background
+                            color: "var(--foreground-input, #ededed)", // Example input text color
+                            border: "1px solid var(--border-color, #444)", // Example border
+                            borderRadius: "4px"
+                        }}
+                      />
+                      <button 
+                        onClick={handlePublish} 
+                        disabled={isPublishing || !inputData.trim()}
+                        // Ensure button styles are present in globals.css or defined inline
+                        style={{
+                            padding: "0.75rem 1.5rem",
+                            backgroundColor: (isPublishing || !inputData.trim()) ? "#555" : "#4285f4",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "4px",
+                            cursor: (isPublishing || !inputData.trim()) ? "not-allowed" : "pointer",
+                            fontSize: "1rem",
+                            opacity: (isPublishing || !inputData.trim()) ? 0.7 : 1
+                        }}
+                      >
+                        {publishButtonText}
+                      </button>
+                
+                      {message && (
+                        <p style={{ color: "var(--success-color, #34A853)", whiteSpace: "pre-wrap", textAlign: "right", marginTop: "1rem" }}>{message}</p>
+                      )}
+                      {error && (
+                        <p className="error" style={{ color: "var(--error-color, #EA4335)", whiteSpace: "pre-wrap", textAlign: "right", marginTop: "0.5rem" }}>{error}</p>
+                      )}
+                    </div>
+                  );
+                }
+
+        Folder: aitch
+            File: page.tsx
+                Code:
+                // src/app/aitch/page.tsx
+                "use client";
+                
+                import { useState, useEffect } from "react";
+                import { useUser } from "../context/UserContext";
+                import { supabase } from "../lib/supabaseClient";
+                // TipTap imports:
+                import { useEditor, EditorContent, Editor } from "@tiptap/react";
+                import StarterKit from "@tiptap/starter-kit";
+                import Underline from "@tiptap/extension-underline";
+                import LinkTiptap from "@tiptap/extension-link"; // Renamed to avoid conflict with Next.js Link
+                
+                // Define the Post type based on the posts table
+                type Post = {
+                  id: string;
+                  title: string;
+                  body: string;
+                  created_at: string;
+                };
+                
+                export default function UpdatesPage() {
+                  const { user, profile, isLoading, sessionInitiallyChecked } = useUser();
+                
+                  const [posts, setPosts] = useState<Post[]>([]);
+                  const [title, setTitle] = useState("");
+                  // Removed 'body' state, editor will manage its content directly.
+                  const [editingPost, setEditingPost] = useState<Post | null>(null);
+                  const [error, setError] = useState("");
+                  const [isSubmitting, setIsSubmitting] = useState(false); // For disabling buttons during operations
+                
+                  // TipTap editor setup
+                  const editor: Editor | null = useEditor({ // Explicitly type editor as Editor | null
+                    extensions: [
+                        StarterKit, 
+                        Underline, 
+                        LinkTiptap.configure({ // Use the renamed import
+                            openOnClick: false, // Recommended for better UX
+                            autolink: true,
+                        })
+                    ],
+                    content: "", // Initial content is empty
+                    immediatelyRender: false, // Prevent immediate rendering during SSR
+                    // onUpdate can be used if needed, but we'll get HTML on submit.
+                  });
+                
+                  // Sync editor content when starting to edit a post or clearing for a new one
+                  useEffect(() => {
+                    if (!editor) return;
+                
+                    if (editingPost) {
+                      editor.commands.setContent(editingPost.body);
+                    } else {
+                      // When not editing (i.e., new post or after cancelling edit),
+                      // ensure editor is clear if it wasn't already.
+                      // editor.commands.clearContent(); // Or set to a default if preferred.
+                    }
+                  }, [editingPost, editor]);
+                
+                  // Fetch posts
+                  useEffect(() => {
+                    // Fetch posts once the initial loading is done, or always if posts are public
+                    if (!isLoading && sessionInitiallyChecked) { // Example: fetch after user context is resolved
+                        fetchPosts();
+                    } else if (!isLoading && !user) { // Or if posts are public, fetch if not loading and no user
+                        fetchPosts();
+                    }
+                    // If posts are truly public and don't depend on user state at all for fetching,
+                    // you could fetch them earlier or with fewer conditions.
+                  }, [isLoading, sessionInitiallyChecked, user]); // Re-fetch if user state changes, e.g., after login
+                
+                  const fetchPosts = async () => {
+                    const { data, error: fetchError } = await supabase
+                      .from("posts")
+                      .select("*")
+                      .order("created_at", { ascending: false });
+                
+                    if (fetchError) {
+                      console.error("Error fetching posts:", fetchError.message);
+                      setError("שגיאה בטעינת העדכונים.");
+                    } else {
+                      setPosts(data || []);
+                      setError(""); // Clear previous errors
+                    }
+                  };
+                
+                  const handleCreatePost = async () => {
+                    if (!editor) return;
+                    const currentBody = editor.getHTML();
+                    if (!title.trim() || currentBody === "<p></p>" || !currentBody.trim()) { // Check for empty editor
+                      setError("חובה למלא כותרת ותוכן.");
+                      return;
+                    }
+                    if (!user || !profile?.is_admin) {
+                        setError("אינך מורשה לבצע פעולה זו.");
+                        return;
+                    }
+                
+                    setIsSubmitting(true);
+                    setError("");
+                    const { error: insertError } = await supabase.from("posts").insert([{ title, body: currentBody, user_id: user.id }]); // Add user_id if your table has it
+                    if (insertError) {
+                      setError(insertError.message);
+                    } else {
+                      setTitle("");
+                      editor.commands.clearContent();
+                      fetchPosts(); // Refresh posts list
+                    }
+                    setIsSubmitting(false);
+                  };
+                
+                  const handleUpdatePost = async () => {
+                    if (!editor || !editingPost) return;
+                    const currentBody = editor.getHTML();
+                     if (!title.trim() || currentBody === "<p></p>" || !currentBody.trim()) {
+                      setError("חובה למלא כותרת ותוכן.");
+                      return;
+                    }
+                     if (!user || !profile?.is_admin) {
+                        setError("אינך מורשה לבצע פעולה זו.");
+                        return;
+                    }
+                
+                    setIsSubmitting(true);
+                    setError("");
+                    const { error: updateError } = await supabase
+                      .from("posts")
+                      .update({ title, body: currentBody })
+                      .eq("id", editingPost.id);
+                
+                    if (updateError) {
+                      setError(updateError.message);
+                    } else {
+                      setEditingPost(null);
+                      setTitle("");
+                      editor.commands.clearContent();
+                      fetchPosts(); // Refresh posts list
+                    }
+                    setIsSubmitting(false);
+                  };
+                
+                  const handleDeletePost = async (postId: string) => {
+                    if (!user || !profile?.is_admin) {
+                        setError("אינך מורשה לבצע פעולה זו.");
+                        return;
+                    }
+                    const confirmed = window.confirm("האם אתה בטוח שברצונך למחוק עדכון זה?");
+                    if (!confirmed) return;
+                
+                    setIsSubmitting(true);
+                    setError("");
+                    const { error: deleteError } = await supabase.from("posts").delete().eq("id", postId);
+                    if (deleteError) {
+                      setError(deleteError.message);
+                    } else {
+                      fetchPosts(); // Refresh posts list
+                      if (editingPost?.id === postId) { // If deleting the post being edited
+                        setEditingPost(null);
+                        setTitle("");
+                        editor?.commands.clearContent();
+                      }
+                    }
+                    setIsSubmitting(false);
+                  };
+                
+                  const startEditing = (post: Post) => {
+                    if (!editor) return;
+                    setEditingPost(post);
+                    setTitle(post.title);
+                    editor.commands.setContent(post.body); // Set editor content
+                    setError(""); // Clear any previous errors
+                    window.scrollTo({ top: 0, behavior: 'smooth' }); // Scroll to top to see editor
+                  };
+                
+                  const cancelEditing = () => {
+                    setEditingPost(null);
+                    setTitle("");
+                    editor?.commands.clearContent();
+                    setError("");
+                  }
+                
+                  // UI Rendering
+                  if (isLoading) {
+                    return (
+                      <div className="info-updates-container" style={{ textAlign: 'center', paddingTop: '2rem' }}>
+                        <h1>עדכונים</h1>
+                        <p className="greeting" style={{ fontSize: '1.2rem', margin: '1rem 0' }}>טוען...</p>
+                      </div>
+                    );
+                  }
+                
+                  // After isLoading is false
+                  return (
+                    <div className="info-updates-container">
+                      <h1>עדכונים</h1>
+                
+                      <p className="greeting">
+                        {user && profile ? `שלום, ${profile.username}` 
+                          : (sessionInitiallyChecked ? "ברוכים הבאים" : "טוען...")}
+                      </p>
+                
+                      {/* Admin Post Creation/Edit Form - Shown only if user is admin and context is loaded */}
+                      {!isLoading && sessionInitiallyChecked && user && profile?.is_admin && (
+                        <div className="admin-post-creation">
+                          <h2>{editingPost ? "עריכת עדכון" : "יצירת עדכון חדש"}</h2>
+                          <input
+                            type="text"
+                            placeholder="כותרת העדכון"
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                            className="title-input" // Ensure styling in globals.css
+                            disabled={isSubmitting}
+                          />
+                
+                          {editor && <EditorContent editor={editor} className="body-input" />} 
+                          {/* Ensure .body-input and TipTap's .ProseMirror are styled in globals.css */}
+                          
+                          <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', justifyContent: 'flex-start' }}>
+                            <button onClick={editingPost ? handleUpdatePost : handleCreatePost} disabled={isSubmitting || !editor}>
+                              {isSubmitting ? (editingPost ? "מעדכן..." : "מפרסם...") : (editingPost ? "עדכן" : "פרסם")}
+                            </button>
+                            {editingPost && (
+                              <button onClick={cancelEditing} disabled={isSubmitting} style={{backgroundColor: '#6c757d'}}>
+                                בטל עריכה
+                              </button>
+                            )}
+                          </div>
+                          {error && <p className="error" style={{marginTop: '0.5rem', color: '#FF6B6B'}}>{error}</p>}
+                        </div>
+                      )}
+                
+                      {/* Post List - Accessible to All Users */}
+                      <div className="posts">
+                        {!sessionInitiallyChecked && posts.length === 0 && <p>טוען עדכונים...</p>}
+                        {sessionInitiallyChecked && posts.length === 0 && <p>אין עדכונים זמינים כרגע.</p>}
+                        
+                        {posts.map((post) => (
+                          <div key={post.id} className="post">
+                            <h1>{post.title}</h1>
+                            <div dangerouslySetInnerHTML={{ __html: post.body }} />
+                            <p style={{fontSize: '0.8rem', color: '#aaa', marginTop: '0.5rem'}}>
+                                פורסם ב: {new Date(post.created_at).toLocaleDateString('he-IL', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                            {!isLoading && sessionInitiallyChecked && user && profile?.is_admin && (
+                              <div style={{marginTop: '1rem', display: 'flex', gap: '0.5rem'}}>
+                                <button onClick={() => startEditing(post)} disabled={isSubmitting}>ערוך</button>
+                                <button onClick={() => handleDeletePost(post.id)} disabled={isSubmitting} style={{backgroundColor: '#dc3545'}}>מחק</button>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                }
+
+        Folder: api
+
+            Folder: create-user
+                File: route.ts
+                    Code:
+                    // src/app/api/create-user/route.ts
+                    import { createClient, SupabaseClient } from '@supabase/supabase-js';
+                    import { NextResponse } from 'next/server';
+                    import { headers } from 'next/headers';
+                    import crypto from 'crypto';
+                    
+                    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+                    const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+                    
+                    const supabaseAdmin: SupabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey, {
+                      auth: {
+                        autoRefreshToken: false,
+                        persistSession: false,
+                      },
+                    });
+                    
+                    const getClientIp = async (): Promise<string | null> => {
+                      const headersList = await headers(); // Await as per TypeScript's inference in your environment
+                      const xForwardedFor = headersList.get('x-forwarded-for');
+                      if (xForwardedFor) {
+                        return xForwardedFor.split(',')[0].trim();
+                      }
+                      const realIp = headersList.get('x-real-ip');
+                      return realIp || null;
+                    };
+                    
+                    const hashIP = (ip: string): string => {
+                      return crypto.createHash('sha256').update(ip).digest('hex');
+                    };
+                    
+                    export async function POST(request: Request) {
+                      try {
+                        const { username, password } = await request.json();
+                    
+                        if (!username || !password) {
+                          return NextResponse.json({ error: 'שם משתמש או סיסמה חסרים.' }, { status: 400 });
+                        }
+                    
+                        const clientIp = await getClientIp();
+                    
+                        if (!clientIp) {
+                          console.warn('Could not determine client IP for rate limiting. Allowing registration for now.');
+                        } else {
+                          const ipHash = hashIP(clientIp);
+                          // --- MODIFIED FOR TESTING: 3 minutes instead of 7 days ---
+                          const threeMinutesAgo = new Date(Date.now() - 3 * 60 * 1000).toISOString();
+                    
+                          const { count, error: ipCheckError } = await supabaseAdmin
+                            .from('username_ip_registrations')
+                            .select('*', { count: 'exact', head: true })
+                            .eq('ip_hash', ipHash)
+                            .gte('created_at', threeMinutesAgo); // Use threeMinutesAgo for check
+                    
+                          if (ipCheckError) {
+                            console.error('Error checking IP registration history:', ipCheckError);
+                            return NextResponse.json({ error: 'שגיאת שרת במהלך בדיקת IP.' }, { status: 500 });
+                          }
+                    
+                          if (count !== null && count > 0) {
+                            // --- MODIFIED USER MESSAGE: More generic ---
+                            return NextResponse.json(
+                              { error: 'ניסיונות רישום מרובים זוהו. אנא נסה שוב מאוחר יותר.' },
+                              { status: 429 } // 429 Too Many Requests
+                            );
+                          }
+                        }
+                    
+                        const { data: usernameExists, error: rpcError } = await supabaseAdmin.rpc('check_username_exists', {
+                          p_username: username,
+                        });
+                    
+                        if (rpcError) {
+                          console.error('Error calling check_username_exists RPC:', rpcError);
+                          throw rpcError;
+                        }
+                        if (usernameExists) {
+                          return NextResponse.json({ error: 'שם משתמש כבר קיים' }, { status: 400 });
+                        }
+                    
+                        const email = `${username}@example.com`;
+                    
+                        const { data: userResponse, error: createAuthError } = await supabaseAdmin.auth.admin.createUser({
+                          email,
+                          password,
+                          user_metadata: { username: username },
+                          email_confirm: true,
+                        });
+                    
+                        if (createAuthError || !userResponse?.user) {
+                          console.error('Error creating user in Supabase Auth:', createAuthError);
+                          if (createAuthError?.message.includes("User already registered") || createAuthError?.message.includes("already exists")) {
+                            return NextResponse.json({ error: 'משתמש עם אימייל זה (או שם משתמש מקושר) כבר קיים.' }, { status: 400 });
+                          }
+                          throw createAuthError || new Error('Failed to create user in Auth.');
+                        }
+                        
+                        const userId = userResponse.user.id;
+                    
+                        const { error: profileError } = await supabaseAdmin.from('profiles').upsert({
+                          id: userId,
+                          email: email,
+                          username: username,
+                          is_admin: false,
+                          updated_at: new Date().toISOString(),
+                        });
+                    
+                        if (profileError) {
+                          console.error('Error upserting profile:', profileError);
+                          await supabaseAdmin.auth.admin.deleteUser(userId);
+                          console.warn(`Auth user ${userId} deleted due to profile upsert failure.`);
+                          throw profileError;
+                        }
+                    
+                        if (clientIp) {
+                          const ipHash = hashIP(clientIp);
+                          const { error: logIpError } = await supabaseAdmin
+                            .from('username_ip_registrations')
+                            .insert({
+                              ip_hash: ipHash,
+                              user_id: userId,
+                            });
+                          if (logIpError) {
+                            console.error('Error logging IP registration (non-critical):', logIpError);
+                          }
+                        }
+                    
+                        return NextResponse.json({ message: 'המשתמש נוצר ואומת בהצלחה!', userId });
+                    
+                      } catch (error: any) {
+                        console.error('Unhandled error in create-user route:', error);
+                        let errorMessage = 'אירעה שגיאה פנימית בשרת.';
+                        if (error.message) {
+                            if (error.message.includes('duplicate key value violates unique constraint') && (error.message.includes('profiles_username_key') || error.message.includes('unique_username'))) {
+                                errorMessage = 'שם משתמש כבר קיים.';
+                            } else if (error.message.includes("User already registered") || error.message.includes("already exists")) {
+                                 errorMessage = 'משתמש עם אימייל זה (או שם משתמש מקושר) כבר קיים.';
+                            } else if (error.message.includes('check_username_exists')) {
+                                errorMessage = 'שגיאה בבדיקת זמינות שם המשתמש.';
+                            }
+                        }
+                        const status = typeof error.status === 'number' ? error.status : 500;
+                        return NextResponse.json({ error: errorMessage }, { status });
+                      }
+                    }
+
+        Folder: auth
+            File: page.tsx
+                Code:
+                "use client";
+                
+                import { useState } from "react";
+                import { useRouter } from "next/navigation";
+                import { supabase } from "../lib/supabaseClient";
+                
+                export default function AuthPage() {
+                  const [mode, setMode] = useState<"login" | "register">("login");
+                  const [emailOrUsername, setEmailOrUsername] = useState("");
+                  const [password, setPassword] = useState("");
+                  const [username, setUsername] = useState("");
+                  const [message, setMessage] = useState("");
+                  const router = useRouter();
+                
+                  const handleLogin = async (e: React.FormEvent) => {
+                    e.preventDefault();
+                    setMessage("");
+                    let email = emailOrUsername;
+                
+                    // If input doesn't contain '@', treat it as a username and fetch the email
+                    if (!emailOrUsername.includes("@")) {
+                      const { data, error } = await supabase.rpc("get_email_by_username", {
+                        p_username: emailOrUsername,
+                      });
+                      if (error || !data) {
+                        setMessage("שם משתמש לא נמצא");
+                        return;
+                      }
+                      email = data;
+                    }
+                
+                    const { error } = await supabase.auth.signInWithPassword({ email, password });
+                    if (error) {
+                      setMessage(error.message);
+                    } else {
+                      setMessage("התחברת בהצלחה!");
+                      setTimeout(() => router.push("/"), 2000);
+                    }
+                  };
+                
+                  const handleRegister = async (e: React.FormEvent) => {
+                    e.preventDefault();
+                    setMessage("");
+                
+                    // Check if username is taken
+                    const { data: exists } = await supabase.rpc("check_username_exists", {
+                      p_username: username,
+                    });
+                    if (exists) {
+                      setMessage("שם משתמש כבר קיים");
+                      return;
+                    }
+                
+                    const isFakeEmail = !emailOrUsername.includes("@");
+                
+                    if (isFakeEmail) {
+                      // Register with fake email via API route
+                      const response = await fetch("/api/create-user", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ username, password }),
+                      });
+                      const result = await response.json();
+                      if (!response.ok) {
+                        setMessage(result.error);
+                      } else {
+                        setMessage("נרשמת בהצלחה! אתה יכול להתחבר עכשיו.");
+                      }
+                    } else {
+                      // Register with real email
+                      const { data, error } = await supabase.auth.signUp({
+                        email: emailOrUsername,
+                        password,
+                        options: { data: { username } },
+                      });
+                      if (error) {
+                        setMessage(error.message);
+                      } else {
+                        setMessage("נרשמת! בדוק את האימייל לאימות.");
+                      }
+                    }
+                  };
+                
+                  const handlePasswordReset = async (e: React.FormEvent) => {
+                    e.preventDefault();
+                    setMessage("");
+                    const { error } = await supabase.auth.resetPasswordForEmail(emailOrUsername);
+                    if (error) {
+                      setMessage(error.message);
+                    } else {
+                      setMessage("בדוק את תיבת האימייל שלך לקבלת הוראות לאיפוס הסיסמה.");
+                    }
+                  };
+                
+                  return (
+                    <div className="auth-container">
+                      <h2>{mode === "login" ? "התחברות" : "רישום"}</h2>
+                      <form onSubmit={mode === "login" ? handleLogin : handleRegister}>
+                        <label>
+                          {mode === "login" ? "אימייל או שם משתמש:" : "אימייל (אופציונלי):"}
+                          <input
+                            type="text"
+                            value={emailOrUsername}
+                            onChange={(e) => setEmailOrUsername(e.target.value)}
+                            required={mode === "login"}
+                          />
+                        </label>
+                        {mode === "register" && (
+                          <label>
+                            שם משתמש:
+                            <input
+                              type="text"
+                              value={username}
+                              onChange={(e) => setUsername(e.target.value)}
+                              required
+                            />
+                          </label>
+                        )}
+                        <label>
+                          סיסמה:
+                          <input
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                          />
+                        </label>
+                        <button type="submit">{mode === "login" ? "התחבר" : "הרשם"}</button>
+                      </form>
+                      {mode === "login" && (
+                        <button onClick={handlePasswordReset} className="recover-btn">
+                          שחזור סיסמה
+                        </button>
+                      )}
+                      {message && <p className="auth-message">{message}</p>}
+                      <div className="auth-toggle">
+                        <span>{mode === "login" ? "אין לך חשבון?" : "כבר יש לך חשבון?"}</span>
+                        <button onClick={() => setMode(mode === "login" ? "register" : "login")}>
+                          {mode === "login" ? "הרשם" : "התחבר"}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                }
+
+            Folder: update-password
+                File: page.tsx
+                    Code:
+                    // src/app/auth/update-password/page.tsx
+                    "use client";
+                    
+                    import { useState, useEffect } from "react";
+                    import { useRouter } from "next/navigation";
+                    import { supabase } from "../../lib/supabaseClient"; // Adjust path if necessary
+                    import { User } from "@supabase/supabase-js";
+                    
+                    export default function UpdatePasswordPage() {
+                      const [newPassword, setNewPassword] = useState("");
+                      const [confirmPassword, setConfirmPassword] = useState("");
+                      const [message, setMessage] = useState("");
+                      const [error, setError] = useState("");
+                      const [loading, setLoading] = useState(false);
+                      const [user, setUser] = useState<User | null>(null);
+                      const router = useRouter();
+                    
+                      useEffect(() => {
+                        // This effect handles the Supabase auth event when the page loads
+                        // after the user clicks the password reset link.
+                        // Supabase JS client automatically processes the token from the URL fragment.
+                        const { data: authListener } = supabase.auth.onAuthStateChange(
+                          async (event, session) => {
+                            if (event === "PASSWORD_RECOVERY") {
+                              // This event means the user has successfully initiated password recovery
+                              // and Supabase has processed the token from the URL.
+                              // The session object should now contain the user.
+                              if (session?.user) {
+                                setUser(session.user);
+                                setMessage("תוכל להזין כעת סיסמה חדשה.");
+                              } else {
+                                setError(
+                                  "לא ניתן לאמת את בקשת איפוס הסיסמה. ייתכן שהקישור פג תוקף או שכבר נעשה בו שימוש."
+                                );
+                                // Optionally redirect to login or show a message to request a new link
+                                // setTimeout(() => router.push('/auth'), 5000);
+                              }
+                            } else if (session?.user) {
+                              // If there's a user session but not specifically PASSWORD_RECOVERY,
+                              // they might have navigated here while already logged in.
+                              // Or, if the recovery token was already processed and a session established.
+                              setUser(session.user);
+                            } else if (event === "SIGNED_OUT") {
+                              // If user signs out on this page for some reason
+                              setUser(null);
+                              setError("התנתקת. אנא התחבר שוב כדי לשנות סיסמה, או השתמש בקישור איפוס חדש.");
+                            }
+                          }
+                        );
+                    
+                        // Check for an existing session when the component mounts,
+                        // in case the onAuthStateChange doesn't fire immediately with PASSWORD_RECOVERY
+                        // or if the user navigates back to this page with a valid recovery session.
+                        const checkSession = async () => {
+                            const { data: { session } } = await supabase.auth.getSession();
+                            if (session?.user && window.location.hash.includes('type=recovery')) {
+                                setUser(session.user);
+                                // Only set message if not already set by PASSWORD_RECOVERY event
+                                if (!message && !error) {
+                                     setMessage("תוכל להזין כעת סיסמה חדשה.");
+                                }
+                            } else if (!session?.user && window.location.hash.includes('type=recovery')) {
+                                // This case might happen if the token is in URL but Supabase hasn't processed it yet
+                                // or if it's invalid. The onAuthStateChange should handle it.
+                                // If still no user after a brief moment, it's likely an issue.
+                                setTimeout(() => {
+                                    if (!user && !error) {
+                                         setError("הקישור לאיפוס סיסמה אינו תקין או שפג תוקפו. נסה לבקש קישור חדש.");
+                                    }
+                                }, 2000);
+                            }
+                        };
+                        checkSession();
+                    
+                    
+                        return () => {
+                          authListener.subscription.unsubscribe();
+                        };
+                      }, [router, message, error, user]); // Added user to dependencies
+                    
+                      const handleUpdatePassword = async (e: React.FormEvent) => {
+                        e.preventDefault();
+                        setError("");
+                        setMessage("");
+                    
+                        if (!user) {
+                          setError(
+                            "לא זוהה משתמש. ייתכן שתצטרך לבקש קישור חדש לאיפוס סיסמה."
+                          );
+                          return;
+                        }
+                    
+                        if (newPassword !== confirmPassword) {
+                          setError("הסיסמאות אינן תואמות.");
+                          return;
+                        }
+                        if (newPassword.length < 6) {
+                          setError("הסיסמה חייבת להכיל לפחות 6 תווים.");
+                          return;
+                        }
+                    
+                        setLoading(true);
+                        const { error: updateError } = await supabase.auth.updateUser({
+                          password: newPassword,
+                        });
+                        setLoading(false);
+                    
+                        if (updateError) {
+                          setError(`שגיאה בעדכון הסיסמה: ${updateError.message}`);
+                        } else {
+                          setMessage("הסיסמה עודכנה בהצלחה! הנך מועבר לדף ההתחברות.");
+                          setNewPassword("");
+                          setConfirmPassword("");
+                          // Sign out the user from the recovery session
+                          await supabase.auth.signOut();
+                          setTimeout(() => {
+                            router.push("/auth"); // Redirect to login page
+                          }, 3000);
+                        }
+                      };
+                    
+                      return (
+                        <div className="auth-container" style={{ marginTop: "5rem" }}>
+                          <h2>איפוס סיסמה</h2>
+                          <form onSubmit={handleUpdatePassword}>
+                            <label>
+                              סיסמה חדשה:
+                              <input
+                                type="password"
+                                value={newPassword}
+                                onChange={(e) => setNewPassword(e.target.value)}
+                                required
+                                disabled={!user || loading}
+                              />
+                            </label>
+                            <label>
+                              אימות סיסמה חדשה:
+                              <input
+                                type="password"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                required
+                                disabled={!user || loading}
+                              />
+                            </label>
+                            <button type="submit" disabled={!user || loading}>
+                              {loading ? "מעדכן..." : "עדכן סיסמה"}
+                            </button>
+                          </form>
+                          {message && <p className="auth-message" style={{ color: "green" }}>{message}</p>}
+                          {error && <p className="auth-message" style={{ color: "red" }}>{error}</p>}
+                          {!user && !error && !message && (
+                             <p className="auth-message">טוען נתונים או ממתין לפעולת משתמש...</p>
+                          )}
+                        </div>
+                      );
+                    }
+
+        Folder: components
+            File: DepreciationSummary.tsx
+                Code:
+                // src/app/components/DepreciationSummary.tsx
+                "use client";
+                
+                import React from 'react';
+                
+                export interface DepreciationStatsDisplay {
+                  total_items_from_source: number;
+                  items_with_valid_regular_price: number;
+                  average_gold_depreciation: number | null;
+                  gold_items_count: number;
+                  average_diamond_depreciation: number | null;
+                  diamond_items_count: number;
+                  average_emerald_depreciation: number | null;
+                  emerald_items_count: number;
+                  updated_at?: string;
+                }
+                
+                export type StatsSourceType = 'DATABASE' | 'NEWLY CALCULATED' | 'DATABASE (STALE - ITEM FETCH FAILED)' | 'DEFAULT (ERROR/NO DATA)';
+                
+                interface DepreciationSummaryProps {
+                  stats: DepreciationStatsDisplay | undefined | null; // Allow stats to be potentially undefined or null
+                  source: StatsSourceType | undefined;
+                }
+                
+                const DepreciationSummary: React.FC<DepreciationSummaryProps> = ({ stats, source }) => {
+                  // Guard clause for missing stats or source
+                  if (!stats || !source) {
+                    console.error("DepreciationSummary: 'stats' or 'source' prop is missing or undefined.", { stats, source });
+                    // Optionally, render a specific message or nothing.
+                    // For debugging, showing an error is helpful. For production, you might return null.
+                    return (
+                      <div style={{ marginTop: '30px', padding: '20px', border: '1px solid #ff8a80', borderRadius: '12px', backgroundColor: '#ffebee', color: '#c62828', textAlign: 'center', fontFamily: '"Assistant", Arial, sans-serif', maxWidth: '600px', marginRight: 'auto', marginLeft: 'auto' }}>
+                        נתוני סיכום פחת אינם זמינים כרגע.
+                      </div>
+                    );
+                  }
+                
+                  const formatPercentage = (value: number | null) => {
+                    if (value === null || typeof value === 'undefined' || isNaN(value)) {
+                      return 'N/A';
+                    }
+                    return value.toFixed(2);
+                  };
+                
+                  return (
+                    <div style={{
+                      marginTop: '30px',
+                      padding: '20px',
+                      border: '1px solid #383838',
+                      borderRadius: '12px',
+                      backgroundColor: '#1f1f1f',
+                      fontSize: '0.95em',
+                      color: '#e0e0e0',
+                      fontFamily: '"Assistant", Arial, sans-serif',
+                      maxWidth: '600px',
+                      marginRight: 'auto',
+                      marginLeft: 'auto',
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+                    }}>
+                      <h3 style={{
+                        marginTop: '0',
+                        marginBottom: '15px',
+                        borderBottom: '1px solid #4a4a4a',
+                        paddingBottom: '12px',
+                        color: '#81d4fa',
+                        fontSize: '1.3em',
+                        textAlign: 'center',
+                      }}>
+                        📊 סיכום פחת ממוצע כללי
+                      </h3>
+                      <p style={{ marginBottom: '8px' }}>
+                        <strong style={{ color: '#b0b0b0' }}>מקור הנתונים:</strong>
+                        <span style={{ color: '#ffffff', fontWeight: '500', marginRight: '5px' }}>{source}</span>
+                      </p>
+                      <p style={{ marginBottom: '8px' }}>
+                        <strong style={{ color: '#b0b0b0' }}>סה״כ פריטים מהמקור:</strong>
+                        <span style={{ color: '#ffffff', fontWeight: '500', marginRight: '5px' }}>{stats.total_items_from_source.toLocaleString()}</span>
+                      </p>
+                      <p style={{ marginBottom: '12px' }}>
+                        <strong style={{ color: '#b0b0b0' }}>פריטים עם מחיר רגיל תקין לחישוב:</strong>
+                        <span style={{ color: '#ffffff', fontWeight: '500', marginRight: '5px' }}>{stats.items_with_valid_regular_price.toLocaleString()}</span>
+                      </p>
+                
+                      <div style={{ borderTop: '1px dashed #444', paddingTop: '12px', marginTop: '12px' }}>
+                        <p style={{ marginBottom: '8px' }}>
+                          <strong style={{ color: '#b0b0b0' }}>🥇 ירידת ערך לזהב ממוצע:</strong>
+                          <span style={{ color: '#ffd700', fontWeight: 'bold', fontSize: '1.05em', marginRight: '5px' }}>
+                            {formatPercentage(stats.average_gold_depreciation)}%
+                          </span>
+                          (מתוך <span style={{ color: '#ffffff', fontWeight: '500' }}>{stats.gold_items_count.toLocaleString()}</span> פריטים)
+                        </p>
+                        <p style={{ marginBottom: '8px' }}>
+                          <strong style={{ color: '#b0b0b0' }}>💎 ירידת ערך ליהלום ממוצע:</strong>
+                          <span style={{ color: '#b9f2ff', fontWeight: 'bold', fontSize: '1.05em', marginRight: '5px' }}>
+                            {formatPercentage(stats.average_diamond_depreciation)}%
+                          </span>
+                          (מתוך <span style={{ color: '#ffffff', fontWeight: '500' }}>{stats.diamond_items_count.toLocaleString()}</span> פריטים)
+                        </p>
+                        <p style={{ marginBottom: '8px' }}>
+                          <strong style={{ color: '#b0b0b0' }}>✳️ ירידת ערך לאמרלד ממוצע:</strong>
+                          <span style={{ color: '#50c878', fontWeight: 'bold', fontSize: '1.05em', marginRight: '5px' }}>
+                            {formatPercentage(stats.average_emerald_depreciation)}%
+                          </span>
+                          (מתוך <span style={{ color: '#ffffff', fontWeight: '500' }}>{stats.emerald_items_count.toLocaleString()}</span> פריטים)
+                        </p>
+                      </div>
+                
+                      {stats.updated_at && (
+                        <p style={{
+                          fontSize: '0.85em',
+                          color: '#999',
+                          borderTop: '1px dashed #444',
+                          paddingTop: '12px',
+                          marginTop: '15px',
+                          textAlign: 'center',
+                        }}>
+                          <small>
+                            עודכן לאחרונה: {new Date(stats.updated_at).toLocaleString('he-IL', {
+                              year: 'numeric', month: '2-digit', day: '2-digit',
+                              hour: '2-digit', minute: '2-digit', second: '2-digit'
+                            })}
+                          </small>
+                        </p>
+                      )}
+                    </div>
+                  );
+                };
+                
+                export default DepreciationSummary;
+            File: NavMenu.tsx
+                Code:
+                // src/app/components/NavMenu.tsx
+                "use client";
+                
+                import { useState, useRef, useEffect } from "react";
+                import Link from "next/link";
+                import { useUser } from "../context/UserContext"; // Updated import
+                
+                export default function NavMenu() {
+                  const [isOpen, setIsOpen] = useState(false);
+                  const menuRef = useRef<HTMLDivElement>(null);
+                  const burgerRef = useRef<HTMLButtonElement>(null);
+                  // Get all necessary values from the updated UserContext
+                  const { user, profile, isLoading, sessionInitiallyChecked, logout } = useUser();
+                
+                  const toggleMenu = () => setIsOpen((prev) => !prev);
+                  const closeMenu = () => setIsOpen(false);
+                
+                
+                  // Close menu when clicking outside
+                  useEffect(() => {
+                    const handleClickOutside = (event: MouseEvent) => {
+                      if (
+                        isOpen &&
+                        menuRef.current &&
+                        !menuRef.current.contains(event.target as Node) &&
+                        burgerRef.current &&
+                        !burgerRef.current.contains(event.target as Node)
+                      ) {
+                        closeMenu();
+                      }
+                    };
+                    document.addEventListener("mousedown", handleClickOutside);
+                    return () =>
+                      document.removeEventListener("mousedown", handleClickOutside);
+                  }, [isOpen]);
+                
+                  // Logout function using logout from context
+                  const handleLogout = async () => {
+                    closeMenu(); // Close menu first
+                    try {
+                        await logout(); // Call the logout function from context
+                    } catch (e) {
+                        console.error("NavMenu: Error during logout call:", e);
+                        // Optionally handle UI feedback for logout error here
+                    }
+                  };
+                
+                  let greetingText: string;
+                  if (isLoading) { // Covers both initial load and changes
+                    greetingText = "טוען...";
+                  } else if (user && profile) {
+                    greetingText = profile.username;
+                  } else if (user && !profile) {
+                    // User object exists, but profile is not loaded or doesn't exist.
+                    // This could mean the profile is still fetching (covered by isLoading if loadingUserProfile is true)
+                    // or that the profile fetch failed or the user genuinely has no profile record.
+                    greetingText = "משתמש"; // Or a more specific message like "טוען פרופיל..."
+                  } else {
+                    greetingText = ""; // No user, or initial load finished with no user. Handled by login link.
+                  }
+                
+                  return (
+                    <>
+                      {/* Burger button */}
+                      <button
+                        ref={burgerRef}
+                        onClick={toggleMenu}
+                        className="nav-burger"
+                        aria-label="פתח/סגור תפריט"
+                        aria-expanded={isOpen}
+                      >
+                        <div
+                          className="burger-line"
+                          style={isOpen ? { transform: "rotate(45deg) translateY(0.625rem)", width: "2rem" } : { width: "2rem" }} 
+                        ></div>
+                        <div
+                          className="burger-line"
+                          style={isOpen ? { opacity: 0 } : { width: "2rem" }}
+                        ></div>
+                        <div
+                          className="burger-line"
+                          style={isOpen ? { transform: "rotate(-45deg) translateY(-0.625rem)", width: "2rem" } : { width: "2rem" }}
+                        ></div>
+                      </button>
+                
+                      {/* Sidebar Menu */}
+                      <div ref={menuRef} className={`sidebar ${isOpen ? "open" : ""}`}>
+                        <button onClick={toggleMenu} className="close-btn" aria-label="סגור תפריט">
+                          &times; {/* Using HTML entity for '×' */}
+                        </button>
+                        
+                        {/* Show greeting paragraph only if user is present or initial loading is in progress */}
+                        { (user || isLoading) && (
+                          <p className="user-greeting">
+                            שלום, {greetingText}
+                          </p>
+                        )}
+                        
+                        <nav>
+                          <ul>
+                            <li>
+                              <Link href="/" onClick={closeMenu}>בית</Link>
+                            </li>
+                            <li>
+                              <Link href="/aitch" onClick={closeMenu}>מידע ועדכונים</Link>
+                            </li>
+                            {/* Show Admin link only if user is loaded, is admin, and session check is complete */}
+                            {!isLoading && sessionInitiallyChecked && user && profile?.is_admin && (
+                              <li>
+                                <Link href="/admin" onClick={closeMenu}>ניהול</Link>
+                              </li>
+                            )}
+                            
+                            {/* Conditional rendering for Login/Logout */}
+                            {!isLoading && sessionInitiallyChecked ? ( // Only show login/logout after initial check & not loading
+                              user ? (
+                                <li>
+                                  <button onClick={handleLogout} className="logout" disabled={isLoading}>
+                                    {isLoading ? "יוצא..." : "יציאה"}
+                                  </button>
+                                </li>
+                              ) : (
+                                <li>
+                                  <Link href="/auth" onClick={closeMenu}>התחברות/רישום</Link>
+                                </li>
+                              )
+                            ) : isLoading ? ( // If still loading, show a placeholder or nothing for auth links
+                                <li>
+                                    <span style={{padding: "15px 20px", display: "block", color: "var(--foreground-muted, #aaa)"}}>טוען אפשרויות...</span>
+                                </li>
+                            ) : null }
+                          </ul>
+                        </nav>
+                      </div>
+                    </>
+                  );
+                }
+            File: PriceOpinion.tsx
+                Code:
+                // src/app/components/PriceOpinion.tsx
+                "use client";
+                
+                import { useState, useEffect } from "react";
+                import { supabase } from "../lib/supabaseClient";
+                import { useUser } from "../context/UserContext";
+                
+                export default function PriceOpinion({
+                  itemName,
+                  discordAverage,
+                }: {
+                  itemName: string;
+                  discordAverage: number;
+                }) {
+                  const { user } = useUser();
+                
+                  /* ──────────────── 1. STATE ──────────────── */
+                  // --- הצבעות
+                  const [voteCounts, setVoteCounts] = useState({
+                    reasonable: 0,
+                    too_low: 0,
+                    too_high: 0,
+                  });
+                  const [userVote, setUserVote] = useState<string | null>(null);
+                  const [hasVotedRecently, setHasVotedRecently] = useState(false);
+                  const [nextVoteTime, setNextVoteTime] = useState<Date | null>(null);
+                  const [selectedVote, setSelectedVote] = useState<string | null>(null);
+                
+                  // --- השערת מחיר (טופס)
+                  const [assumptions, setAssumptions] = useState({
+                    regular: "",
+                    gold: "",
+                    diamond: "",
+                    emerald: "",
+                  });
+                
+                  // --- UI
+                  const [showForm, setShowForm] = useState(false);
+                  const [errorMsg, setErrorMsg] = useState("");
+                  const [successMsg, setSuccessMsg] = useState("");
+                
+                  /* ──────────────── 2. HELPERS ──────────────── */
+                  async function loadVoteCounts() {
+                    const { data, error } = await supabase
+                      .from("votes")
+                      .select("vote")
+                      .eq("item_name", itemName);
+                
+                    if (error) return console.error("loadVoteCounts:", error.message);
+                
+                    const counts = { reasonable: 0, too_low: 0, too_high: 0 };
+                    data?.forEach((v) => {
+                      if (v.vote === "reasonable") counts.reasonable++;
+                      if (v.vote === "too_low") counts.too_low++;
+                      if (v.vote === "too_high") counts.too_high++;
+                    });
+                    setVoteCounts(counts);
+                  }
+                
+                  async function checkUserVote() {
+                    if (!user) return;
+                    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+                
+                    const { data, error } = await supabase
+                      .from("votes")
+                      .select("vote, created_at")
+                      .eq("item_name", itemName)
+                      .eq("user_id", user.id)
+                      .gte("created_at", sevenDaysAgo.toISOString())
+                      .maybeSingle();
+                
+                    if (error) return console.error("checkUserVote:", error.message);
+                
+                    if (data) {
+                      setHasVotedRecently(true);
+                      setUserVote(data.vote);
+                      const lastTime = new Date(data.created_at);
+                      setNextVoteTime(new Date(lastTime.getTime() + 7 * 24 * 60 * 60 * 1000));
+                    } else {
+                      setHasVotedRecently(false);
+                      setUserVote(null);
+                    }
+                  }
+                
+                  const pickVote = (type: "reasonable" | "too_low" | "too_high") => {
+                    if (hasVotedRecently) return;
+                    setSelectedVote(type);
+                    setShowForm(true);
+                  };
+                
+                  /* ──────────────── 3. CONFIRM ──────────────── */
+                  async function handleConfirm() {
+                    setErrorMsg("");
+                    setSuccessMsg("");
+                
+                    if (!user) {
+                      setErrorMsg("עליך להתחבר כדי להצביע.");
+                      return;
+                    }
+                    if (!selectedVote) {
+                      setErrorMsg("בחר אפשרות הצבעה.");
+                      return;
+                    }
+                
+                    // 3.1  שמירת הצבעה
+                    if (!hasVotedRecently) {
+                      const { error } = await supabase.from("votes").insert({
+                        item_name: itemName,
+                        user_id: user.id,
+                        vote: selectedVote,
+                      });
+                      if (error) {
+                        setErrorMsg("שגיאה בשמירת ההצבעה.");
+                        return;
+                      }
+                    }
+                
+                    // 3.2  עיבוד השערת מחיר (אופציונלי)
+                    const parseOrNull = (v: string) => (v.trim() ? +v.replace(/,/g, "") : null);
+                    const reg = parseOrNull(assumptions.regular);
+                    const gold = parseOrNull(assumptions.gold);
+                    const dia = parseOrNull(assumptions.diamond);
+                    const eme = parseOrNull(assumptions.emerald);
+                
+                    //   בדיקת היגיון בסיסית
+                    if (discordAverage > 0 && (reg || gold || dia || eme)) {
+                      const mult = { regular: 1, gold: 4, diamond: 16, emerald: 64 };
+                      for (const cur of ["regular", "gold", "diamond", "emerald"] as const) {
+                        const val =
+                          cur === "regular" ? reg : cur === "gold" ? gold : cur === "diamond" ? dia : eme;
+                        if (val !== null && !isNaN(val)) {
+                          const min = 0.3 * discordAverage * mult[cur];
+                          const max = 2.0 * discordAverage * mult[cur];
+                          if (val < min || val > max) {
+                            setErrorMsg(
+                              `ערך ${cur} לא סביר (טווח מומלץ ${Math.round(min)}-${Math.round(max)})`
+                            );
+                            return;
+                          }
+                        }
+                      }
+                    }
+                
+                    if (reg !== null || gold !== null || dia !== null || eme !== null) {
+                      const { error } = await supabase.from("assumptions").insert({
+                        item_name: itemName,
+                        user_id: user.id,
+                        regular: reg,
+                        gold,
+                        diamond: dia,
+                        emerald: eme,
+                      });
+                      if (error) {
+                        setErrorMsg("שגיאה בשמירת ההשערה.");
+                        return;
+                      }
+                    }
+                
+                    // 3.3  רענון נתונים
+                    await Promise.all([loadVoteCounts(), checkUserVote()]);
+                
+                    setSuccessMsg("✅ ההצבעה נשמרה בהצלחה!");
+                    setAssumptions({ regular: "", gold: "", diamond: "", emerald: "" });
+                    setShowForm(false);
+                    setSelectedVote(null);
+                    setTimeout(() => setSuccessMsg(""), 3000);
+                  }
+                
+                  /* ──────────────── 4. INIT ──────────────── */
+                  useEffect(() => {
+                    loadVoteCounts();
+                    checkUserVote();
+                    // eslint-disable-next-line react-hooks/exhaustive-deps
+                  }, [itemName]);
+                
+                  /* ──────────────── 5. RENDER ──────────────── */
+                  return (
+                    <div className="price-opinion-container">
+                      <p className="vote-question">האם המחיר נראה לך הגיוני?</p>
+                
+                      {/* כפתורי הצבעה */}
+                      <div className="voting-buttons">
+                        <button
+                          onClick={() => pickVote("reasonable")}
+                          disabled={hasVotedRecently}
+                          className={selectedVote === "reasonable" ? "vote-selected" : ""}
+                        >
+                          הגיוני ({voteCounts.reasonable})
+                        </button>
+                        <button
+                          onClick={() => pickVote("too_low")}
+                          disabled={hasVotedRecently}
+                          className={selectedVote === "too_low" ? "vote-selected" : ""}
+                        >
+                          נמוך מדי ({voteCounts.too_low})
+                        </button>
+                        <button
+                          onClick={() => pickVote("too_high")}
+                          disabled={hasVotedRecently}
+                          className={selectedVote === "too_high" ? "vote-selected" : ""}
+                        >
+                          גבוה מדי ({voteCounts.too_high})
+                        </button>
+                      </div>
+                
+                      {/* תזכורת הצבעה קודמת */}
+                      {userVote && (
+                        <p>
+                          הצבעת:{" "}
+                          {userVote === "reasonable"
+                            ? "המחיר הגיוני"
+                            : userVote === "too_low"
+                            ? "נמוך מדי"
+                            : "גבוה מדי"}
+                        </p>
+                      )}
+                      {hasVotedRecently && nextVoteTime && (
+                        <p>תוכל להצביע שוב ב-{nextVoteTime.toLocaleString("he-IL")}.</p>
+                      )}
+                
+                      {/* טופס השערת מחיר (אופציונלי) */}
+                      {showForm && (
+                        <div className="assumption-form">
+                          <p>הזן הערכת מחיר (לא חובה):</p>
+                
+                          <label>
+                            רגיל:
+                            <input
+                              type="text"
+                              value={assumptions.regular}
+                              onChange={(e) =>
+                                setAssumptions({ ...assumptions, regular: e.target.value })
+                              }
+                            />
+                          </label>
+                          <br />
+                          <label>
+                            זהב:
+                            <input
+                              type="text"
+                              value={assumptions.gold}
+                              onChange={(e) =>
+                                setAssumptions({ ...assumptions, gold: e.target.value })
+                              }
+                            />
+                          </label>
+                          <br />
+                          <label>
+                            יהלום:
+                            <input
+                              type="text"
+                              value={assumptions.diamond}
+                              onChange={(e) =>
+                                setAssumptions({ ...assumptions, diamond: e.target.value })
+                              }
+                            />
+                          </label>
+                          <br />
+                          <label>
+                            אמרלד:
+                            <input
+                              type="text"
+                              value={assumptions.emerald}
+                              onChange={(e) =>
+                                setAssumptions({ ...assumptions, emerald: e.target.value })
+                              }
+                            />
+                          </label>
+                          <br />
+                          <button onClick={handleConfirm}>אישור</button>
+                        </div>
+                      )}
+                
+                      {/* הודעות מערכת */}
+                      {errorMsg && <p className="error">{errorMsg}</p>}
+                      {successMsg && <p className="success">{successMsg}</p>}
+                    </div>
+                  );
+                }
+            File: SearchComponent.tsx
+                Code:
+                // src/app/components/SearchComponent.tsx
+                "use client";
+                
+                import { useState, useEffect, useRef, useMemo } from "react";
+                import PriceOpinion from "./PriceOpinion";
+                import { supabase } from "../lib/supabaseClient";
+                import {
+                  QuotePoint,
+                  representativePrice,
+                  consensusStats,
+                  blendPrices,
+                } from "../utils/pricing";
+                import DepreciationSummary, { 
+                  DepreciationStatsDisplay, 
+                  StatsSourceType as DepreciationStatsSourceType 
+                } from "./DepreciationSummary"; 
+                import { Item as DepreciationItemFromService } from "../lib/depreciationService";
+                
+                type Item = DepreciationItemFromService;
+                
+                interface Assumption {
+                  id: string;
+                  item_name: string;
+                  user_id: string;
+                  username: string | null;
+                  regular: number | null;
+                  gold: number | null;
+                  diamond: number | null;
+                  emerald: number | null;
+                  created_at: string;
+                  profiles: { username: string | null } | null;
+                }
+                
+                interface Props {
+                  initialItems: Item[];
+                  generalDepreciationStats: DepreciationStatsDisplay | undefined | null;
+                  generalDepreciationSource: DepreciationStatsSourceType | undefined;
+                }
+                
+                const toQuotePoints = (rows: Item[]): QuotePoint[] =>
+                  rows.flatMap((r) => {
+                    const buy = r.buyregular ? +r.buyregular.replace(/[^\d.]/g, "") : NaN;
+                    const sell = r.sellregular ? +r.sellregular.replace(/[^\d.]/g, "") : NaN;
+                    const price = !isNaN(buy) && !isNaN(sell) ? (buy + sell) / 2 : !isNaN(buy) ? buy : !isNaN(sell) ? sell : NaN;
+                    const date = r.date ? new Date(r.date) : null;
+                    return Number.isFinite(price) && date && !Number.isNaN(+date) ? [{ price, date }] : [];
+                  });
+                
+                export default function SearchComponent({ 
+                  initialItems, 
+                  generalDepreciationStats, 
+                  generalDepreciationSource 
+                }: Props) {
+                  const [term, setTerm] = useState("");
+                  const [sugs, setSugs] = useState<string[]>([]);
+                  const [sel, setSel] = useState<string | null>(null);
+                  const [drop, showDrop] = useState(false);
+                  const [viewDiscord, setView] = useState(true);
+                  const [assumps, setAssumps] = useState<Assumption[]>([]);
+                  const box = useRef<HTMLDivElement>(null);
+                
+                  useEffect(() => {
+                    if (!term.trim()) {
+                      setSugs([]);
+                      showDrop(false);
+                      setSel(null);
+                      return;
+                    }
+                    if (sel && term === sel) {
+                      showDrop(false);
+                      return;
+                    }
+                    if (sel && term !== sel) {
+                        setSel(null);
+                    }
+                    
+                    const uniqueNames = [...new Set(initialItems.map((i) => i.name))];
+                    const matchingSuggestions = uniqueNames.filter((name) => 
+                      name.toLowerCase().includes(term.toLowerCase())
+                    );
+                    setSugs(matchingSuggestions);
+                    showDrop(!!matchingSuggestions.length);
+                  }, [term, sel, initialItems]);
+                
+                  useEffect(() => {
+                    const handleClickOutside = (event: MouseEvent) => {
+                      if (box.current && !box.current.contains(event.target as Node)) {
+                        showDrop(false);
+                      }
+                    };
+                    document.addEventListener("mousedown", handleClickOutside);
+                    return () => {
+                      document.removeEventListener("mousedown", handleClickOutside);
+                    };
+                  }, []);
+                
+                  useEffect(() => {
+                    if (!sel) {
+                      setAssumps([]);
+                      return;
+                    }
+                    (async () => {
+                      const { data, error } = await supabase
+                        .from("assumptions")
+                        .select("*, profiles(username)")
+                        .eq("item_name", sel);
+                      if (error) {
+                        console.error("Error fetching assumptions:", error);
+                        setAssumps([]);
+                      } else {
+                        setAssumps(data as Assumption[] || []);
+                      }
+                    })();
+                  }, [sel]);
+                
+                  const itemsForSel = useMemo(
+                    () => (sel ? initialItems.filter((i) => i.name === sel) : []),
+                    [sel, initialItems]
+                  );
+                
+                  const discordStats = useMemo(() => {
+                    const pts = toQuotePoints(itemsForSel);
+                    const mu = representativePrice(pts);
+                    const base = consensusStats(pts.map((p) => p.price));
+                    return { ...base, price: mu ?? base.price };
+                  }, [itemsForSel]);
+                
+                  const communityStats = useMemo(() => {
+                    const vals = assumps.map((a) => a.regular ?? NaN);
+                    return consensusStats(vals as number[]);
+                  }, [assumps]);
+                
+                  const blended = useMemo(
+                    () => blendPrices(discordStats, communityStats),
+                    [discordStats, communityStats]
+                  );
+                
+                  const firstSelectedItem = itemsForSel[0];
+                
+                  const calculatedTierPrices = useMemo(() => {
+                    if (!blended.final || !generalDepreciationStats) {
+                      return { gold: null, diamond: null, emerald: null };
+                    }
+                
+                    const basePrice = blended.final;
+                    const { 
+                      average_gold_depreciation, 
+                      average_diamond_depreciation, 
+                      average_emerald_depreciation 
+                    } = generalDepreciationStats;
+                
+                    const calculateTierPrice = (multiplier: number, depreciation: number | null) => {
+                      if (depreciation === null || isNaN(depreciation)) return null;
+                      const effectiveDepreciation = Math.min(Math.max(depreciation, -200), 100); 
+                      return Math.round((basePrice * multiplier) * (1 - (effectiveDepreciation / 100)));
+                    };
+                    
+                    return {
+                      gold: calculateTierPrice(4, average_gold_depreciation),
+                      diamond: calculateTierPrice(16, average_diamond_depreciation),
+                      emerald: calculateTierPrice(64, average_emerald_depreciation),
+                    };
+                  }, [blended.final, generalDepreciationStats]);
+                
+                  // Define price lines for cleaner rendering
+                  const priceLinesToDisplay = useMemo(() => {
+                    const lines = [
+                      {
+                        key: 'final',
+                        label: 'מחיר סופי (רגיל):',
+                        value: blended.final,
+                        valueClassName: '', // Default class for 'regular' price value
+                        condition: blended.final !== null,
+                      },
+                      {
+                        key: 'gold',
+                        label: 'מחיר זהב (משוערך):',
+                        value: calculatedTierPrices.gold,
+                        valueClassName: 'gold',
+                        condition: calculatedTierPrices.gold !== null,
+                      },
+                      {
+                        key: 'diamond',
+                        label: 'מחיר יהלום (משוערך):',
+                        value: calculatedTierPrices.diamond,
+                        valueClassName: 'diamond',
+                        condition: calculatedTierPrices.diamond !== null,
+                      },
+                      {
+                        key: 'emerald',
+                        label: 'מחיר אמרלד (משוערך):',
+                        value: calculatedTierPrices.emerald,
+                        valueClassName: 'emerald',
+                        condition: calculatedTierPrices.emerald !== null,
+                      },
+                    ];
+                    return lines.filter(line => line.condition);
+                  }, [blended.final, calculatedTierPrices]);
+                
+                
+                  return (
+                    <div className="search-container" ref={box}>
+                      <input
+                        className="search-input"
+                        placeholder="חפש כאן…"
+                        value={term}
+                        onChange={(e) => setTerm(e.target.value)}
+                        onFocus={() => {
+                          if (term.trim() && (!sel || term !== sel) && sugs.length > 0) {
+                            showDrop(true);
+                          }
+                        }}
+                      />
+                
+                      {drop && !!sugs.length && (
+                        <ul className="suggestions-dropdown show">
+                          {sugs.map((n) => (
+                            <li
+                              key={n}
+                              onClick={() => {
+                                setSel(n);
+                                setTerm(n); 
+                                showDrop(false);
+                              }}
+                            >
+                              {n}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                
+                      {sel && firstSelectedItem && (
+                        <div className="results-container">
+                          <div className="item-representation">
+                            <h2>{firstSelectedItem.name}</h2>
+                            {firstSelectedItem.image ? (
+                              <img
+                                className="item-image"
+                                src={firstSelectedItem.image}
+                                alt={firstSelectedItem.name}
+                                onError={(e) => (e.currentTarget.src = "https://placehold.co/200x150/1a1a1a/ededed?text=Error")}
+                              />
+                            ) : (
+                              <p>אין תמונה זמינה</p>
+                            )}
+                            <p>{firstSelectedItem.description || "אין תיאור זמין"}</p>
+                            
+                            {/* === MODIFIED PRICE DISPLAY AREA START === */}
+                            {priceLinesToDisplay.length > 0 && (
+                              <div className="item-average-container">
+                                {priceLinesToDisplay.map((line) => (
+                                  <div key={line.key} className="price-line">
+                                    <span className="price-label">{line.label}</span>
+                                    <span className={`price-value ${line.valueClassName}`}>
+                                      <span>{line.value?.toLocaleString()}</span>
+                                      <span className="currency-symbol">₪</span>
+                                    </span>
+                                  </div>
+                                ))}
+                                <div className="price-source-info">
+                                  דיסקורד {Math.round(blended.weightD * 100)}% | קהילה {Math.round(blended.weightC * 100)}%
+                                </div>
+                              </div>
+                            )}
+                            {/* === MODIFIED PRICE DISPLAY AREA END === */}
+                          </div>
+                
+                          {generalDepreciationStats && generalDepreciationSource ? (
+                            <DepreciationSummary 
+                              stats={generalDepreciationStats} 
+                              source={generalDepreciationSource} 
+                            />
+                          ) : (
+                            <div style={{ marginTop: '30px', textAlign: 'center', color: 'orange', padding: '10px', border: '1px dashed orange', borderRadius: '8px' }}>
+                              טוען נתוני סיכום פחת כלליים...
+                            </div>
+                          )}
+                
+                          <PriceOpinion
+                            itemName={firstSelectedItem.name}
+                            discordAverage={discordStats.price ?? 0}
+                          />
+                
+                          <div className="list-toggle">
+                            <button className={viewDiscord ? "active" : ""} onClick={() => setView(true)}>
+                              מחירי קהילת דיסקורד
+                            </button>
+                            <button className={!viewDiscord ? "active" : ""} onClick={() => setView(false)}>
+                              מחירי קהילת מוזהבים
+                            </button>
+                          </div>
+                
+                          {viewDiscord ? (
+                            <div className="matching-results">
+                              <h3>מחירי דיסקורד עבור {sel}</h3>
+                              {itemsForSel.length ? (
+                                <ul>
+                                  {itemsForSel.map((i) => (
+                                    <li key={i.id} className="result-item">
+                                      <div className="price-info">
+                                        {i.buyregular && (<span>קנייה (רגיל): {i.buyregular}</span>)}
+                                        {i.buygold && (<span>קנייה (זהב): {i.buygold}</span>)}
+                                        {i.buydiamond && (<span>קנייה (יהלום): {i.buydiamond}</span>)}
+                                        {i.buyemerald && (<span>קנייה (אמרלד): {i.buyemerald}</span>)}
+                                        {i.sellregular && (<span>מכירה (רגיל): {i.sellregular}</span>)}
+                                        {i.sellgold && (<span>מכירה (זהב): {i.sellgold}</span>)}
+                                        {i.selldiamond && (<span>מכירה (יהלום): {i.selldiamond}</span>)}
+                                        {i.sellemerald && (<span>מכירה (אמרלד): {i.sellemerald}</span>)}
+                                      </div>
+                                      <div className="meta-info">
+                                        {i.publisher && <span>פורסם ע״י: {i.publisher}</span>}
+                                        {i.date && <span>תאריך: {i.date}</span>}
+                                      </div>
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : (<p>אין רשומות דיסקורד.</p>)}
+                            </div>
+                          ) : (
+                            <div className="assumptions-list scrollable">
+                              <h3>מחירי קהילה עבור {sel}</h3>
+                              {assumps.length ? (
+                                <ul>
+                                  {assumps.map((a) => (
+                                    <li key={a.id}>
+                                      <div><strong>{a.username ?? a.profiles?.username ?? "Unknown"}</strong> ({new Date(a.created_at).toLocaleString("he-IL")})</div>
+                                      <div className="price-info">
+                                        {a.regular !== null && (<span>רגיל: {a.regular.toLocaleString()}</span>)}
+                                        {a.gold !== null && (<span>זהב: {a.gold.toLocaleString()}</span>)}
+                                        {a.diamond !== null && (<span>יהלום: {a.diamond.toLocaleString()}</span>)}
+                                        {a.emerald !== null && (<span>אמרלד: {a.emerald.toLocaleString()}</span>)}
+                                      </div>
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : (<p>אין הערכות משתמשים.</p>)}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                
+                      {!sel && term.trim() && !sugs.length && (
+                        <div style={{ marginTop: '20px', textAlign: 'center', color: '#aaa' }}>
+                          לא נמצאו פריטים תואמים עבור "{term}".
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+        Folder: context
+            File: UserContext.tsx
+                Code:
+                // src/app/context/UserContext.tsx
+                "use client";
+                
+                import React, { createContext, useState, useContext, useEffect, ReactNode, useCallback, useRef } from "react";
+                import { supabase } from "../lib/supabaseClient";
+                import { User, Session } from "@supabase/supabase-js";
+                
+                export type UserProfile = {
+                  id: string;
+                  email: string;
+                  username: string;
+                  is_admin: boolean;
+                  updated_at: string;
+                };
+                
+                type UserContextValue = {
+                  user: User | null;
+                  profile: UserProfile | null;
+                  isLoading: boolean;
+                  sessionInitiallyChecked: boolean;
+                  logout: () => Promise<void>;
+                };
+                
+                const UserContext = createContext<UserContextValue>({
+                  user: null,
+                  profile: null,
+                  isLoading: true,
+                  sessionInitiallyChecked: false,
+                  logout: async () => {},
+                });
+                
+                export function UserProvider({ children }: { children: ReactNode }) {
+                  const [user, setUser] = useState<User | null>(null);
+                  const [profile, setProfile] = useState<UserProfile | null>(null);
+                  const [loadingUserSession, setLoadingUserSession] = useState(true);
+                  const [loadingUserProfile, setLoadingUserProfile] = useState(false);
+                  const [sessionInitiallyChecked, setSessionInitiallyChecked] = useState(false);
+                
+                  // Use a ref to track the current user ID to avoid stale closures in onAuthStateChange
+                  const currentUserIdRef = useRef<string | null>(null);
+                
+                  const fetchUserProfile = useCallback(async (userId: string) => {
+                    // console.log(`UserContext: Fetching profile for user ${userId}`);
+                    setLoadingUserProfile(true);
+                    // Clear profile only if the target userId is different from the current profile's userId
+                    // This check is more robust if profile state itself is used.
+                    setProfile(prevProfile => {
+                        if (prevProfile?.id === userId) return prevProfile; // Avoid clearing if fetching for the same profile
+                        return null;
+                    });
+                
+                    try {
+                      const { data: profileData, error: profileError } = await supabase
+                        .from("profiles")
+                        .select("*")
+                        .eq("id", userId)
+                        .single();
+                
+                      if (profileError) {
+                        console.error(`UserContext: Error fetching profile for user ${userId}: ${profileError.message}`, profileError);
+                        setProfile(null); // Ensure profile is null on error
+                      } else {
+                        setProfile(profileData as UserProfile || null);
+                      }
+                    } catch (e: any) {
+                      console.error(`UserContext: Exception fetching profile for user ${userId}: ${e.message}`, e);
+                      setProfile(null); // Ensure profile is null on exception
+                    } finally {
+                      setLoadingUserProfile(false);
+                    }
+                  }, []); // fetchUserProfile is stable as it doesn't depend on changing state from UserProvider scope directly
+                
+                  useEffect(() => {
+                    // console.log("UserContext: Mounting. Setting up initial session check and auth listener.");
+                    setLoadingUserSession(true);
+                    setSessionInitiallyChecked(false);
+                
+                    supabase.auth.getSession().then(async ({ data: { session }, error: sessionGetError }) => {
+                      if (sessionGetError) {
+                        console.error("UserContext: Error in initial getSession():", sessionGetError.message);
+                      }
+                      const initialUser = session?.user ?? null;
+                      currentUserIdRef.current = initialUser?.id ?? null; // Update ref
+                      setUser(initialUser);
+                      
+                      if (initialUser) {
+                        await fetchUserProfile(initialUser.id);
+                      } else {
+                        setProfile(null);
+                        setLoadingUserProfile(false);
+                      }
+                      setLoadingUserSession(false);
+                      setSessionInitiallyChecked(true);
+                    }).catch(err => {
+                        console.error("UserContext: Catch block for initial getSession():", err);
+                        currentUserIdRef.current = null; // Update ref
+                        setUser(null);
+                        setProfile(null);
+                        setLoadingUserSession(false);
+                        setLoadingUserProfile(false);
+                        setSessionInitiallyChecked(true);
+                    });
+                
+                    const { data: authListener } = supabase.auth.onAuthStateChange(
+                      async (event, session) => {
+                        // console.log("UserContext: onAuthStateChange event:", event, "session:", session);
+                        
+                        const newAuthUser = session?.user ?? null;
+                        const newUserId = newAuthUser?.id ?? null;
+                        const previousUserId = currentUserIdRef.current; // Use ref for the most recent user ID
+                
+                        if (newUserId !== previousUserId) {
+                          // console.log(`UserContext: User identity changed. Event: ${event}. From ${previousUserId} to ${newUserId}`);
+                          setLoadingUserSession(true); // Indicate session change processing
+                          currentUserIdRef.current = newUserId; // Update ref immediately
+                          setUser(newAuthUser); 
+                
+                          if (newAuthUser) {
+                            await fetchUserProfile(newAuthUser.id);
+                          } else {
+                            setProfile(null); 
+                            setLoadingUserProfile(false); 
+                          }
+                          setLoadingUserSession(false);
+                        } else if (newAuthUser && event === "USER_UPDATED") {
+                          // console.log(`UserContext: User updated. Event: ${event}. User: ${newUserId}`);
+                          setUser(newAuthUser); 
+                          await fetchUserProfile(newAuthUser.id); 
+                        } else if (newAuthUser && event === "TOKEN_REFRESHED") {
+                          // console.log(`UserContext: Token refreshed. Event: ${event}. User: ${newUserId}`);
+                          setUser(newAuthUser); 
+                          // No need to trigger loading states if user identity is the same and profile is presumably current
+                          setLoadingUserSession(false);
+                          setLoadingUserProfile(false);
+                        } else if (!newAuthUser && previousUserId) {
+                            // This case might occur if a SIGNED_OUT event happens but newUserId was already null (e.g. multiple events)
+                            // console.log(`UserContext: User signed out (event without session but previous user existed). Event: ${event}`);
+                            currentUserIdRef.current = null;
+                            setUser(null);
+                            setProfile(null);
+                            setLoadingUserSession(false);
+                            setLoadingUserProfile(false);
+                        }
+                        
+                        if (!sessionInitiallyChecked && (event === "INITIAL_SESSION" || event === "SIGNED_IN" || (event === "SIGNED_OUT" && !newAuthUser))) {
+                            setSessionInitiallyChecked(true);
+                        }
+                      }
+                    );
+                
+                    return () => {
+                      authListener.subscription.unsubscribe();
+                    };
+                  }, [fetchUserProfile]); // Main useEffect depends only on the stable fetchUserProfile
+                
+                  const handleLogout = async () => {
+                    const { error } = await supabase.auth.signOut();
+                    if (error) {
+                      console.error("UserContext: Error during sign out:", error.message);
+                      // Fallback: if signOut errors, ensure states are cleared
+                      currentUserIdRef.current = null;
+                      setUser(null);
+                      setProfile(null);
+                      setLoadingUserSession(false);
+                      setLoadingUserProfile(false);
+                    }
+                    // onAuthStateChange will typically handle setting user to null.
+                  };
+                
+                  const overallIsLoading = !sessionInitiallyChecked || loadingUserSession || (!!user && loadingUserProfile);
+                
+                  // console.log(`UserContext Render: isLoading: ${overallIsLoading} (sessionChecked: ${sessionInitiallyChecked}, loadingSession: ${loadingUserSession}, userExists: ${!!user}, loadingProfile: ${loadingUserProfile}), User: ${user?.id}, Profile: ${profile?.username}`);
+                  
+                  return (
+                    <UserContext.Provider value={{
+                      user,
+                      profile,
+                      isLoading: overallIsLoading,
+                      sessionInitiallyChecked,
+                      logout: handleLogout,
+                    }}>
+                      {children}
+                    </UserContext.Provider>
+                  );
+                }
+                
+                export function useUser() {
+                  const context = useContext(UserContext);
+                  if (context === undefined) {
+                    throw new Error("useUser must be used within a UserProvider");
+                  }
+                  return context;
+                }
+
+        Folder: lib
+            File: depreciationService.ts
+                Code:
+                // src/app/lib/depreciationService.ts
+                import { supabase } from "./supabaseClient"; // Assuming supabaseClient is in the same lib folder
+                import { unstable_cache as nextCache } from 'next/cache';
+                
+                // Constants
+                const DEPRECIATION_STATS_ID = 'current_summary';
+                const ONE_WEEK_IN_MS = 7 * 24 * 60 * 60 * 1000;
+                
+                // Interfaces
+                export interface Item {
+                  id: string;
+                  name: string;
+                  description: string;
+                  image: string;
+                  buyregular: string | null;
+                  buygold: string | null;
+                  buydiamond: string | null;
+                  buyemerald: string | null;
+                  sellregular: string | null;
+                  sellgold: string | null;
+                  selldiamond: string | null;
+                  sellemerald: string | null;
+                  publisher: string | null;
+                  date: string | null;
+                  admin_id: string | null;
+                  inserted_at: string;
+                }
+                
+                export interface DepreciationStats {
+                  id: string;
+                  total_items_from_source: number;
+                  items_with_valid_regular_price: number;
+                  average_gold_depreciation: number;
+                  gold_items_count: number;
+                  average_diamond_depreciation: number;
+                  diamond_items_count: number;
+                  average_emerald_depreciation: number;
+                  emerald_items_count: number;
+                  updated_at: string; // ISO string date
+                }
+                
+                export type NewDepreciationStats = Omit<DepreciationStats, 'id' | 'updated_at'>;
+                
+                export type StatsSourceType = 'DATABASE' | 'NEWLY CALCULATED' | 'DATABASE (STALE - ITEM FETCH FAILED)' | 'DEFAULT (ERROR/NO DATA)';
+                
+                // Helper Functions
+                const parsePrice = (priceString: string | null): number | null => {
+                  if (priceString === null || typeof priceString === 'undefined') {
+                    return null;
+                  }
+                  const cleanedString = String(priceString).replace(/₪|,/g, '').trim();
+                  if (cleanedString === "" || isNaN(parseFloat(cleanedString))) {
+                    return null;
+                  }
+                  return parseFloat(cleanedString);
+                };
+                
+                const getCachedItems = nextCache(
+                  async () => {
+                    console.log("depreciationService.getCachedItems: Fetching items from Supabase for caching…");
+                    const { data, error } = await supabase.from("items_flat").select("*");
+                
+                    if (error) {
+                      console.error("depreciationService.getCachedItems: Error fetching items:", error.message);
+                      return { items: [], error: error.message };
+                    }
+                    console.log("depreciationService.getCachedItems: Fetched", data?.length || 0, "rows for cache.");
+                    return { items: data as Item[], error: null };
+                  },
+                  ['items_flat_data_v1'], // Cache key should be unique if this function is defined elsewhere too
+                  {
+                    tags: ['items'],
+                  }
+                );
+                
+                const calculateDepreciationSummary = (items: Item[]): NewDepreciationStats => {
+                  console.log("\ndepreciationService.calculateDepreciationSummary: START CALCULATION");
+                  let allGoldDepreciations: number[] = [];
+                  let allDiamondDepreciations: number[] = [];
+                  let allEmeraldDepreciations: number[] = [];
+                  let itemsWithAnyCalculableData = 0;
+                
+                  if (!items || items.length === 0) {
+                    console.log("depreciationService.calculateDepreciationSummary: No items provided.");
+                    return {
+                        total_items_from_source: 0,
+                        items_with_valid_regular_price: 0,
+                        average_gold_depreciation: 0,
+                        gold_items_count: 0,
+                        average_diamond_depreciation: 0,
+                        diamond_items_count: 0,
+                        average_emerald_depreciation: 0,
+                        emerald_items_count: 0,
+                    };
+                  }
+                
+                  items.forEach((item) => { // Removed index as it wasn't used inside after item.id was preferred
+                    const regularPrice = parsePrice(item.buyregular);
+                    const actualGoldPrice = parsePrice(item.buygold);
+                    const actualDiamondPrice = parsePrice(item.buydiamond);
+                    const actualEmeraldPrice = parsePrice(item.buyemerald);
+                    let itemHasCalculableData = false;
+                
+                    if (regularPrice !== null && regularPrice > 0) {
+                      itemHasCalculableData = true;
+                      const theoreticalMaxGold = regularPrice * 4;
+                      const theoreticalMaxDiamond = regularPrice * 16;
+                      const theoreticalMaxEmerald = regularPrice * 64;
+                
+                      if (actualGoldPrice !== null) {
+                        const depreciation = 100 * (1 - actualGoldPrice / theoreticalMaxGold);
+                        if (!isNaN(depreciation) && isFinite(depreciation)) allGoldDepreciations.push(depreciation);
+                      }
+                      if (actualDiamondPrice !== null) {
+                        const depreciation = 100 * (1 - actualDiamondPrice / theoreticalMaxDiamond);
+                        if (!isNaN(depreciation) && isFinite(depreciation)) allDiamondDepreciations.push(depreciation);
+                      }
+                      if (actualEmeraldPrice !== null) {
+                        const depreciation = 100 * (1 - actualEmeraldPrice / theoreticalMaxEmerald);
+                        if (!isNaN(depreciation) && isFinite(depreciation)) allEmeraldDepreciations.push(depreciation);
+                      }
+                    }
+                    if(itemHasCalculableData) itemsWithAnyCalculableData++;
+                  });
+                
+                  const calculateAverage = (arr: number[]): number => {
+                    if (arr.length === 0) return 0;
+                    const sum = arr.reduce((acc, val) => acc + val, 0);
+                    return sum / arr.length;
+                  };
+                
+                  const summary: NewDepreciationStats = {
+                    total_items_from_source: items.length,
+                    items_with_valid_regular_price: itemsWithAnyCalculableData,
+                    average_gold_depreciation: calculateAverage(allGoldDepreciations),
+                    gold_items_count: allGoldDepreciations.length,
+                    average_diamond_depreciation: calculateAverage(allDiamondDepreciations),
+                    diamond_items_count: allDiamondDepreciations.length,
+                    average_emerald_depreciation: calculateAverage(allEmeraldDepreciations),
+                    emerald_items_count: allEmeraldDepreciations.length,
+                  };
+                  console.log("depreciationService.calculateDepreciationSummary: END CALCULATION", summary);
+                  return summary;
+                };
+                
+                async function getDepreciationStatsFromDB(): Promise<DepreciationStats | null> {
+                  console.log("depreciationService.getDepreciationStatsFromDB: Attempting to fetch...");
+                  const { data, error } = await supabase
+                    .from('depreciation_stats')
+                    .select('*')
+                    .eq('id', DEPRECIATION_STATS_ID)
+                    .single();
+                  if (error && error.code !== 'PGRST116') {
+                    console.error("depreciationService.getDepreciationStatsFromDB: Error fetching:", error.message);
+                    return null;
+                  }
+                  if (data) {
+                    console.log("depreciationService.getDepreciationStatsFromDB: Successfully fetched.");
+                    return data as DepreciationStats;
+                  }
+                  console.log("depreciationService.getDepreciationStatsFromDB: No existing stats found.");
+                  return null;
+                }
+                
+                async function storeDepreciationStatsInDB(stats: NewDepreciationStats): Promise<DepreciationStats | null> {
+                  console.log("depreciationService.storeDepreciationStatsInDB: Attempting to store/update...");
+                  const statsToUpsert: DepreciationStats = {
+                    ...stats,
+                    id: DEPRECIATION_STATS_ID,
+                    updated_at: new Date().toISOString(),
+                  };
+                  const { data, error } = await supabase
+                    .from('depreciation_stats')
+                    .upsert(statsToUpsert, { onConflict: 'id' })
+                    .select()
+                    .single();
+                  if (error) {
+                    console.error("depreciationService.storeDepreciationStatsInDB: Error storing:", error.message);
+                    return null;
+                  }
+                  console.log("depreciationService.storeDepreciationStatsInDB: Successfully stored/updated.");
+                  return data as DepreciationStats;
+                }
+                
+                const defaultInitialStatsData: NewDepreciationStats & { updated_at?: string } = {
+                  total_items_from_source: 0,
+                  items_with_valid_regular_price: 0,
+                  average_gold_depreciation: 0,
+                  gold_items_count: 0,
+                  average_diamond_depreciation: 0,
+                  diamond_items_count: 0,
+                  average_emerald_depreciation: 0,
+                  emerald_items_count: 0,
+                  // updated_at is undefined here
+                };
+                
+                // Main exported function
+                export async function fetchAndManageDepreciationStats(): Promise<{
+                  data: DepreciationStats | NewDepreciationStats; // Can return full stats or new if storage fails
+                  source: StatsSourceType;
+                  itemFetchError?: string; // Optional error message specific to item fetching for SearchComponent
+                }> {
+                  let currentData: DepreciationStats | NewDepreciationStats = { ...defaultInitialStatsData };
+                  let source: StatsSourceType = 'DEFAULT (ERROR/NO DATA)';
+                  let needsRecalculation = true;
+                  let itemFetchErrorForPage: string | undefined = undefined;
+                
+                  const existingStats = await getDepreciationStatsFromDB();
+                
+                  if (existingStats) {
+                    const statsAge = Date.now() - new Date(existingStats.updated_at).getTime();
+                    if (statsAge < ONE_WEEK_IN_MS) {
+                      console.log("depreciationService: Stats from DB are recent.");
+                      currentData = existingStats;
+                      source = 'DATABASE';
+                      needsRecalculation = false;
+                    } else {
+                      console.log("depreciationService: Stats from DB are stale. Recalculation needed.");
+                    }
+                  } else {
+                    console.log("depreciationService: No stats in DB. Calculation needed.");
+                  }
+                
+                  if (needsRecalculation) {
+                    console.log("depreciationService: Fetching items for calculation...");
+                    const { items: rawItems, error: itemsError } = await getCachedItems();
+                
+                    if (itemsError) {
+                      console.error("depreciationService: Failed to fetch items for calculation:", itemsError);
+                      itemFetchErrorForPage = itemsError; // Pass this error back for SearchComponent
+                      if (existingStats) {
+                        console.warn("depreciationService: Using stale stats due to item fetch error.");
+                        currentData = existingStats;
+                        source = 'DATABASE (STALE - ITEM FETCH FAILED)';
+                      } else {
+                        console.error("depreciationService: No data available after item fetch error.");
+                        // currentData remains defaultInitialStatsData
+                        source = 'DEFAULT (ERROR/NO DATA)';
+                      }
+                    } else if (rawItems && rawItems.length > 0) {
+                      const newStats = calculateDepreciationSummary(rawItems);
+                      const storedStats = await storeDepreciationStatsInDB(newStats);
+                      if (storedStats) {
+                        currentData = storedStats;
+                        source = 'NEWLY CALCULATED';
+                      } else {
+                        currentData = newStats; // Use calculated data even if storage failed
+                        source = 'NEWLY CALCULATED'; // But it's not persisted with a new updated_at from DB
+                        console.warn("depreciationService: Used newly calculated stats, but failed to store them.");
+                      }
+                    } else {
+                      console.log("depreciationService: No items found for calculation.");
+                      itemFetchErrorForPage = "No items found in the database."; // Specific message
+                      if (existingStats) {
+                        console.warn("depreciationService: No items for recalculation, using stale data.");
+                        currentData = existingStats;
+                        source = 'DATABASE (STALE - ITEM FETCH FAILED)';
+                      } else {
+                        // currentData remains defaultInitialStatsData
+                         source = 'DEFAULT (ERROR/NO DATA)';
+                      }
+                    }
+                  }
+                  // Internal logging of what's being returned
+                  const logSummary = currentData as any; // Cast to any for logging to access potential updated_at
+                  console.log(`\n--- depreciationService: Final Depreciation Summary to be returned (Source: ${source}) ---`);
+                  console.log(`Total items: ${logSummary.total_items_from_source}, Valid for calc: ${logSummary.items_with_valid_regular_price}`);
+                  if (logSummary.updated_at) {
+                      console.log(`Last Updated: ${new Date(logSummary.updated_at).toLocaleString()}`);
+                  }
+                  console.log("---------------------------------------------------------------------\n");
+                
+                  return { data: currentData, source, itemFetchError: itemFetchErrorForPage };
+                }
+                
+                // Export getCachedItems separately if SearchComponent also needs to call it directly
+                // or if you prefer page.tsx to fetch items for SearchComponent itself.
+                // For now, SearchComponent in page.tsx was calling getCachedItems from page.tsx
+                export { getCachedItems as getSearchComponentItems };
+            File: supabaseClient.ts
+                Code:
+                // src/lib/supabaseClient.ts
+                import { createClient } from '@supabase/supabase-js';
+                
+                const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+                const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+                
+                export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+        Folder: utils
+            File: pricing.ts
+                Code:
+                // ────────────────────────────────────────────
+                // src/app/utils/pricing.ts
+                // ────────────────────────────────────────────
+                /*
+                  ➊ representativePrice – מחיר “גולמי” מדיסקורד (EWMA + Winsor)
+                  ➋ consensusStats      – ממוצע קהילה + CV + גודל-מדגם
+                  ➌ blendPrices         – שקלול דיסקורד-קהילה
+                */
+                
+                export interface QuotePoint {
+                    /** Price in “regular” currency */
+                    price: number;
+                    date: Date | string;
+                  }
+                  
+                  /* ╭──────────────────────┐
+                     │ 1. דיסקורד : EWMA   │
+                     ╰──────────────────────┘ */
+                  const HALF_LIFE_MO = 1;
+                  const ALPHA = 0.6;
+                  const CLIP_SIGMA = 2.5;
+                  
+                  const ageInMonths = (then: Date, now = new Date()) =>
+                    (now.getFullYear() - then.getFullYear()) * 12 +
+                    (now.getMonth() - then.getMonth()) +
+                    (now.getDate() - then.getDate()) / 30.44;
+                  
+                  const weight = (ageMo: number) => Math.pow(0.5, (ALPHA * ageMo) / HALF_LIFE_MO);
+                  
+                  /** מחיר מנוכה-רעש, או null אם < 3 נקודות */
+                  export function representativePrice(points: QuotePoint[]): number | null {
+                    const pts: { p: number; d: Date }[] = [];
+                  
+                    for (const q of points ?? []) {
+                      const p = +q.price;
+                      if (!Number.isFinite(p) || p <= 0) continue;
+                      const d = q.date instanceof Date ? q.date : new Date(q.date);
+                      if (Number.isNaN(+d)) continue;
+                      pts.push({ p, d });
+                    }
+                    if (pts.length < 3) return null;
+                  
+                    const w = pts.map(({ d }) => weight(ageInMonths(d)));
+                    const W = w.reduce((a, b) => a + b, 0);
+                  
+                    const μ0 = pts.reduce((s, { p }, i) => s + p * w[i], 0) / W;
+                    const σ0 =
+                      Math.sqrt(pts.reduce((s, { p }, i) => s + (p - μ0) ** 2 * w[i], 0) / W) ||
+                      1;
+                  
+                    const lo = μ0 - CLIP_SIGMA * σ0;
+                    const hi = μ0 + CLIP_SIGMA * σ0;
+                  
+                    const μ =
+                      pts.reduce((s, { p }, i) => {
+                        const c = Math.min(hi, Math.max(lo, p)); // winsorise
+                        return s + c * w[i];
+                      }, 0) / W;
+                  
+                    return Math.round(μ);
+                  }
+                  
+                  /* ╭──────────────────────────────┐
+                     │ 2. קהילה : μ , σ , CV , n   │
+                     ╰──────────────────────────────┘ */
+                  export interface ConsensusStats {
+                    price: number | null;
+                    cv: number | null;
+                    n: number;
+                  }
+                  
+                  /** ממוצע + CV + גודל-מדגם */
+                  export function consensusStats(values: number[]): ConsensusStats {
+                    const nums = values.filter((v) => Number.isFinite(v) && v > 0);
+                    const n = nums.length;
+                  
+                    if (n < 3) return { price: null, cv: null, n };
+                  
+                    const μ = nums.reduce((a, b) => a + b, 0) / n;
+                    const σ = Math.sqrt(nums.reduce((s, x) => s + (x - μ) ** 2, 0) / n);
+                    const cv = σ / μ;
+                  
+                    return { price: Math.round(μ), cv, n };
+                  }
+                  
+                  /* ╭───────────────────────────────────────────┐
+                     │ 3. בלנד דיסקורד-קהילה → מחיר סופי        │
+                     ╰───────────────────────────────────────────┘ */
+                  export interface BlendedPrice {
+                    final: number | null;
+                    weightD: number;
+                    weightC: number;
+                    discord: ConsensusStats;
+                    community: ConsensusStats;
+                  }
+                  
+                  export const BLEND_CFG = {
+                    baseDiscord: 1.0, // b_D
+                    baseCommunity: 0.8, // b_C
+                    saturationK: 5, // k – גודל מדגם “רוויה”
+                  };
+                  
+                  /** משקל ∝ b · n/(n+k) · 1/(1+CV) */
+                  function calcWeight({ n, cv }: ConsensusStats, base: number, k: number) {
+                    if (!n || n < 3 || cv === null) return 0;
+                    return base * (n / (n + k)) * (1 / (1 + cv));
+                  }
+                  
+                  /** שקול דיסקורד-קהילה והחזר מחיר סופי + משקלים */
+                  export function blendPrices(
+                    discord: ConsensusStats,
+                    community: ConsensusStats
+                  ): BlendedPrice {
+                    const wD = calcWeight(discord, BLEND_CFG.baseDiscord, BLEND_CFG.saturationK);
+                    const wC = calcWeight(
+                      community,
+                      BLEND_CFG.baseCommunity,
+                      BLEND_CFG.saturationK
+                    );
+                  
+                    const Z = wD + wC;
+                    const nD = Z ? wD / Z : 0;
+                    const nC = Z ? wC / Z : 0;
+                  
+                    const final =
+                      discord.price !== null && community.price !== null && Z
+                        ? Math.round(discord.price * nD + community.price * nC)
+                        : discord.price ?? community.price ?? null;
+                  
+                    return { final, weightD: nD, weightC: nC, discord, community };
+                  }
+                  
+
