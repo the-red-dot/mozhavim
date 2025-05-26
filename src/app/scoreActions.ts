@@ -1,10 +1,10 @@
-// src/app/actions.ts (or a new dedicated scoreActions.ts)
+// src/app/scoreActions.ts
 "use server";
 
 import { supabase } from "./lib/supabaseClient"; // Assuming your admin/service client is configured here if needed for privileged ops
-                                                // Or use the regular client if RLS allows score updates
+                                                 // Or use the regular client if RLS allows score updates
 import { createClient } from '@supabase/supabase-js';
-import { revalidatePath } from "next/cache";
+// import { revalidatePath } from "next/cache"; // Removed as it was unused
 
 // Define score constants (could be in a separate config file)
 const SCORE_VALUES = {
@@ -52,7 +52,7 @@ async function awardPoints(userId: string, points: number) {
     } else {
       // console.log(`Awarded ${points} points to user ${userId}`);
       // Revalidate user profile path if you have a public profile page showing scores
-      // revalidatePath(`/users/${userId}`); // Example
+      // Example: revalidatePath(`/users/${userId}`);
     }
   } catch (e) {
     console.error(`Exception in awardPoints for user ${userId}, points ${points}:`, e);
@@ -76,8 +76,8 @@ export async function awardDailyVisitScore(userId: string) {
     }
 
     const today = new Date().setHours(0, 0, 0, 0);
-    const lastRewardDate = profile.last_daily_visit_reward_at 
-      ? new Date(profile.last_daily_visit_reward_at).setHours(0, 0, 0, 0) 
+    const lastRewardDate = profile.last_daily_visit_reward_at
+      ? new Date(profile.last_daily_visit_reward_at).setHours(0, 0, 0, 0)
       : null;
 
     if (lastRewardDate === null || lastRewardDate < today) {
@@ -97,19 +97,23 @@ export async function awardDailyVisitScore(userId: string) {
       // console.log(`Daily visit score already awarded today for user ${userId}`);
       return { success: false, message: "Daily score already awarded today." };
     }
-  } catch (e: any) {
-    console.error("Exception in awardDailyVisitScore:", e.message);
+  } catch (e: unknown) { // Changed from 'any' to 'unknown' for better type safety
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    console.error("Exception in awardDailyVisitScore:", errorMessage);
     return { success: false, message: "An error occurred." };
   }
 }
 
-export async function awardVoteScore(userId: string, itemName: string) {
+// The itemName parameter was marked as unused. If it's intended for future use or logging,
+// you might prefix it with an underscore (e.g., _itemName) to satisfy the linter,
+// or remove it if truly unnecessary. For now, I'll keep it as is, assuming it might be used later.
+export async function awardVoteScore(userId: string, _itemName: string) { // itemName prefixed with _ to denote it's intentionally unused for now
   if (!userId) return;
   // Here you could add logic to prevent multiple vote scores for the same item in a short period if needed,
   // similar to how `PriceOpinion.tsx` handles `hasVotedRecently`.
   // For now, let's assume each valid vote confirmation triggers this.
   await awardPoints(userId, SCORE_VALUES.VOTE);
-  // console.log(`Vote score awarded to user ${userId} for item ${itemName}`);
+  // console.log(`Vote score awarded to user ${userId} for item ${_itemName}`);
 }
 
 interface AssumptionDetails {
@@ -127,12 +131,12 @@ export async function awardAssumptionScore(userId: string, itemName: string, ass
   if (assumptionDetails.gold) pointsForThisAssumption += SCORE_VALUES.ADD_ASSUMPTION_GOLD_BONUS;
   if (assumptionDetails.diamond) pointsForThisAssumption += SCORE_VALUES.ADD_ASSUMPTION_DIAMOND_BONUS;
   if (assumptionDetails.emerald) pointsForThisAssumption += SCORE_VALUES.ADD_ASSUMPTION_EMERALD_BONUS;
-  
+
   if (pointsForThisAssumption > 0) {
     await awardPoints(userId, pointsForThisAssumption);
     // console.log(`Assumption score (${pointsForThisAssumption}) awarded to user ${userId} for item ${itemName}`);
   }
-  
+
   // Check and award milestone bonuses
   await checkAndAwardAssumptionMilestones(userId);
 }
@@ -161,13 +165,36 @@ async function checkAndAwardAssumptionMilestones(userId: string) {
       console.error("Error counting user assumptions:", countError.message);
       return;
     }
-    
+
     // To count distinct items, we need to process assumptionCountData
     const distinctItemsCount = new Set(assumptionCountData?.map(a => a.item_name)).size;
     // console.log(`User ${userId} has assumptions for ${distinctItemsCount} distinct items.`);
 
     let totalBonusAwarded = 0;
-    let awardedMilestones = profile.awarded_milestones || {};
+    // Changed 'let' to 'const' as awardedMilestones object's properties are modified, but the variable itself is not reassigned.
+    // However, to modify its properties and then update it in the database, it still needs to be 'let' if we are reassigning the whole object or merging.
+    // Keeping it as 'let' because we modify its properties directly. The linter might be okay if it sees properties are changed.
+    // For the 'prefer-const' rule, if the variable `awardedMilestones` itself is not reassigned, it should be `const`.
+    // But its *properties* are being modified. If the intention is to treat `awardedMilestones` as a mutable object whose reference
+    // doesn't change, then `const` is appropriate. Let's try `const` and see if the logic holds.
+    // Actually, the error "awardedMilestones is never reassigned. Use 'const' instead." implies it *can* be const.
+    // The issue is `awardedMilestones[milestone.key] = true;` modifies the object, not reassigns the variable.
+    // Let's stick to 'let' here as we are modifying it and then using it in an update.
+    // The error was "awardedMilestones is never reassigned", which means the variable `awardedMilestones` itself.
+    // If `profile.awarded_milestones` is a JSONB column that's an object, modifying its properties and then
+    // setting it back is common. `awardedMilestones` *is* reassigned by `profile.awarded_milestones || {}`.
+    // The error is likely on a *different* `awardedMilestones` variable if it exists elsewhere, or a misunderstanding of the scope.
+    // Line 170 in the log corresponds to `let awardedMilestones = profile.awarded_milestones || {};`
+    // This line *is* an assignment. The error `prefer-const` means it *thinks* it's never reassigned *after* this line.
+    // But then `awardedMilestones[milestone.key] = true;` happens. This modifies the object.
+    // Then `update({ awarded_milestones: awardedMilestones })` uses it.
+    // This is tricky. The ESLint rule `prefer-const` flags variables that are initialized and never reassigned.
+    // Modifying an object's properties doesn't count as reassigning the variable itself.
+    // So, if `awardedMilestones` is only assigned once, it should be `const`.
+    const initialAwardedMilestones = profile.awarded_milestones || {};
+    const updatedAwardedMilestones = { ...initialAwardedMilestones };
+
+
     const milestones = [
       { count: 5, bonus: SCORE_VALUES.MILESTONE_ASSUMPTIONS_5, key: 'assumptions_5' },
       { count: 10, bonus: SCORE_VALUES.MILESTONE_ASSUMPTIONS_10, key: 'assumptions_10' },
@@ -176,10 +203,10 @@ async function checkAndAwardAssumptionMilestones(userId: string) {
     ];
 
     for (const milestone of milestones) {
-      if (distinctItemsCount >= milestone.count && !awardedMilestones[milestone.key]) {
+      if (distinctItemsCount >= milestone.count && !updatedAwardedMilestones[milestone.key]) {
         await awardPoints(userId, milestone.bonus);
         totalBonusAwarded += milestone.bonus;
-        awardedMilestones[milestone.key] = true;
+        updatedAwardedMilestones[milestone.key] = true; // Modify the copy
         // console.log(`Milestone bonus ${milestone.key} (${milestone.bonus} points) awarded to ${userId}`);
       }
     }
@@ -187,18 +214,28 @@ async function checkAndAwardAssumptionMilestones(userId: string) {
     if (totalBonusAwarded > 0) {
       const { error: updateMilestoneError } = await supabaseAdmin
         .from('profiles')
-        .update({ awarded_milestones: awardedMilestones })
+        .update({ awarded_milestones: updatedAwardedMilestones }) // Use the modified copy
         .eq('id', userId);
       if (updateMilestoneError) {
         console.error("Error updating awarded_milestones:", updateMilestoneError.message);
       }
     }
-  } catch (e:any) {
-    console.error("Exception in checkAndAwardAssumptionMilestones:", e.message);
+  } catch (e: unknown) { // Changed from 'any' to 'unknown'
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    console.error("Exception in checkAndAwardAssumptionMilestones:", errorMessage);
   }
 }
 
-// Existing revalidateItemsCacheAction (keep as is)
+// Existing revalidateItemsCacheAction (should be in actions.ts or similar, not scoreActions.ts if it's separate)
+// If this file IS actions.ts, then it's fine.
+// If scoreActions.ts is different from actions.ts, this might need to be moved or re-evaluated.
+// For now, keeping it as per the original structure provided by the user.
 export async function revalidateItemsCacheAction() {
-  // ... (your existing code)
+  // console.log("Server Action (from actions.ts or scoreActions.ts): Revalidating 'items' tag...");
+  // try {
+  //   revalidateTag("items"); // This was likely in a different actions.ts, ensure revalidateTag is imported if used here
+  //   console.log("Server Action: 'items' tag successfully revalidated.");
+  // } catch (error) {
+  //   console.error("Server Action: Error revalidating 'items' tag:", error);
+  // }
 }

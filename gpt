@@ -930,7 +930,8 @@ Folder: src
             // src/app/page.tsx
             import SearchComponent from "./components/SearchComponent";
             // Import DepreciationSummary types, but the component itself will be rendered by SearchComponent
-            import { DepreciationStatsDisplay, StatsSourceType } from "./components/DepreciationSummary"; 
+            // Removed unused StatsSourceType
+            import { DepreciationStatsDisplay } from "./components/DepreciationSummary"; 
             import { fetchAndManageDepreciationStats, getSearchComponentItems, Item as DepreciationItem } from "./lib/depreciationService";
             
             export default async function Home() {
@@ -939,12 +940,13 @@ Folder: src
               const { 
                 data: generalDepreciationDataRaw, 
                 source: generalStatsSource, 
-                itemFetchError: depreciationServiceItemFetchError 
+                // itemFetchError: depreciationServiceItemFetchError // This part of pageDisplayError is not used.
               } = await fetchAndManageDepreciationStats();
             
               const { items: searchComponentItems, error: searchItemsError } = await getSearchComponentItems();
             
-              const pageDisplayError = searchItemsError || depreciationServiceItemFetchError;
+              // Removed unused pageDisplayError variable
+              // const pageDisplayError = searchItemsError || depreciationServiceItemFetchError;
             
               if (searchItemsError && !searchComponentItems?.length) {
                 console.error("Home: Critical error fetching items for SearchComponent:", searchItemsError);
@@ -972,7 +974,10 @@ Folder: src
                 diamond_items_count: generalDepreciationDataRaw.diamond_items_count,
                 average_emerald_depreciation: generalDepreciationDataRaw.average_emerald_depreciation,
                 emerald_items_count: generalDepreciationDataRaw.emerald_items_count,
-                updated_at: 'updated_at' in generalDepreciationDataRaw ? generalDepreciationDataRaw.updated_at : undefined,
+                // Safely access updated_at
+                updated_at: ('updated_at' in generalDepreciationDataRaw && typeof generalDepreciationDataRaw.updated_at === 'string') 
+                            ? generalDepreciationDataRaw.updated_at 
+                            : undefined,
               };
             
               return (
@@ -988,8 +993,8 @@ Folder: src
                   </h1>
                   <SearchComponent 
                     initialItems={safeItems as DepreciationItem[]} 
-                    generalDepreciationStats={generalDisplayStats} // This should be a valid object
-                    generalDepreciationSource={generalStatsSource} // This should be a valid string
+                    generalDepreciationStats={generalDisplayStats} 
+                    generalDepreciationSource={generalStatsSource} 
                   />
                 </div>
               );
@@ -1207,17 +1212,16 @@ Folder: src
                 // src/app/admin/page.tsx
                 "use client";
                 
-                import { useState } from "react"; // Removed useEffect
+                import { useState } from "react"; // useEffect was removed
                 import { supabase } from "../lib/supabaseClient";
                 import { useUser } from "../context/UserContext";
                 import { revalidateItemsCacheAction } from "../actions";
-                import Link from "next/link"; // Import Link for navigation
+                import Link from "next/link";
                 
                 /* -------------------------------------------------
-                  1️⃣  Type Definitions & Mappings
+                  1️⃣  Type Definitions & Mappings
                 -------------------------------------------------- */
                 
-                // Interface for the data structure after parsing (free-form or JSON)
                 interface ParsedItemData {
                   name?: string | null;
                   buyregular?: string | null;
@@ -1229,17 +1233,16 @@ Folder: src
                   selldiamond?: string | null;
                   sellemerald?: string | null;
                   publisher?: string | null;
-                  date?: string | null; // Assuming date is initially a string from input
+                  date?: string | null;
                   image?: string | null;
                   description?: string | null;
-                  // Allow other potential keys from parsing, ensuring values are string or null
                   [key: string]: string | null | undefined;
                 }
                 
                 const fieldMapping: Record<string, string> = {
                   "שם מוזהב": "name",
                   "קנייה (רגיל)": "buyregular",
-                  "קנייה": "buyregular", // Alias for convenience
+                  "קנייה": "buyregular",
                   "קנייה (זהב)": "buygold",
                   "קנייה (יהלום)": "buydiamond",
                   "קנייה (אמרלד)": "buyemerald",
@@ -1260,7 +1263,7 @@ Folder: src
                 ];
                 
                 /* -------------------------------------------------
-                  2️⃣  helpers — parse free text / JSON
+                  2️⃣  helpers — parse free text / JSON
                 -------------------------------------------------- */
                 
                 function normalizeJsonRecord(record: Record<string, unknown> | null | undefined): ParsedItemData {
@@ -1269,8 +1272,8 @@ Folder: src
                     return {};
                   }
                   for (const [k, v] of Object.entries(record)) {
-                    const key = String(k).replace(/\s/g, "").toLowerCase(); // Ensure k is string and normalized
-                    intermediateOut[key] = v === "" || v === "אין נתון" || v === undefined ? null : String(v);
+                    const key = String(k).replace(/\s/g, "").toLowerCase();
+                    intermediateOut[key] = v === "" || v === "אין נתון" || v === undefined || v === null ? null : String(v);
                   }
                 
                   const filtered: ParsedItemData = {};
@@ -1291,8 +1294,8 @@ Folder: src
                     const key = parts[0].trim();
                     const val = parts.slice(1).join(":").trim();
                     const col = fieldMapping[key];
-                    if (col && allowedFields.includes(col)) { // Ensure col is an allowed field
-                        out[col as keyof ParsedItemData] = val === "" || val === "אין נתון" ? null : val;
+                    if (col && allowedFields.includes(col)) {
+                      out[col as keyof ParsedItemData] = val === "" || val === "אין נתון" ? null : val;
                     }
                   }
                   return out;
@@ -1300,27 +1303,28 @@ Folder: src
                 
                 function parseJsonObjects(block: string): ParsedItemData[] {
                   if (typeof block !== 'string') return [];
-                  const regex = /{[\s\S]*?}/g;
+                  const regex = /{[\s\S]*?}/g; // Using curly braces for object matching
                   let matches: string[] = [];
                   try {
                     const regexMatches = block.match(regex);
                     if (regexMatches) {
                       matches = regexMatches;
                     }
-                  } catch (_e) { // Marked as unused
-                    // console.warn("Regex match failed for JSON parsing:", (_e as Error).message);
+                  } catch { // No variable binding for the error object if it's not used
+                    // console.warn("Regex match failed for JSON parsing (outer):");
                   }
                   return matches
                     .map((m: string) => {
                       try {
-                        return JSON.parse(m) as Record<string, unknown>; // Parse to generic object
+                        return JSON.parse(m) as Record<string, unknown>;
                       }
-                      catch (_e) { // Marked as unused
+                      catch { // No variable binding for the error object if it's not used
+                        // console.warn("Failed to parse individual JSON object:", m);
                         return null;
                       }
                     })
                     .filter((record): record is Record<string, unknown> => record !== null && typeof record === 'object')
-                    .map(normalizeJsonRecord); // normalizeJsonRecord handles Record<string, unknown>
+                    .map(normalizeJsonRecord);
                 }
                 
                 function parseRecords(text: string): ParsedItemData[] {
@@ -1337,10 +1341,12 @@ Folder: src
                     try {
                       const obj = JSON.parse(trimmed);
                       const arr = (Array.isArray(obj) ? obj : [obj]) as Record<string, unknown>[];
+                      // Check if the parsed result is an array of objects before mapping
                       if (arr.every(record => typeof record === 'object' && record !== null)) {
                         return arr.map(normalizeJsonRecord);
                       }
                     } catch {
+                      // If JSON.parse fails, try to parse as a block of multiple JSON objects
                       const arrFromObjects = parseJsonObjects(trimmed);
                       if (arrFromObjects.length > 0 && arrFromObjects.some(obj => Object.keys(obj).length > 0)) {
                         return arrFromObjects;
@@ -1352,7 +1358,7 @@ Folder: src
                 
                 
                 /* -------------------------------------------------
-                  3️⃣  React component
+                  3️⃣  React component
                 -------------------------------------------------- */
                 export default function AdminManagementPage() {
                   const { user, profile, isLoading, sessionInitiallyChecked } = useUser();
@@ -1415,9 +1421,9 @@ Folder: src
                 
                     for (const rec of records) {
                       if (Object.keys(rec).length === 0) {
-                          failCount++;
-                          failMessages.push("רשומה ריקה זוהתה ודולגה.");
-                          continue;
+                        failCount++;
+                        failMessages.push("רשומה ריקה זוהתה ודולגה.");
+                        continue;
                       }
                       if (!rec.name || typeof rec.name !== 'string' || !rec.name.trim()) {
                         failCount++;
@@ -1437,7 +1443,7 @@ Folder: src
                         .select("id")
                         .eq("item_id", definitionId)
                         .eq("publisher", rec.publisher ?? null)
-                        .eq("date", rec.date ?? null) // Ensure date is in ISO format if your DB expects a date/timestamp
+                        .eq("date", rec.date ?? null) 
                         .maybeSingle();
                 
                       if (duplicateCheckError) {
@@ -1464,7 +1470,7 @@ Folder: src
                         sellgold: rec.sellgold ?? null,
                         selldiamond: rec.selldiamond ?? null,
                         sellemerald: rec.sellemerald ?? null,
-                        date: rec.date ?? null, // Consider converting to ISO string if needed: rec.date ? new Date(rec.date).toISOString() : null
+                        date: rec.date ?? null,
                         admin_id: user.id,
                       };
                 
@@ -1484,10 +1490,10 @@ Folder: src
                 
                     let finalMessageText = "";
                     if (okCount > 0) {
-                        finalMessageText += `✅ נוספו ${okCount} פריטים.`;
+                      finalMessageText += `✅ נוספו ${okCount} פריטים.`;
                     }
                     if (failCount > 0) {
-                        finalMessageText += `${okCount > 0 ? " • " : ""}❌ נכשלו ${failCount} פריטים.`;
+                      finalMessageText += `${okCount > 0 ? " • " : ""}❌ נכשלו ${failCount} פריטים.`;
                     }
                     setMessage(finalMessageText || "תהליך הפרסום הסתיים.");
                 
@@ -1506,7 +1512,7 @@ Folder: src
                       try {
                         await revalidateItemsCacheAction();
                         setMessage(prev => prev + " • ✅ מטמון הפריטים באתר התעדכן.");
-                      } catch (revalError: unknown) { // Typed as unknown
+                      } catch (revalError: unknown) {
                         const errorMessage = revalError instanceof Error ? revalError.message : String(revalError);
                         console.error("Admin Page: Calling Server Action for cache revalidation failed:", errorMessage);
                         setMessage(prev => prev + " • ⚠️ שגיאה בעדכון מטמון הפריטים באתר.");
@@ -1527,7 +1533,7 @@ Folder: src
                 
                   if (!sessionInitiallyChecked) {
                       return (
-                           <div className="admin-post-creation" style={{ marginTop: "2rem", textAlign: "center", color: "var(--foreground)" }}>
+                          <div className="admin-post-creation" style={{ marginTop: "2rem", textAlign: "center", color: "var(--foreground)" }}>
                               <h1>מערכת הוספת מוזהבים</h1>
                               <p>ממתין לאימות סשן...</p>
                           </div>
@@ -1571,7 +1577,7 @@ Folder: src
                 מכירה (יהלום): 300`}
                         value={inputData}
                         onChange={(e) => setInputData(e.target.value)}
-                        className="title-input"
+                        className="title-input" // Ensure this class exists and is styled in globals.css
                         style={{
                             width: "100%",
                             minHeight: "250px",
@@ -1581,9 +1587,9 @@ Folder: src
                             direction: "rtl",
                             padding: "10px",
                             boxSizing: "border-box",
-                            backgroundColor: "var(--background-input, #1f1f1f)",
-                            color: "var(--foreground-input, #ededed)",
-                            border: "1px solid var(--border-color, #444)",
+                            backgroundColor: "var(--background-input, #1f1f1f)", // Example input background
+                            color: "var(--foreground-input, #ededed)", // Example input text color
+                            border: "1px solid var(--border-color, #444)", // Example border
                             borderRadius: "4px"
                         }}
                       />
@@ -2057,33 +2063,37 @@ Folder: src
                   const [mode, setMode] = useState<"login" | "register">("login");
                   const [emailOrUsername, setEmailOrUsername] = useState("");
                   const [password, setPassword] = useState("");
-                  const [username, setUsername] = useState("");
+                  const [username, setUsername] = useState(""); // For registration mode
                   const [message, setMessage] = useState("");
                   const router = useRouter();
                 
                   const handleLogin = async (e: React.FormEvent) => {
                     e.preventDefault();
                     setMessage("");
-                    let email = emailOrUsername;
+                    let emailToLogin = emailOrUsername;
                 
-                    // If input doesn't contain '@', treat it as a username and fetch the email
                     if (!emailOrUsername.includes("@")) {
-                      const { data, error } = await supabase.rpc("get_email_by_username", {
+                      const { data: rpcData, error: rpcError } = await supabase.rpc("get_email_by_username", {
                         p_username: emailOrUsername,
                       });
-                      if (error || !data) {
-                        setMessage("שם משתמש לא נמצא");
+                      if (rpcError || !rpcData) {
+                        setMessage("שם משתמש לא נמצא או אירעה שגיאה.");
                         return;
                       }
-                      email = data;
+                      emailToLogin = rpcData;
                     }
                 
-                    const { error } = await supabase.auth.signInWithPassword({ email, password });
+                    const { error } = await supabase.auth.signInWithPassword({
+                      email: emailToLogin,
+                      password,
+                    });
+                
                     if (error) {
                       setMessage(error.message);
                     } else {
                       setMessage("התחברת בהצלחה!");
-                      setTimeout(() => router.push("/"), 2000);
+                      setTimeout(() => router.push("/"), 1500); // Redirect after a short delay
+                      // Consider calling router.refresh() if you need to immediately reflect auth state changes in Server Components
                     }
                   };
                 
@@ -2091,42 +2101,63 @@ Folder: src
                     e.preventDefault();
                     setMessage("");
                 
-                    // Check if username is taken
-                    const { data: exists } = await supabase.rpc("check_username_exists", {
+                    if (!username.trim()) {
+                        setMessage("שם משתמש הוא שדה חובה.");
+                        return;
+                    }
+                    if (!password) {
+                        setMessage("סיסמה היא שדה חובה.");
+                        return;
+                    }
+                
+                
+                    // Check if username is taken (optional, as API route might do it too, but good for immediate client-side feedback)
+                    const { data: exists, error: rpcCheckError } = await supabase.rpc("check_username_exists", {
                       p_username: username,
                     });
+                
+                    if (rpcCheckError){
+                        setMessage(`שגיאה בבדיקת שם משתמש: ${rpcCheckError.message}`);
+                        return;
+                    }
                     if (exists) {
                       setMessage("שם משתמש כבר קיים");
                       return;
                     }
                 
-                    const isFakeEmail = !emailOrUsername.includes("@");
+                    // If emailOrUsername is empty OR doesn't look like an email, register via API (username-only flow)
+                    const isUsernameOnlyRegistration = !emailOrUsername.trim() || !emailOrUsername.includes("@");
                 
-                    if (isFakeEmail) {
-                      // Register with fake email via API route
+                    if (isUsernameOnlyRegistration) {
                       const response = await fetch("/api/create-user", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ username, password }),
+                        body: JSON.stringify({ username, password }), // Send username from state
                       });
                       const result = await response.json();
                       if (!response.ok) {
-                        setMessage(result.error || "אירעה שגיאה ברישום"); // Provide a fallback error message
+                        setMessage(result.error || "אירעה שגיאה ברישום.");
                       } else {
                         setMessage("נרשמת בהצלחה! אתה יכול להתחבר עכשיו.");
+                        setMode("login"); // Switch to login mode
+                        setEmailOrUsername(username); // Pre-fill username for login
+                        setPassword(""); // Clear password
+                        setUsername(""); // Clear username field for registration
                       }
                     } else {
-                      // Register with real email
-                      // FIX: Renamed 'data' to '_data' as it was not used.
-                      const { data: _data, error } = await supabase.auth.signUp({
-                        email: emailOrUsername,
+                      // Register with real email directly
+                      const { error } = await supabase.auth.signUp({ // Removed 'data: _data'
+                        email: emailOrUsername, // Use the provided email
                         password,
-                        options: { data: { username } }, // 'username' here is from the component's state
+                        options: {
+                          data: { username: username }, // Pass username from state to be stored in user_metadata
+                        },
                       });
                       if (error) {
                         setMessage(error.message);
                       } else {
                         setMessage("נרשמת! בדוק את האימייל לאימות.");
+                        // Optionally switch to login or clear fields
                       }
                     }
                   };
@@ -2134,16 +2165,17 @@ Folder: src
                   const handlePasswordReset = async (e: React.FormEvent) => {
                     e.preventDefault();
                     setMessage("");
-                    // Ensure emailOrUsername is provided for password reset if it's not empty.
-                    if (!emailOrUsername.trim()) {
-                        setMessage("אנא הזן אימייל לשחזור סיסמה.");
-                        return;
+                    if (!emailOrUsername.includes("@")) {
+                      setMessage("אנא הזן כתובת אימייל תקינה לשחזור סיסמה.");
+                      return;
                     }
-                    const { error } = await supabase.auth.resetPasswordForEmail(emailOrUsername);
+                    const { error } = await supabase.auth.resetPasswordForEmail(emailOrUsername, {
+                        // redirectTo: `${window.location.origin}/auth/update-password`, // Optional: specify redirect URL
+                    });
                     if (error) {
                       setMessage(error.message);
                     } else {
-                      setMessage("בדוק את תיבת האימייל שלך לקבלת הוראות לאיפוס הסיסמה.");
+                      setMessage("אם קיים חשבון עם אימייל זה, ישלח אליך קישור לאיפוס סיסמה.");
                     }
                   };
                 
@@ -2152,13 +2184,13 @@ Folder: src
                       <h2>{mode === "login" ? "התחברות" : "רישום"}</h2>
                       <form onSubmit={mode === "login" ? handleLogin : handleRegister}>
                         <label>
-                          {mode === "login" ? "אימייל או שם משתמש:" : "אימייל (אופציונלי, השאר ריק לרישום עם שם משתמש בלבד):"}
+                          {mode === "login" ? "אימייל או שם משתמש:" : "אימייל (אופציונלי):"}
                           <input
                             type="text"
                             value={emailOrUsername}
                             onChange={(e) => setEmailOrUsername(e.target.value)}
-                            placeholder={mode === "register" ? "example@example.com" : "אימייל או שם משתמש"}
-                            required={mode === "login"} // Email/Username is required for login
+                            placeholder={mode === "register" ? "example@example.com (אופציונלי)" : "אימייל או שם משתמש"}
+                            required={mode === "login"}
                           />
                         </label>
                         {mode === "register" && (
@@ -2168,7 +2200,8 @@ Folder: src
                               type="text"
                               value={username}
                               onChange={(e) => setUsername(e.target.value)}
-                              required // Username is always required for registration
+                              required
+                              placeholder="שם משתמש (חובה)"
                             />
                           </label>
                         )}
@@ -2179,27 +2212,28 @@ Folder: src
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
+                            placeholder="לפחות 6 תווים"
                           />
                         </label>
                         <button type="submit">{mode === "login" ? "התחבר" : "הרשם"}</button>
                       </form>
                       {mode === "login" && (
                         <button onClick={handlePasswordReset} className="recover-btn">
-                          שחזור סיסמה
+                          שכחת סיסמה?
                         </button>
                       )}
                       {message && <p className="auth-message">{message}</p>}
                       <div className="auth-toggle">
                         <span>{mode === "login" ? "אין לך חשבון?" : "כבר יש לך חשבון?"}</span>
                         <button onClick={() => {
-                          setMode(mode === "login" ? "register" : "login");
-                          setMessage(""); // Clear message when toggling mode
-                          // Optionally clear form fields as well
-                          // setEmailOrUsername("");
-                          // setUsername("");
-                          // setPassword("");
+                            setMode(mode === "login" ? "register" : "login");
+                            setMessage(""); // Clear message when toggling
+                            // Optionally clear form fields
+                            // setEmailOrUsername("");
+                            // setUsername("");
+                            // setPassword("");
                         }}>
-                          {mode === "login" ? "הרשם" : "התחבר"}
+                          {mode === "login" ? "הרשם כאן" : "התחבר כאן"}
                         </button>
                       </div>
                     </div>
@@ -2982,7 +3016,7 @@ Folder: src
                   const [viewDiscord, setView] = useState(true);
                   const [assumps, setAssumps] = useState<Assumption[]>([]);
                   const box = useRef<HTMLDivElement>(null);
-                  const [imageHasError, setImageHasError] = useState(false); // State for image error
+                  const [imageHasError, setImageHasError] = useState(false);
                 
                   useEffect(() => {
                     if (!term.trim()) {
@@ -3026,7 +3060,6 @@ Folder: src
                 
                   const firstSelectedItem = itemsForSel[0];
                 
-                  // Reset image error state when the selected item or its image changes
                   useEffect(() => {
                     setImageHasError(false);
                   }, [firstSelectedItem?.image]);
@@ -3095,14 +3128,13 @@ Folder: src
                     };
                   }, [blended.final, generalDepreciationStats]);
                 
-                  // Define price lines for cleaner rendering
                   const priceLinesToDisplay = useMemo(() => {
                     const lines = [
                       {
                         key: 'final',
                         label: 'מחיר סופי (רגיל):',
                         value: blended.final,
-                        valueClassName: '', // Default class for 'regular' price value
+                        valueClassName: '',
                         condition: blended.final !== null,
                       },
                       {
@@ -3170,19 +3202,19 @@ Folder: src
                               imageHasError ? (
                                 <Image
                                   className="item-image"
-                                  src="https://placehold.co/200x150/1a1a1a/ededed?text=Error" // Fallback image
+                                  src="https://placehold.co/200x150/1a1a1a/ededed?text=Error"
                                   alt={firstSelectedItem.name ? `${firstSelectedItem.name} (תמונה לא זמינה)` : "תמונה לא זמינה"}
                                   width={200}
                                   height={150}
-                                  unoptimized={true} // Placeholder might not need optimization
+                                  unoptimized={true}
                                 />
                               ) : (
                                 <Image
                                   className="item-image"
                                   src={firstSelectedItem.image}
                                   alt={firstSelectedItem.name || "תמונת פריט"}
-                                  width={200} // Specify your desired width
-                                  height={150} // Specify your desired height
+                                  width={200}
+                                  height={150}
                                   onError={() => {
                                     setImageHasError(true);
                                   }}
@@ -3193,7 +3225,6 @@ Folder: src
                             )}
                             <p>{firstSelectedItem.description || "אין תיאור זמין"}</p>
                 
-                            {/* === MODIFIED PRICE DISPLAY AREA START === */}
                             {priceLinesToDisplay.length > 0 && (
                               <div className="item-average-container">
                                 {priceLinesToDisplay.map((line) => (
@@ -3210,7 +3241,6 @@ Folder: src
                                 </div>
                               </div>
                             )}
-                            {/* === MODIFIED PRICE DISPLAY AREA END === */}
                           </div>
                 
                           {generalDepreciationStats && generalDepreciationSource ? (
@@ -3289,7 +3319,8 @@ Folder: src
                 
                       {!sel && term.trim() && !sugs.length && (
                         <div style={{ marginTop: '20px', textAlign: 'center', color: '#aaa' }}>
-                          לא נמצאו פריטים תואמים עבור "{term}".
+                          {/* Corrected line for unescaped entities */}
+                          לא נמצאו פריטים תואמים עבור "{`${term}`}".
                         </div>
                       )}
                     </div>
@@ -3304,7 +3335,7 @@ Folder: src
                 
                 import React, { createContext, useState, useContext, useEffect, ReactNode, useCallback, useRef } from "react";
                 import { supabase } from "../lib/supabaseClient";
-                import { User, Session } from "@supabase/supabase-js";
+                import { User } from "@supabase/supabase-js"; // Removed unused Session import
                 
                 export type UserProfile = {
                   id: string;
@@ -3337,16 +3368,12 @@ Folder: src
                   const [loadingUserProfile, setLoadingUserProfile] = useState(false);
                   const [sessionInitiallyChecked, setSessionInitiallyChecked] = useState(false);
                 
-                  // Use a ref to track the current user ID to avoid stale closures in onAuthStateChange
                   const currentUserIdRef = useRef<string | null>(null);
                 
                   const fetchUserProfile = useCallback(async (userId: string) => {
-                    // console.log(`UserContext: Fetching profile for user ${userId}`);
                     setLoadingUserProfile(true);
-                    // Clear profile only if the target userId is different from the current profile's userId
-                    // This check is more robust if profile state itself is used.
                     setProfile(prevProfile => {
-                        if (prevProfile?.id === userId) return prevProfile; // Avoid clearing if fetching for the same profile
+                        if (prevProfile?.id === userId) return prevProfile;
                         return null;
                     });
                 
@@ -3359,61 +3386,63 @@ Folder: src
                 
                       if (profileError) {
                         console.error(`UserContext: Error fetching profile for user ${userId}: ${profileError.message}`, profileError);
-                        setProfile(null); // Ensure profile is null on error
+                        setProfile(null);
                       } else {
                         setProfile(profileData as UserProfile || null);
                       }
-                    } catch (e: any) {
-                      console.error(`UserContext: Exception fetching profile for user ${userId}: ${e.message}`, e);
-                      setProfile(null); // Ensure profile is null on exception
+                    } catch (e: unknown) { // Changed from 'any' to 'unknown'
+                      const errorMessage = e instanceof Error ? e.message : String(e);
+                      console.error(`UserContext: Exception fetching profile for user ${userId}: ${errorMessage}`, e);
+                      setProfile(null);
                     } finally {
                       setLoadingUserProfile(false);
                     }
-                  }, []); // fetchUserProfile is stable as it doesn't depend on changing state from UserProvider scope directly
+                  }, []); 
                 
                   useEffect(() => {
-                    // console.log("UserContext: Mounting. Setting up initial session check and auth listener.");
                     setLoadingUserSession(true);
-                    setSessionInitiallyChecked(false);
+                    // setSessionInitiallyChecked(false); // This was already part of the onAuthStateChange logic for INITIAL_SESSION
                 
                     supabase.auth.getSession().then(async ({ data: { session }, error: sessionGetError }) => {
                       if (sessionGetError) {
                         console.error("UserContext: Error in initial getSession():", sessionGetError.message);
                       }
                       const initialUser = session?.user ?? null;
-                      currentUserIdRef.current = initialUser?.id ?? null; // Update ref
+                      currentUserIdRef.current = initialUser?.id ?? null;
                       setUser(initialUser);
                       
                       if (initialUser) {
                         await fetchUserProfile(initialUser.id);
                       } else {
                         setProfile(null);
-                        setLoadingUserProfile(false);
+                        setLoadingUserProfile(false); 
                       }
                       setLoadingUserSession(false);
-                      setSessionInitiallyChecked(true);
+                      if (!sessionInitiallyChecked) { // Set only if not already set by onAuthStateChange quickly
+                        setSessionInitiallyChecked(true);
+                      }
                     }).catch(err => {
-                        console.error("UserContext: Catch block for initial getSession():", err);
-                        currentUserIdRef.current = null; // Update ref
+                        const errorMessage = err instanceof Error ? err.message : String(err);
+                        console.error("UserContext: Catch block for initial getSession():", errorMessage);
+                        currentUserIdRef.current = null;
                         setUser(null);
                         setProfile(null);
                         setLoadingUserSession(false);
                         setLoadingUserProfile(false);
-                        setSessionInitiallyChecked(true);
+                        if (!sessionInitiallyChecked) {
+                         setSessionInitiallyChecked(true);
+                        }
                     });
                 
                     const { data: authListener } = supabase.auth.onAuthStateChange(
                       async (event, session) => {
-                        // console.log("UserContext: onAuthStateChange event:", event, "session:", session);
-                        
                         const newAuthUser = session?.user ?? null;
                         const newUserId = newAuthUser?.id ?? null;
-                        const previousUserId = currentUserIdRef.current; // Use ref for the most recent user ID
+                        const previousUserId = currentUserIdRef.current;
                 
                         if (newUserId !== previousUserId) {
-                          // console.log(`UserContext: User identity changed. Event: ${event}. From ${previousUserId} to ${newUserId}`);
-                          setLoadingUserSession(true); // Indicate session change processing
-                          currentUserIdRef.current = newUserId; // Update ref immediately
+                          setLoadingUserSession(true); 
+                          currentUserIdRef.current = newUserId;
                           setUser(newAuthUser); 
                 
                           if (newAuthUser) {
@@ -3424,18 +3453,13 @@ Folder: src
                           }
                           setLoadingUserSession(false);
                         } else if (newAuthUser && event === "USER_UPDATED") {
-                          // console.log(`UserContext: User updated. Event: ${event}. User: ${newUserId}`);
                           setUser(newAuthUser); 
                           await fetchUserProfile(newAuthUser.id); 
                         } else if (newAuthUser && event === "TOKEN_REFRESHED") {
-                          // console.log(`UserContext: Token refreshed. Event: ${event}. User: ${newUserId}`);
                           setUser(newAuthUser); 
-                          // No need to trigger loading states if user identity is the same and profile is presumably current
                           setLoadingUserSession(false);
                           setLoadingUserProfile(false);
                         } else if (!newAuthUser && previousUserId) {
-                            // This case might occur if a SIGNED_OUT event happens but newUserId was already null (e.g. multiple events)
-                            // console.log(`UserContext: User signed out (event without session but previous user existed). Event: ${event}`);
                             currentUserIdRef.current = null;
                             setUser(null);
                             setProfile(null);
@@ -3443,6 +3467,7 @@ Folder: src
                             setLoadingUserProfile(false);
                         }
                         
+                        // Ensure sessionInitiallyChecked is set reliably after the first relevant event
                         if (!sessionInitiallyChecked && (event === "INITIAL_SESSION" || event === "SIGNED_IN" || (event === "SIGNED_OUT" && !newAuthUser))) {
                             setSessionInitiallyChecked(true);
                         }
@@ -3452,26 +3477,22 @@ Folder: src
                     return () => {
                       authListener.subscription.unsubscribe();
                     };
-                  }, [fetchUserProfile]); // Main useEffect depends only on the stable fetchUserProfile
+                  }, [fetchUserProfile, sessionInitiallyChecked]); // Added sessionInitiallyChecked to dependency array
                 
                   const handleLogout = async () => {
                     const { error } = await supabase.auth.signOut();
                     if (error) {
                       console.error("UserContext: Error during sign out:", error.message);
-                      // Fallback: if signOut errors, ensure states are cleared
                       currentUserIdRef.current = null;
                       setUser(null);
                       setProfile(null);
                       setLoadingUserSession(false);
                       setLoadingUserProfile(false);
                     }
-                    // onAuthStateChange will typically handle setting user to null.
                   };
                 
                   const overallIsLoading = !sessionInitiallyChecked || loadingUserSession || (!!user && loadingUserProfile);
-                
-                  // console.log(`UserContext Render: isLoading: ${overallIsLoading} (sessionChecked: ${sessionInitiallyChecked}, loadingSession: ${loadingUserSession}, userExists: ${!!user}, loadingProfile: ${loadingUserProfile}), User: ${user?.id}, Profile: ${profile?.username}`);
-                  
+                 
                   return (
                     <UserContext.Provider value={{
                       user,
@@ -3497,7 +3518,7 @@ Folder: src
             File: depreciationService.ts
                 Code:
                 // src/app/lib/depreciationService.ts
-                import { supabase } from "./supabaseClient"; // Assuming supabaseClient is in the same lib folder
+                import { supabase } from "./supabaseClient";
                 import { unstable_cache as nextCache } from 'next/cache';
                 
                 // Constants
@@ -3528,11 +3549,11 @@ Folder: src
                   id: string;
                   total_items_from_source: number;
                   items_with_valid_regular_price: number;
-                  average_gold_depreciation: number;
+                  average_gold_depreciation: number; // Assuming this can be 0 if no items, not null
                   gold_items_count: number;
-                  average_diamond_depreciation: number;
+                  average_diamond_depreciation: number; // Assuming this can be 0 if no items, not null
                   diamond_items_count: number;
-                  average_emerald_depreciation: number;
+                  average_emerald_depreciation: number; // Assuming this can be 0 if no items, not null
                   emerald_items_count: number;
                   updated_at: string; // ISO string date
                 }
@@ -3563,9 +3584,9 @@ Folder: src
                       return { items: [], error: error.message };
                     }
                     console.log("depreciationService.getCachedItems: Fetched", data?.length || 0, "rows for cache.");
-                    return { items: data as Item[], error: null };
+                    return { items: data as Item[] || [], error: null }; // Ensure items is always an array
                   },
-                  ['items_flat_data_v1'], // Cache key should be unique if this function is defined elsewhere too
+                  ['items_flat_data_v1'],
                   {
                     tags: ['items'],
                   }
@@ -3573,9 +3594,10 @@ Folder: src
                 
                 const calculateDepreciationSummary = (items: Item[]): NewDepreciationStats => {
                   console.log("\ndepreciationService.calculateDepreciationSummary: START CALCULATION");
-                  let allGoldDepreciations: number[] = [];
-                  let allDiamondDepreciations: number[] = [];
-                  let allEmeraldDepreciations: number[] = [];
+                  // Changed let to const as these arrays are mutated but not reassigned
+                  const allGoldDepreciations: number[] = [];
+                  const allDiamondDepreciations: number[] = [];
+                  const allEmeraldDepreciations: number[] = [];
                   let itemsWithAnyCalculableData = 0;
                 
                   if (!items || items.length === 0) {
@@ -3592,7 +3614,7 @@ Folder: src
                     };
                   }
                 
-                  items.forEach((item) => { // Removed index as it wasn't used inside after item.id was preferred
+                  items.forEach((item) => {
                     const regularPrice = parsePrice(item.buyregular);
                     const actualGoldPrice = parsePrice(item.buygold);
                     const actualDiamondPrice = parsePrice(item.buydiamond);
@@ -3605,15 +3627,15 @@ Folder: src
                       const theoreticalMaxDiamond = regularPrice * 16;
                       const theoreticalMaxEmerald = regularPrice * 64;
                 
-                      if (actualGoldPrice !== null) {
+                      if (actualGoldPrice !== null && theoreticalMaxGold > 0) { // Avoid division by zero
                         const depreciation = 100 * (1 - actualGoldPrice / theoreticalMaxGold);
                         if (!isNaN(depreciation) && isFinite(depreciation)) allGoldDepreciations.push(depreciation);
                       }
-                      if (actualDiamondPrice !== null) {
+                      if (actualDiamondPrice !== null && theoreticalMaxDiamond > 0) { // Avoid division by zero
                         const depreciation = 100 * (1 - actualDiamondPrice / theoreticalMaxDiamond);
                         if (!isNaN(depreciation) && isFinite(depreciation)) allDiamondDepreciations.push(depreciation);
                       }
-                      if (actualEmeraldPrice !== null) {
+                      if (actualEmeraldPrice !== null && theoreticalMaxEmerald > 0) { // Avoid division by zero
                         const depreciation = 100 * (1 - actualEmeraldPrice / theoreticalMaxEmerald);
                         if (!isNaN(depreciation) && isFinite(depreciation)) allEmeraldDepreciations.push(depreciation);
                       }
@@ -3648,7 +3670,7 @@ Folder: src
                     .select('*')
                     .eq('id', DEPRECIATION_STATS_ID)
                     .single();
-                  if (error && error.code !== 'PGRST116') {
+                  if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found, which is not an error here
                     console.error("depreciationService.getDepreciationStatsFromDB: Error fetching:", error.message);
                     return null;
                   }
@@ -3689,14 +3711,12 @@ Folder: src
                   diamond_items_count: 0,
                   average_emerald_depreciation: 0,
                   emerald_items_count: 0,
-                  // updated_at is undefined here
                 };
                 
-                // Main exported function
                 export async function fetchAndManageDepreciationStats(): Promise<{
-                  data: DepreciationStats | NewDepreciationStats; // Can return full stats or new if storage fails
+                  data: DepreciationStats | NewDepreciationStats;
                   source: StatsSourceType;
-                  itemFetchError?: string; // Optional error message specific to item fetching for SearchComponent
+                  itemFetchError?: string;
                 }> {
                   let currentData: DepreciationStats | NewDepreciationStats = { ...defaultInitialStatsData };
                   let source: StatsSourceType = 'DEFAULT (ERROR/NO DATA)';
@@ -3725,14 +3745,13 @@ Folder: src
                 
                     if (itemsError) {
                       console.error("depreciationService: Failed to fetch items for calculation:", itemsError);
-                      itemFetchErrorForPage = itemsError; // Pass this error back for SearchComponent
+                      itemFetchErrorForPage = itemsError;
                       if (existingStats) {
                         console.warn("depreciationService: Using stale stats due to item fetch error.");
                         currentData = existingStats;
                         source = 'DATABASE (STALE - ITEM FETCH FAILED)';
                       } else {
                         console.error("depreciationService: No data available after item fetch error.");
-                        // currentData remains defaultInitialStatsData
                         source = 'DEFAULT (ERROR/NO DATA)';
                       }
                     } else if (rawItems && rawItems.length > 0) {
@@ -3742,38 +3761,34 @@ Folder: src
                         currentData = storedStats;
                         source = 'NEWLY CALCULATED';
                       } else {
-                        currentData = newStats; // Use calculated data even if storage failed
-                        source = 'NEWLY CALCULATED'; // But it's not persisted with a new updated_at from DB
+                        currentData = newStats; 
+                        source = 'NEWLY CALCULATED'; 
                         console.warn("depreciationService: Used newly calculated stats, but failed to store them.");
                       }
                     } else {
                       console.log("depreciationService: No items found for calculation.");
-                      itemFetchErrorForPage = "No items found in the database."; // Specific message
+                      itemFetchErrorForPage = "No items found in the database.";
                       if (existingStats) {
                         console.warn("depreciationService: No items for recalculation, using stale data.");
                         currentData = existingStats;
                         source = 'DATABASE (STALE - ITEM FETCH FAILED)';
                       } else {
-                        // currentData remains defaultInitialStatsData
-                         source = 'DEFAULT (ERROR/NO DATA)';
+                        source = 'DEFAULT (ERROR/NO DATA)';
                       }
                     }
                   }
-                  // Internal logging of what's being returned
-                  const logSummary = currentData as any; // Cast to any for logging to access potential updated_at
+                
                   console.log(`\n--- depreciationService: Final Depreciation Summary to be returned (Source: ${source}) ---`);
-                  console.log(`Total items: ${logSummary.total_items_from_source}, Valid for calc: ${logSummary.items_with_valid_regular_price}`);
-                  if (logSummary.updated_at) {
-                      console.log(`Last Updated: ${new Date(logSummary.updated_at).toLocaleString()}`);
+                  console.log(`Total items: ${currentData.total_items_from_source}, Valid for calc: ${currentData.items_with_valid_regular_price}`);
+                  // Safely access updated_at for logging
+                  if ('updated_at' in currentData && currentData.updated_at) {
+                      console.log(`Last Updated: ${new Date(currentData.updated_at).toLocaleString()}`);
                   }
                   console.log("---------------------------------------------------------------------\n");
                 
                   return { data: currentData, source, itemFetchError: itemFetchErrorForPage };
                 }
                 
-                // Export getCachedItems separately if SearchComponent also needs to call it directly
-                // or if you prefer page.tsx to fetch items for SearchComponent itself.
-                // For now, SearchComponent in page.tsx was calling getCachedItems from page.tsx
                 export { getCachedItems as getSearchComponentItems };
             File: supabaseClient.ts
                 Code:

@@ -362,8 +362,7 @@ export default function SearchComponent({
 
       {!sel && term.trim() && !sugs.length && (
         <div style={{ marginTop: '20px', textAlign: 'center', color: '#aaa' }}>
-          {/* Corrected line for unescaped entities */}
-          לא נמצאו פריטים תואמים עבור "{`${term}`}".
+          לא נמצאו פריטים תואמים עבור &quot;{`${term}`}&quot;.
         </div>
       )}
     </div>
