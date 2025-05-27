@@ -5,17 +5,31 @@ import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useUser } from "../context/UserContext";
 
+/* ---------- types ---------- */
+export interface ExpectedPrices {
+  regular: number | null;
+  gold: number | null;
+  diamond: number | null;
+  emerald: number | null;
+}
+
+interface Props {
+  itemName: string;
+  discordAverage: number;
+  expectedPrices: ExpectedPrices;
+}
+
+/* ╭──────────────────────────╮
+   │      PriceOpinion        │
+   ╰──────────────────────────╯ */
 export default function PriceOpinion({
   itemName,
   discordAverage,
-}: {
-  itemName: string;
-  discordAverage: number;
-}) {
+  expectedPrices,
+}: Props) {
   const { user } = useUser();
 
-  /* ──────────────── 1. STATE ──────────────── */
-  // --- הצבעות
+  /* ---------- 1. state ---------- */
   const [voteCounts, setVoteCounts] = useState({
     reasonable: 0,
     too_low: 0,
@@ -26,7 +40,6 @@ export default function PriceOpinion({
   const [nextVoteTime, setNextVoteTime] = useState<Date | null>(null);
   const [selectedVote, setSelectedVote] = useState<string | null>(null);
 
-  // --- השערת מחיר (טופס)
   const [assumptions, setAssumptions] = useState({
     regular: "",
     gold: "",
@@ -34,19 +47,21 @@ export default function PriceOpinion({
     emerald: "",
   });
 
-  // --- UI
   const [showForm, setShowForm] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
-  /* ──────────────── 2. HELPERS ──────────────── */
+  /* ---------- 2. helpers ---------- */
   async function loadVoteCounts() {
     const { data, error } = await supabase
       .from("votes")
       .select("vote")
       .eq("item_name", itemName);
 
-    if (error) return console.error("loadVoteCounts:", error.message);
+    if (error) {
+      console.error("loadVoteCounts:", error.message);
+      return;
+    }
 
     const counts = { reasonable: 0, too_low: 0, too_high: 0 };
     data?.forEach((v) => {
@@ -59,36 +74,43 @@ export default function PriceOpinion({
 
   async function checkUserVote() {
     if (!user) return;
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
     const { data, error } = await supabase
       .from("votes")
       .select("vote, created_at")
       .eq("item_name", itemName)
       .eq("user_id", user.id)
-      .gte("created_at", sevenDaysAgo.toISOString())
+      .order("created_at", { ascending: false })
+      .limit(1)
       .maybeSingle();
 
-    if (error) return console.error("checkUserVote:", error.message);
+    if (error) {
+      console.error("checkUserVote:", error.message);
+      return;
+    }
 
     if (data) {
-      setHasVotedRecently(true);
-      setUserVote(data.vote);
-      const lastTime = new Date(data.created_at);
-      setNextVoteTime(new Date(lastTime.getTime() + 7 * 24 * 60 * 60 * 1000));
-    } else {
-      setHasVotedRecently(false);
-      setUserVote(null);
+      const last = new Date(data.created_at);
+      const next = new Date(+last + 7 * 24 * 60 * 60 * 1000);
+      if (next > new Date()) {
+        setHasVotedRecently(true);
+        setUserVote(data.vote);
+        setNextVoteTime(next);
+        return;
+      }
     }
+    setHasVotedRecently(false);
+    setUserVote(null);
+    setNextVoteTime(null);
   }
 
-  const pickVote = (type: "reasonable" | "too_low" | "too_high") => {
+  const pickVote = (v: "reasonable" | "too_low" | "too_high") => {
     if (hasVotedRecently) return;
-    setSelectedVote(type);
+    setSelectedVote(v);
     setShowForm(true);
   };
 
-  /* ──────────────── 3. CONFIRM ──────────────── */
+  /* ---------- 3. confirm ---------- */
   async function handleConfirm() {
     setErrorMsg("");
     setSuccessMsg("");
@@ -102,63 +124,84 @@ export default function PriceOpinion({
       return;
     }
 
-    // 3.1  שמירת הצבעה
+    /* 3.1 validation */
+    const parse = (s: string) => (s.trim() ? +s.replace(/,/g, "") : null);
+    const vals = {
+      regular: parse(assumptions.regular),
+      gold: parse(assumptions.gold),
+      diamond: parse(assumptions.diamond),
+      emerald: parse(assumptions.emerald),
+    };
+
+    const base = {
+      regular: expectedPrices.regular ?? discordAverage,
+      gold: expectedPrices.gold ?? (discordAverage > 0 ? discordAverage * 4 : null),
+      diamond:
+        expectedPrices.diamond ?? (discordAverage > 0 ? discordAverage * 16 : null),
+      emerald:
+        expectedPrices.emerald ?? (discordAverage > 0 ? discordAverage * 64 : null),
+    };
+
+    for (const tier of ["regular", "gold", "diamond", "emerald"] as const) {
+      const v = vals[tier];
+      const b = base[tier];
+      if (v !== null && !isNaN(v) && b && b > 0) {
+        const min = 0.3 * b;
+        const max = 2.0 * b;
+        if (v < min || v > max) {
+          setErrorMsg(
+            `ערך ${tier} לא סביר (הטווח ${Math.round(min)}-${Math.round(max)})`
+          );
+          return;
+        }
+      }
+    }
+
+    /* 3.2 save vote (delete-then-insert) */
     if (!hasVotedRecently) {
+      // מוחקים הצבעה קודמת (אם קיימת), כדי לשמור אחת בלבד
+      await supabase
+        .from("votes")
+        .delete()
+        .eq("item_name", itemName)
+        .eq("user_id", user.id);
+
       const { error } = await supabase.from("votes").insert({
         item_name: itemName,
         user_id: user.id,
         vote: selectedVote,
       });
+
       if (error) {
+        console.error("insert vote:", error.message);
         setErrorMsg("שגיאה בשמירת ההצבעה.");
         return;
       }
+
+      setHasVotedRecently(true);
+      setUserVote(selectedVote);
+      setNextVoteTime(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
     }
 
-    // 3.2  עיבוד השערת מחיר (אופציונלי)
-    const parseOrNull = (v: string) => (v.trim() ? +v.replace(/,/g, "") : null);
-    const reg = parseOrNull(assumptions.regular);
-    const gold = parseOrNull(assumptions.gold);
-    const dia = parseOrNull(assumptions.diamond);
-    const eme = parseOrNull(assumptions.emerald);
-
-    //   בדיקת היגיון בסיסית
-    if (discordAverage > 0 && (reg || gold || dia || eme)) {
-      const mult = { regular: 1, gold: 4, diamond: 16, emerald: 64 };
-      for (const cur of ["regular", "gold", "diamond", "emerald"] as const) {
-        const val =
-          cur === "regular" ? reg : cur === "gold" ? gold : cur === "diamond" ? dia : eme;
-        if (val !== null && !isNaN(val)) {
-          const min = 0.3 * discordAverage * mult[cur];
-          const max = 2.0 * discordAverage * mult[cur];
-          if (val < min || val > max) {
-            setErrorMsg(
-              `ערך ${cur} לא סביר (טווח מומלץ ${Math.round(min)}-${Math.round(max)})`
-            );
-            return;
-          }
-        }
-      }
-    }
-
-    if (reg !== null || gold !== null || dia !== null || eme !== null) {
+    /* 3.3 save assumption (if any) */
+    if (Object.values(vals).some((v) => v !== null)) {
       const { error } = await supabase.from("assumptions").insert({
         item_name: itemName,
         user_id: user.id,
-        regular: reg,
-        gold,
-        diamond: dia,
-        emerald: eme,
+        regular: vals.regular,
+        gold: vals.gold,
+        diamond: vals.diamond,
+        emerald: vals.emerald,
       });
       if (error) {
+        console.error("insert assumption:", error.message);
         setErrorMsg("שגיאה בשמירת ההשערה.");
         return;
       }
     }
 
-    // 3.3  רענון נתונים
-    await Promise.all([loadVoteCounts(), checkUserVote()]);
-
+    /* 3.4 UI refresh */
+    await loadVoteCounts();
     setSuccessMsg("✅ ההצבעה נשמרה בהצלחה!");
     setAssumptions({ regular: "", gold: "", diamond: "", emerald: "" });
     setShowForm(false);
@@ -166,19 +209,18 @@ export default function PriceOpinion({
     setTimeout(() => setSuccessMsg(""), 3000);
   }
 
-  /* ──────────────── 4. INIT ──────────────── */
+  /* ---------- 4. init ---------- */
   useEffect(() => {
     loadVoteCounts();
     checkUserVote();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itemName]);
 
-  /* ──────────────── 5. RENDER ──────────────── */
+  /* ---------- 5. render ---------- */
   return (
     <div className="price-opinion-container">
       <p className="vote-question">האם המחיר נראה לך הגיוני?</p>
 
-      {/* כפתורי הצבעה */}
       <div className="voting-buttons">
         <button
           onClick={() => pickVote("reasonable")}
@@ -203,7 +245,6 @@ export default function PriceOpinion({
         </button>
       </div>
 
-      {/* תזכורת הצבעה קודמת */}
       {userVote && (
         <p>
           הצבעת:{" "}
@@ -218,60 +259,35 @@ export default function PriceOpinion({
         <p>תוכל להצביע שוב ב-{nextVoteTime.toLocaleString("he-IL")}.</p>
       )}
 
-      {/* טופס השערת מחיר (אופציונלי) */}
+      {/* form */}
       {showForm && (
         <div className="assumption-form">
           <p>הזן הערכת מחיר (לא חובה):</p>
 
-          <label>
-            רגיל:
-            <input
-              type="text"
-              value={assumptions.regular}
-              onChange={(e) =>
-                setAssumptions({ ...assumptions, regular: e.target.value })
-              }
-            />
-          </label>
-          <br />
-          <label>
-            זהב:
-            <input
-              type="text"
-              value={assumptions.gold}
-              onChange={(e) =>
-                setAssumptions({ ...assumptions, gold: e.target.value })
-              }
-            />
-          </label>
-          <br />
-          <label>
-            יהלום:
-            <input
-              type="text"
-              value={assumptions.diamond}
-              onChange={(e) =>
-                setAssumptions({ ...assumptions, diamond: e.target.value })
-              }
-            />
-          </label>
-          <br />
-          <label>
-            אמרלד:
-            <input
-              type="text"
-              value={assumptions.emerald}
-              onChange={(e) =>
-                setAssumptions({ ...assumptions, emerald: e.target.value })
-              }
-            />
-          </label>
-          <br />
+          {(["regular", "gold", "diamond", "emerald"] as const).map((tier) => (
+            <label key={tier}>
+              {tier === "regular"
+                ? "רגיל:"
+                : tier === "gold"
+                ? "זהב:"
+                : tier === "diamond"
+                ? "יהלום:"
+                : "אמרלד:"}
+              <input
+                type="text"
+                value={assumptions[tier]}
+                onChange={(e) => {
+                  setAssumptions({ ...assumptions, [tier]: e.target.value });
+                  setErrorMsg("");
+                }}
+              />
+            </label>
+          ))}
+
           <button onClick={handleConfirm}>אישור</button>
         </div>
       )}
 
-      {/* הודעות מערכת */}
       {errorMsg && <p className="error">{errorMsg}</p>}
       {successMsg && <p className="success">{successMsg}</p>}
     </div>

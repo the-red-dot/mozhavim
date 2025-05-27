@@ -300,6 +300,12 @@ export default function SearchComponent({
           <PriceOpinion
             itemName={firstSelectedItem.name}
             discordAverage={discordStats.price ?? 0}
+            expectedPrices={{
+              regular: blended.final,
+              gold: calculatedTierPrices.gold,
+              diamond: calculatedTierPrices.diamond,
+              emerald: calculatedTierPrices.emerald,
+            }}
           />
 
           <div className="list-toggle">

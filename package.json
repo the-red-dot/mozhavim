@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/supabase-js": "^2.49.4",
     "@tiptap/extension-link": "^2.11.7",
     "@tiptap/extension-underline": "^2.11.7",
