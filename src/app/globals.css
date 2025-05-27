@@ -144,7 +144,7 @@ body {
 
 .suggestions-dropdown li + li {
    border-top: none;
-}
+ }
 
 .search-container.suggestions-visible .search-input {
   border-bottom-left-radius: 0;
@@ -186,7 +186,10 @@ body {
 }
 
 .item-image {
-  max-width: 200px;
+  width: 400px;    /* Define the width of the image container */
+  height: 300px;   /* Define the height of the image container */
+  object-fit: contain; /* Scales the image to fit within the container while maintaining its aspect ratio. */
+                       /* Use 'cover' if you want to fill the container, possibly cropping the image. */
   border-radius: 8px;
   margin: 10px auto 15px auto; /* Center image and add more bottom margin */
   display: block; /* Ensure margin auto works for centering */
@@ -239,7 +242,7 @@ body {
 .item-average-container .price-value .currency-symbol {
   margin-left: 5px; 
   font-size: 0.8em; 
-  color: #999999;    
+  color: #999999;   
   font-weight: 500; 
 }
 
@@ -252,7 +255,7 @@ body {
   padding-top: 10px; 
   border-top: 1px dashed #4a4a4a; 
   font-size: 0.85rem; 
-  color: #aaaaaa;    
+  color: #aaaaaa;   
   text-align: center; 
 }
 /* --- END: Updated Price Presentation Styles --- */
@@ -474,7 +477,7 @@ body {
 }
 
 /* .results-container duplication was noted, ensure styles are harmonized or use distinct classes if needed.
-   The one at line ~100 already has margin-bottom: 3rem. The one at ~270 is identical. This is fine.
+    The one at line ~100 already has margin-bottom: 3rem. The one at ~270 is identical. This is fine.
 */
 
 .success {
@@ -635,9 +638,9 @@ body {
   font-size: 1rem;
 }
 .auth-container form input:focus {
-    border-color: #4285f4;
-    box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.3);
-    outline: none;
+   border-color: #4285f4;
+   box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.3);
+   outline: none;
 }
 .auth-container form button {
   padding: 0.85rem; /* More padding */
@@ -717,9 +720,9 @@ body {
   align-items: stretch; /* Stretch children to full width */
 }
 .admin-post-creation h2 {
-    text-align: center;
-    margin-bottom: 1.5rem;
-    font-size: 1.5rem;
+   text-align: center;
+   margin-bottom: 1.5rem;
+   font-size: 1.5rem;
 }
 .title-input,
 .body-input { 
@@ -772,9 +775,9 @@ body {
   margin-bottom: 0.75rem;
 }
 .post div[dangerouslySetInnerHTML] { 
-    text-align: right;
-    line-height: 1.6;
-    color: #e0e0e0;
+   text-align: right;
+   line-height: 1.6;
+   color: #e0e0e0;
 }
 .post button {
   margin-top: 1rem; 
@@ -789,8 +792,8 @@ body {
   font-size: 0.9rem;
 }
 .post button:first-of-type { 
-    margin-left: 0;
-    margin-right: 0.5rem; 
+   margin-left: 0;
+   margin-right: 0.5rem; 
 }
 .post button:hover {
   background: #357abd;
@@ -806,14 +809,14 @@ body {
 
 /* Responsive Adjustments */
 @media (max-width: 768px) { /* Slightly larger breakpoint for some adjustments */
-    .voting-buttons button {
-        font-size: 0.9rem; /* Adjust font size for smaller screens */
-        padding: 0.4rem 0.8rem;
-    }
-    .sidebar {
-        width: 250px; /* Adjust sidebar width if needed */
-        right: -250px;
-    }
+   .voting-buttons button {
+       font-size: 0.9rem; /* Adjust font size for smaller screens */
+       padding: 0.4rem 0.8rem;
+   }
+   .sidebar {
+       width: 250px; /* Adjust sidebar width if needed */
+       right: -250px;
+   }
 }
 
 @media (max-width: 600px) {
