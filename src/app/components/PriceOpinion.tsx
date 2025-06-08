@@ -13,10 +13,21 @@ export interface ExpectedPrices {
   emerald: number | null;
 }
 
+type TierKey = "regular" | "gold" | "diamond" | "emerald";
+
+const TIER_LABEL_HE: Record<TierKey, string> = {
+  regular: "רגיל",
+  gold: "זהב",
+  diamond: "יהלום",
+  emerald: "אמרלד",
+};
+
 interface Props {
   itemName: string;
   discordAverage: number;
   expectedPrices: ExpectedPrices;
+  /** NEW: only these tiers may be assumed */
+  allowedTiers: TierKey[];
 }
 
 /* ╭──────────────────────────╮
@@ -26,6 +37,7 @@ export default function PriceOpinion({
   itemName,
   discordAverage,
   expectedPrices,
+  allowedTiers,
 }: Props) {
   const { user } = useUser();
 
@@ -40,7 +52,7 @@ export default function PriceOpinion({
   const [nextVoteTime, setNextVoteTime] = useState<Date | null>(null);
   const [selectedVote, setSelectedVote] = useState<string | null>(null);
 
-  const [assumptions, setAssumptions] = useState({
+  const [assumptions, setAssumptions] = useState<Record<TierKey,string>>({
     regular: "",
     gold: "",
     diamond: "",
@@ -66,8 +78,8 @@ export default function PriceOpinion({
     const counts = { reasonable: 0, too_low: 0, too_high: 0 };
     data?.forEach((v) => {
       if (v.vote === "reasonable") counts.reasonable++;
-      if (v.vote === "too_low") counts.too_low++;
-      if (v.vote === "too_high") counts.too_high++;
+      if (v.vote === "too_low")   counts.too_low++;
+      if (v.vote === "too_high")  counts.too_high++;
     });
     setVoteCounts(counts);
   }
@@ -124,25 +136,25 @@ export default function PriceOpinion({
       return;
     }
 
-    /* 3.1 validation */
+    // parse inputs
     const parse = (s: string) => (s.trim() ? +s.replace(/,/g, "") : null);
-    const vals = {
+    const vals: Record<TierKey, number|null> = {
       regular: parse(assumptions.regular),
-      gold: parse(assumptions.gold),
+      gold:    parse(assumptions.gold),
       diamond: parse(assumptions.diamond),
       emerald: parse(assumptions.emerald),
     };
 
-    const base = {
-      regular: expectedPrices.regular ?? discordAverage,
-      gold: expectedPrices.gold ?? (discordAverage > 0 ? discordAverage * 4 : null),
-      diamond:
-        expectedPrices.diamond ?? (discordAverage > 0 ? discordAverage * 16 : null),
-      emerald:
-        expectedPrices.emerald ?? (discordAverage > 0 ? discordAverage * 64 : null),
+    // base on discord/community blend
+    const base: Record<TierKey, number|null> = {
+      regular: expectedPrices.regular  ?? discordAverage,
+      gold:    expectedPrices.gold     ?? (discordAverage > 0 ? discordAverage * 4  : null),
+      diamond: expectedPrices.diamond  ?? (discordAverage > 0 ? discordAverage * 16 : null),
+      emerald: expectedPrices.emerald  ?? (discordAverage > 0 ? discordAverage * 64 : null),
     };
 
-    for (const tier of ["regular", "gold", "diamond", "emerald"] as const) {
+    // validate only **allowed** tiers
+    for (const tier of allowedTiers) {
       const v = vals[tier];
       const b = base[tier];
       if (v !== null && !isNaN(v) && b && b > 0) {
@@ -150,16 +162,15 @@ export default function PriceOpinion({
         const max = 2.0 * b;
         if (v < min || v > max) {
           setErrorMsg(
-            `ערך ${tier} לא סביר (הטווח ${Math.round(min)}-${Math.round(max)})`
+            `ערך ${TIER_LABEL_HE[tier]} לא סביר (הטווח ${Math.round(min)}–${Math.round(max)})`
           );
           return;
         }
       }
     }
 
-    /* 3.2 save vote (delete-then-insert) */
+    /* 3.2 save vote */
     if (!hasVotedRecently) {
-      // מוחקים הצבעה קודמת (אם קיימת), כדי לשמור אחת בלבד
       await supabase
         .from("votes")
         .delete()
@@ -168,10 +179,9 @@ export default function PriceOpinion({
 
       const { error } = await supabase.from("votes").insert({
         item_name: itemName,
-        user_id: user.id,
-        vote: selectedVote,
+        user_id:   user.id,
+        vote:      selectedVote,
       });
-
       if (error) {
         console.error("insert vote:", error.message);
         setErrorMsg("שגיאה בשמירת ההצבעה.");
@@ -183,24 +193,26 @@ export default function PriceOpinion({
       setNextVoteTime(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
     }
 
-    /* 3.3 save assumption (if any) */
-    if (Object.values(vals).some((v) => v !== null)) {
-      const { error } = await supabase.from("assumptions").insert({
-        item_name: itemName,
-        user_id: user.id,
-        regular: vals.regular,
-        gold: vals.gold,
-        diamond: vals.diamond,
-        emerald: vals.emerald,
-      });
-      if (error) {
-        console.error("insert assumption:", error.message);
-        setErrorMsg("שגיאה בשמירת ההשערה.");
-        return;
-      }
+    /* 3.3 save assumptions only for allowed tiers */
+    const row: Record<string, any> = {
+      item_name: itemName,
+      user_id:   user.id,
+    };
+    allowedTiers.forEach((tier) => {
+      row[tier] = vals[tier];
+    });
+
+    const { error: err2 } = await supabase
+      .from("assumptions")
+      .insert(row);
+
+    if (err2) {
+      console.error("insert assumption:", err2.message);
+      setErrorMsg("שגיאה בשמירת ההשערה.");
+      return;
     }
 
-    /* 3.4 UI refresh */
+    /* 3.4 refresh UI */
     await loadVoteCounts();
     setSuccessMsg("✅ ההצבעה נשמרה בהצלחה!");
     setAssumptions({ regular: "", gold: "", diamond: "", emerald: "" });
@@ -259,20 +271,13 @@ export default function PriceOpinion({
         <p>תוכל להצביע שוב ב-{nextVoteTime.toLocaleString("he-IL")}.</p>
       )}
 
-      {/* form */}
       {showForm && (
         <div className="assumption-form">
           <p>הזן הערכת מחיר (לא חובה):</p>
 
-          {(["regular", "gold", "diamond", "emerald"] as const).map((tier) => (
+          {allowedTiers.map((tier) => (
             <label key={tier}>
-              {tier === "regular"
-                ? "רגיל:"
-                : tier === "gold"
-                ? "זהב:"
-                : tier === "diamond"
-                ? "יהלום:"
-                : "אמרלד:"}
+              {TIER_LABEL_HE[tier]}:
               <input
                 type="text"
                 value={assumptions[tier]}

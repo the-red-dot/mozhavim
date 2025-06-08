@@ -1,16 +1,15 @@
 // src/app/admin/page.tsx
 "use client";
 
-import { useState } from "react"; // useEffect was removed
+import { useState } from "react";
+import Link from "next/link";
 import { supabase } from "../lib/supabaseClient";
 import { useUser } from "../context/UserContext";
 import { revalidateItemsCacheAction } from "../actions";
-import Link from "next/link";
 
 /* -------------------------------------------------
   1️⃣  Type Definitions & Mappings
 -------------------------------------------------- */
-
 interface ParsedItemData {
   name?: string | null;
   buyregular?: string | null;
@@ -39,153 +38,119 @@ const fieldMapping: Record<string, string> = {
   "מכירה (זהב)": "sellgold",
   "מכירה (יהלום)": "selldiamond",
   "מכירה (אמרלד)": "sellemerald",
-  "פורסם ע\"י": "publisher",
+  'פורסם ע"י': "publisher",
   "תאריך פרסום": "date",
   "תמונה": "image",
   "תיאור": "description",
 };
 
 const allowedFields = [
-  "name", "buyregular", "buygold", "buydiamond", "buyemerald",
-  "sellregular", "sellgold", "selldiamond", "sellemerald",
-  "publisher", "date", "image", "description",
+  "name",
+  "buyregular",
+  "buygold",
+  "buydiamond",
+  "buyemerald",
+  "sellregular",
+  "sellgold",
+  "selldiamond",
+  "sellemerald",
+  "publisher",
+  "date",
+  "image",
+  "description",
 ];
 
 /* -------------------------------------------------
   2️⃣  helpers — parse free text / JSON
 -------------------------------------------------- */
-
 function normalizeJsonRecord(record: Record<string, unknown> | null | undefined): ParsedItemData {
-  const intermediateOut: Record<string, string | null> = {};
-  if (typeof record !== 'object' || record === null) {
-    return {};
-  }
+  const out: ParsedItemData = {};
+  if (!record || typeof record !== "object") return out;
+
   for (const [k, v] of Object.entries(record)) {
     const key = String(k).replace(/\s/g, "").toLowerCase();
-    intermediateOut[key] = v === "" || v === "אין נתון" || v === undefined || v === null ? null : String(v);
-  }
-
-  const filtered: ParsedItemData = {};
-  for (const k of Object.keys(intermediateOut)) {
-    if (allowedFields.includes(k)) {
-      filtered[k as keyof ParsedItemData] = intermediateOut[k];
-    }
-  }
-  return filtered;
-}
-
-function parseFreeForm(data: string): ParsedItemData {
-  const out: ParsedItemData = {};
-  if (typeof data !== 'string') return out;
-  for (const line of data.split("\n")) {
-    const parts = line.split(":");
-    if (parts.length < 2) continue;
-    const key = parts[0].trim();
-    const val = parts.slice(1).join(":").trim();
-    const col = fieldMapping[key];
-    if (col && allowedFields.includes(col)) {
-      out[col as keyof ParsedItemData] = val === "" || val === "אין נתון" ? null : val;
+    if (allowedFields.includes(key)) {
+      out[key as keyof ParsedItemData] =
+        v === "" || v === "אין נתון" || v === undefined || v === null ? null : String(v);
     }
   }
   return out;
 }
 
-function parseJsonObjects(block: string): ParsedItemData[] {
-  if (typeof block !== 'string') return [];
-  const regex = /{[\s\S]*?}/g; // Using curly braces for object matching
-  let matches: string[] = [];
-  try {
-    const regexMatches = block.match(regex);
-    if (regexMatches) {
-      matches = regexMatches;
+function parseFreeForm(block: string): ParsedItemData {
+  const result: ParsedItemData = {};
+  block.split("\n").forEach((line) => {
+    const [key, ...rest] = line.split(":");
+    if (!key || rest.length === 0) return;
+    const val = rest.join(":").trim();
+    const col = fieldMapping[key.trim()];
+    if (col && allowedFields.includes(col)) {
+      result[col as keyof ParsedItemData] = val === "" || val === "אין נתון" ? null : val;
     }
-  } catch { // No variable binding for the error object if it's not used
-    // console.warn("Regex match failed for JSON parsing (outer):");
-  }
+  });
+  return result;
+}
+
+function parseJsonObjects(block: string): ParsedItemData[] {
+  const matches = block.match(/{[\s\S]*?}/g) ?? [];
   return matches
-    .map((m: string) => {
+    .map((m) => {
       try {
-        return JSON.parse(m) as Record<string, unknown>;
-      }
-      catch { // No variable binding for the error object if it's not used
-        // console.warn("Failed to parse individual JSON object:", m);
+        return JSON.parse(m);
+      } catch {
         return null;
       }
     })
-    .filter((record): record is Record<string, unknown> => record !== null && typeof record === 'object')
+    .filter((o): o is Record<string, unknown> => !!o)
     .map(normalizeJsonRecord);
 }
 
 function parseRecords(text: string): ParsedItemData[] {
-  if (typeof text !== 'string') return [];
   const trimmed = text.trim();
   if (!trimmed) return [];
 
   if (trimmed.includes("שם מוזהב:")) {
-    return trimmed.split(/\n\s*\n/).filter(Boolean).map(parseFreeForm);
+    return trimmed.split(/\n\s*\n/).map(parseFreeForm);
   }
 
-  const firstChar = trimmed[0];
-  if (firstChar === "{" || firstChar === "[") {
+  if (trimmed[0] === "{" || trimmed[0] === "[") {
     try {
       const obj = JSON.parse(trimmed);
-      const arr = (Array.isArray(obj) ? obj : [obj]) as Record<string, unknown>[];
-      // Check if the parsed result is an array of objects before mapping
-      if (arr.every(record => typeof record === 'object' && record !== null)) {
-        return arr.map(normalizeJsonRecord);
-      }
+      const arr = Array.isArray(obj) ? obj : [obj];
+      return arr.map(normalizeJsonRecord);
     } catch {
-      // If JSON.parse fails, try to parse as a block of multiple JSON objects
-      const arrFromObjects = parseJsonObjects(trimmed);
-      if (arrFromObjects.length > 0 && arrFromObjects.some(obj => Object.keys(obj).length > 0)) {
-        return arrFromObjects;
-      }
+      return parseJsonObjects(trimmed);
     }
   }
-  return trimmed.split(/\n\s*\n/).filter(Boolean).map(parseFreeForm);
+  return [];
 }
-
 
 /* -------------------------------------------------
   3️⃣  React component
 -------------------------------------------------- */
 export default function AdminManagementPage() {
   const { user, profile, isLoading, sessionInitiallyChecked } = useUser();
+
   const [inputData, setInputData] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [isPublishing, setIsPublishing] = useState(false);
 
+  /* ---------- fetch / upsert helpers (unchanged) ---------- */
   async function getDefinitionId(rec: ParsedItemData): Promise<string | null> {
     const name = rec.name?.trim();
-    if (!name) {
-      console.error("getDefinitionId: Record is missing a name.", rec);
-      return null;
-    }
+    if (!name) return null;
 
-    const upsertDefinitionData: {
-      name: string;
-      description?: string | null;
-      image?: string | null;
-    } = { name };
-
-    if (rec.description !== undefined) {
-      upsertDefinitionData.description = rec.description ?? null;
-    }
-    if (rec.image !== undefined) {
-      upsertDefinitionData.image = rec.image ?? null;
-    }
-
-    const { data, error: upsertError } = await supabase
+    const { data, error: upsertErr } = await supabase
       .from("item_definitions")
-      .upsert(upsertDefinitionData, { onConflict: "name" })
+      .upsert(
+        { name, description: rec.description ?? null, image: rec.image ?? null },
+        { onConflict: "name" }
+      )
       .select("id")
       .single();
 
-    if (upsertError) {
-      console.error("Definition upsert error for '" + name + "':", upsertError.message);
-      return null;
-    }
+    if (upsertErr) return null;
     return data?.id ?? null;
   }
 
@@ -196,60 +161,51 @@ export default function AdminManagementPage() {
     setMessage("");
     setError("");
 
-    const records: ParsedItemData[] = parseRecords(inputData);
-    if (!records.length || records.every(r => Object.keys(r).length === 0)) {
-      setError("לא נמצאו רשומות תקינות לייבוא מהטקסט שהוזן, או שהרשומות ריקות.");
+    const records = parseRecords(inputData);
+    if (!records.length) {
+      setError("לא נמצאו רשומות תקינות.");
       setIsPublishing(false);
       return;
     }
 
-    let okCount = 0;
-    let failCount = 0;
-    const failMessages: string[] = [];
-    let successfullyPublishedAtLeastOne = false;
+    let ok = 0,
+      fail = 0;
+    const fails: string[] = [];
 
     for (const rec of records) {
-      if (Object.keys(rec).length === 0) {
-        failCount++;
-        failMessages.push("רשומה ריקה זוהתה ודולגה.");
+      if (!rec.name?.trim()) {
+        fail++;
+        fails.push("רשומה חסרת שם מוזהב דולגה.");
         continue;
       }
-      if (!rec.name || typeof rec.name !== 'string' || !rec.name.trim()) {
-        failCount++;
-        failMessages.push("רשומה ללא שם מוזהב תקין לא תתווסף. תוכן רשומה: " + JSON.stringify(rec));
-        continue;
-      }
-
-      const definitionId = await getDefinitionId(rec);
-      if (!definitionId) {
-        failCount++;
-        failMessages.push(`שגיאה ביצירת/אחזור הגדרת פריט (definition) עבור "${rec.name}".`);
+      const defId = await getDefinitionId(rec);
+      if (!defId) {
+        fail++;
+        fails.push(`שגיאה עם "${rec.name}" (definition).`);
         continue;
       }
 
-      const { data: duplicateCheck, error: duplicateCheckError } = await supabase
+      const { data: dup, error: dupErr } = await supabase
         .from("item_listings")
         .select("id")
-        .eq("item_id", definitionId)
+        .eq("item_id", defId)
         .eq("publisher", rec.publisher ?? null)
-        .eq("date", rec.date ?? null) 
+        .eq("date", rec.date ?? null)
         .maybeSingle();
 
-      if (duplicateCheckError) {
-        failCount++;
-        failMessages.push(`שגיאה בבדיקת כפילויות עבור "${rec.name}": ${duplicateCheckError.message}`);
-        console.error("Duplicate check error for", rec.name, duplicateCheckError);
+      if (dupErr) {
+        fail++;
+        fails.push(`שגיאה בבדיקת כפילות עבור "${rec.name}".`);
+        continue;
+      }
+      if (dup) {
+        fail++;
+        fails.push(`"${rec.name}" כבר קיים (כפילות).`);
         continue;
       }
 
-      if (duplicateCheck) {
-        failCount++;
-        failMessages.push(`כפילות: "${rec.name}" כבר קיים עם אותו מפרסם ותאריך.`);
-        continue;
-      }
-
-      const listingData = {
-        item_id: definitionId,
+      const { error: insErr } = await supabase.from("item_listings").insert({
+        item_id: defId,
         publisher: rec.publisher ?? null,
         buyregular: rec.buyregular ?? null,
         buygold: rec.buygold ?? null,
@@ -261,96 +217,71 @@ export default function AdminManagementPage() {
         sellemerald: rec.sellemerald ?? null,
         date: rec.date ?? null,
         admin_id: user.id,
-      };
+      });
 
-      const { error: insertError } = await supabase
-        .from("item_listings")
-        .insert(listingData);
-
-      if (insertError) {
-        failCount++;
-        failMessages.push(`שגיאת הוספה לטבלת listings עבור "${rec.name}": ${insertError.message}`);
-        console.error("Insert error for item_listings for", rec.name, insertError);
-      } else {
-        okCount++;
-        successfullyPublishedAtLeastOne = true;
-      }
+      if (insErr) {
+        fail++;
+        fails.push(`שגיאה בהוספת "${rec.name}" לטבלת listings.`);
+      } else ok++;
     }
 
-    let finalMessageText = "";
-    if (okCount > 0) {
-      finalMessageText += `✅ נוספו ${okCount} פריטים.`;
-    }
-    if (failCount > 0) {
-      finalMessageText += `${okCount > 0 ? " • " : ""}❌ נכשלו ${failCount} פריטים.`;
-    }
-    setMessage(finalMessageText || "תהליך הפרסום הסתיים.");
+    if (ok) setInputData("");
 
+    setMessage(
+      `${ok ? `✅ נוספו ${ok}` : ""}${ok && fail ? " • " : ""}${
+        fail ? `❌ נכשלו ${fail}` : ""
+      }`
+    );
+    setError(fails.join("\n"));
 
-    if (failMessages.length > 0) {
-      setError("פירוט שגיאות:\n" + failMessages.join("\n"));
-    } else {
-      setError("");
-    }
-
-    if (failCount === 0 && okCount > 0) {
-      setInputData("");
-    }
-
-    if (successfullyPublishedAtLeastOne) {
+    if (ok) {
       try {
         await revalidateItemsCacheAction();
-        setMessage(prev => prev + " • ✅ מטמון הפריטים באתר התעדכן.");
-      } catch (revalError: unknown) {
-        const errorMessage = revalError instanceof Error ? revalError.message : String(revalError);
-        console.error("Admin Page: Calling Server Action for cache revalidation failed:", errorMessage);
-        setMessage(prev => prev + " • ⚠️ שגיאה בעדכון מטמון הפריטים באתר.");
+        setMessage((m) => m + " • ✅ מטמון הפריטים התעדכן.");
+      } catch {
+        setMessage((m) => m + " • ⚠️ שגיאה בעדכון המטמון.");
       }
     }
     setIsPublishing(false);
   };
 
-  /* --------------- UI --------------- */
-  if (isLoading) {
+  /* ---------- Access guards ---------- */
+  if (isLoading || !sessionInitiallyChecked) {
     return (
-        <div className="admin-post-creation" style={{ marginTop: "2rem", textAlign: "center", color: "var(--foreground)" }}>
-            <h1>מערכת הוספת מוזהבים</h1>
-            <p>טוען נתוני משתמש...</p>
-        </div>
+      <div className="admin-post-creation" style={{ marginTop: "2rem", textAlign: "center" }}>
+        <h1>מערכת הוספת מוזהבים</h1>
+        <p>טוען נתונים…</p>
+      </div>
     );
   }
 
-  if (!sessionInitiallyChecked) {
-      return (
-          <div className="admin-post-creation" style={{ marginTop: "2rem", textAlign: "center", color: "var(--foreground)" }}>
-              <h1>מערכת הוספת מוזהבים</h1>
-              <p>ממתין לאימות סשן...</p>
-          </div>
-      );
-  }
-
   if (!user || !profile?.is_admin) {
-      return (
-          <div className="admin-post-creation" style={{ marginTop: "2rem", textAlign: "center", color: "var(--foreground)" }}>
-              <h1>מערכת הוספת מוזהבים</h1>
-              <p className="error" style={{ color: "#FF6B6B", fontSize: "1.1rem", marginTop: "1rem" }}>
-                  {!user ? "אינך מחובר. " : "אין לך הרשאות אדמין לגשת לדף זה."}
-              </p>
-              {!user && (
-                  <Link href="/auth" style={{color: "#4285f4", textDecoration: "underline", fontSize: "1rem", marginTop: "0.5rem", display: "inline-block"}}>
-                      עבור לדף התחברות
-                  </Link>
-              )}
-          </div>
-      );
+    return (
+      <div className="admin-post-creation" style={{ marginTop: "2rem", textAlign: "center" }}>
+        <h1>מערכת הוספת מוזהבים</h1>
+        <p style={{ color: "#FF6B6B" }}>
+          {!user ? "עליך להתחבר." : "אין לך הרשאות אדמין."}
+        </p>
+        {!user && (
+          <Link href="/auth" style={{ color: "#4285f4", textDecoration: "underline" }}>
+            לדף התחברות
+          </Link>
+        )}
+      </div>
+    );
   }
 
-  const publishButtonText = isPublishing ? "מפרסם..." : "פרסם פריטים";
-
+  /* -------------------------------------------------
+    4️⃣  UI
+  -------------------------------------------------- */
   return (
     <div className="admin-post-creation" style={{ marginTop: "2rem" }}>
       <h1>מערכת הוספת מוזהבים</h1>
+
+      {/* --- textarea + inline instructions (restored) --- */}
       <textarea
+        value={inputData}
+        onChange={(e) => setInputData(e.target.value)}
         placeholder={`הזן JSON או טקסט חופשי. רשומות מפרידים בשורה ריקה ("enter enter").
 דוגמה לטקסט חופשי:
 שם מוזהב: פריט לדוגמה חדש
@@ -364,46 +295,45 @@ export default function AdminManagementPage() {
 שם מוזהב: פריט נוסף
 קנייה (זהב): 50
 מכירה (יהלום): 300`}
-        value={inputData}
-        onChange={(e) => setInputData(e.target.value)}
-        className="title-input" // Ensure this class exists and is styled in globals.css
         style={{
-            width: "100%",
-            minHeight: "250px",
-            marginBottom: "1rem",
-            whiteSpace: "pre-wrap",
-            textAlign: "right",
-            direction: "rtl",
-            padding: "10px",
-            boxSizing: "border-box",
-            backgroundColor: "var(--background-input, #1f1f1f)", // Example input background
-            color: "var(--foreground-input, #ededed)", // Example input text color
-            border: "1px solid var(--border-color, #444)", // Example border
-            borderRadius: "4px"
+          width: "100%",
+          minHeight: "260px",
+          marginBottom: "1rem",
+          direction: "rtl",
+          whiteSpace: "pre-wrap",
+          padding: "10px",
+          boxSizing: "border-box",
+          backgroundColor: "var(--background-input, #1f1f1f)",
+          color: "var(--foreground-input, #ededed)",
+          border: "1px solid var(--border-color, #444)",
+          borderRadius: 4,
         }}
       />
+
       <button
-        onClick={handlePublish}
         disabled={isPublishing || !inputData.trim()}
+        onClick={handlePublish}
         style={{
-            padding: "0.75rem 1.5rem",
-            backgroundColor: (isPublishing || !inputData.trim()) ? "#555" : "#4285f4",
-            color: "white",
-            border: "none",
-            borderRadius: "4px",
-            cursor: (isPublishing || !inputData.trim()) ? "not-allowed" : "pointer",
-            fontSize: "1rem",
-            opacity: (isPublishing || !inputData.trim()) ? 0.7 : 1
+          padding: "0.75rem 1.5rem",
+          background: isPublishing || !inputData.trim() ? "#555" : "#4285f4",
+          color: "#fff",
+          border: "none",
+          borderRadius: 4,
+          cursor: isPublishing || !inputData.trim() ? "not-allowed" : "pointer",
         }}
       >
-        {publishButtonText}
+        {isPublishing ? "מפרסם…" : "פרסם פריטים"}
       </button>
 
       {message && (
-        <p style={{ color: "var(--success-color, #34A853)", whiteSpace: "pre-wrap", textAlign: "right", marginTop: "1rem" }}>{message}</p>
+        <p style={{ color: "var(--success-color, #34A853)", whiteSpace: "pre-wrap", marginTop: "1rem" }}>
+          {message}
+        </p>
       )}
       {error && (
-        <p className="error" style={{ color: "var(--error-color, #EA4335)", whiteSpace: "pre-wrap", textAlign: "right", marginTop: "0.5rem" }}>{error}</p>
+        <p style={{ color: "var(--error-color, #EA4335)", whiteSpace: "pre-wrap", marginTop: "0.5rem" }}>
+          {error}
+        </p>
       )}
     </div>
   );

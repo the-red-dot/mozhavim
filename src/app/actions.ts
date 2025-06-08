@@ -1,16 +1,37 @@
 // src/app/actions.ts
-"use server"; // This directive must be at the very top of the file
+// ─────────────────────────────────────────────────────────────
+// Server Actions – on-demand cache re-validation hooks
+// ─────────────────────────────────────────────────────────────
+"use server";                              // ★ must be first
 
 import { revalidateTag } from "next/cache";
+import { CATALOGUE_TAG } from "./lib/itemsService";  // ← the tag used by itemsService.ts
 
+/**
+ * Re-validates every cache layer that depends on item data.
+ * Currently:
+ *   • `CATALOGUE_TAG`  – all `item_definitions` consumers (Tik-Sheli catalogue, etc.)
+ *   • `"items"`        – legacy listings caches that still rely on this tag
+ *
+ * Extend this list whenever you introduce new tagged caches.
+ */
 export async function revalidateItemsCacheAction() {
-  console.log("Server Action (from actions.ts): Revalidating 'items' tag...");
+  console.log(
+    "actions.ts: starting cache re-validation for",
+    `"${CATALOGUE_TAG}" + "items"`
+  );
+
   try {
+    // New catalogue-level cache (definitions)
+    revalidateTag(CATALOGUE_TAG);
+
+    // Legacy tag still in use elsewhere (listings, depreciation snapshots, …)
     revalidateTag("items");
-    console.log("Server Action (from actions.ts): 'items' tag successfully revalidated.");
-  } catch (error) {
-    console.error("Server Action (from actions.ts): Error revalidating 'items' tag:", error);
-    // Optionally, re-throw the error if you want the calling component to handle it
-    // throw new Error("Cache revalidation failed."); 
+
+    console.log("actions.ts: ✅ all cache tags revalidated successfully");
+  } catch (err) {
+    console.error("actions.ts: ❌ cache revalidation failed:", err);
+    // re-throw if you want the caller to catch & surface the error
+    // throw err;
   }
 }

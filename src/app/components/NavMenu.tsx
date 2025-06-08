@@ -3,20 +3,17 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { useUser } from "../context/UserContext"; // Updated import
+import { useUser } from "../context/UserContext";
 
 export default function NavMenu() {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const burgerRef = useRef<HTMLButtonElement>(null);
-  // Get all necessary values from the updated UserContext
   const { user, profile, isLoading, sessionInitiallyChecked, logout } = useUser();
 
   const toggleMenu = () => setIsOpen((prev) => !prev);
   const closeMenu = () => setIsOpen(false);
 
-
-  // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -30,33 +27,27 @@ export default function NavMenu() {
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () =>
-      document.removeEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen]);
 
-  // Logout function using logout from context
   const handleLogout = async () => {
-    closeMenu(); // Close menu first
+    closeMenu();
     try {
-        await logout(); // Call the logout function from context
+      await logout();
     } catch (e) {
-        console.error("NavMenu: Error during logout call:", e);
-        // Optionally handle UI feedback for logout error here
+      console.error("NavMenu: Error during logout:", e);
     }
   };
 
   let greetingText: string;
-  if (isLoading) { // Covers both initial load and changes
+  if (isLoading) {
     greetingText = "טוען...";
   } else if (user && profile) {
     greetingText = profile.username;
   } else if (user && !profile) {
-    // User object exists, but profile is not loaded or doesn't exist.
-    // This could mean the profile is still fetching (covered by isLoading if loadingUserProfile is true)
-    // or that the profile fetch failed or the user genuinely has no profile record.
-    greetingText = "משתמש"; // Or a more specific message like "טוען פרופיל..."
+    greetingText = "משתמש";
   } else {
-    greetingText = ""; // No user, or initial load finished with no user. Handled by login link.
+    greetingText = "";
   }
 
   return (
@@ -71,64 +62,106 @@ export default function NavMenu() {
       >
         <div
           className="burger-line"
-          style={isOpen ? { transform: "rotate(45deg) translateY(0.625rem)", width: "2rem" } : { width: "2rem" }} 
-        ></div>
+          style={
+            isOpen
+              ? { transform: "rotate(45deg) translateY(0.625rem)", width: "2rem" }
+              : { width: "2rem" }
+          }
+        />
         <div
           className="burger-line"
           style={isOpen ? { opacity: 0 } : { width: "2rem" }}
-        ></div>
+        />
         <div
           className="burger-line"
-          style={isOpen ? { transform: "rotate(-45deg) translateY(-0.625rem)", width: "2rem" } : { width: "2rem" }}
-        ></div>
+          style={
+            isOpen
+              ? { transform: "rotate(-45deg) translateY(-0.625rem)", width: "2rem" }
+              : { width: "2rem" }
+          }
+        />
       </button>
 
       {/* Sidebar Menu */}
       <div ref={menuRef} className={`sidebar ${isOpen ? "open" : ""}`}>
-        <button onClick={toggleMenu} className="close-btn" aria-label="סגור תפריט">
-          &times; {/* Using HTML entity for '×' */}
+        <button
+          onClick={toggleMenu}
+          className="close-btn"
+          aria-label="סגור תפריט"
+        >
+          &times;
         </button>
-        
-        {/* Show greeting paragraph only if user is present or initial loading is in progress */}
-        { (user || isLoading) && (
-          <p className="user-greeting">
-            שלום, {greetingText}
-          </p>
+
+        {(user || isLoading) && (
+          <p className="user-greeting">שלום, {greetingText}</p>
         )}
-        
+
         <nav>
           <ul>
             <li>
-              <Link href="/" onClick={closeMenu}>בית</Link>
+              <Link href="/" onClick={closeMenu}>
+                בית
+              </Link>
             </li>
             <li>
-              <Link href="/aitch" onClick={closeMenu}>מידע ועדכונים</Link>
+              <Link href="/aitch" onClick={closeMenu}>
+                מידע ועדכונים
+              </Link>
             </li>
-            {/* Show Admin link only if user is loaded, is admin, and session check is complete */}
-            {!isLoading && sessionInitiallyChecked && user && profile?.is_admin && (
-              <li>
-                <Link href="/admin" onClick={closeMenu}>ניהול</Link>
-              </li>
-            )}
-            
-            {/* Conditional rendering for Login/Logout */}
-            {!isLoading && sessionInitiallyChecked ? ( // Only show login/logout after initial check & not loading
+            <li>
+              <Link href="/tik-sheli" onClick={closeMenu}>
+                תיק שלי
+              </Link>
+            </li>
+            {/* START: New Trading Page link */}
+            <li>
+              <Link href="/tradingPage" onClick={closeMenu}>
+                טריידים
+              </Link>
+            </li>
+            {/* END: New Trading Page link */}
+            {!isLoading &&
+              sessionInitiallyChecked &&
+              user &&
+              profile?.is_admin && (
+                <li>
+                  <Link href="/admin" onClick={closeMenu}>
+                    ניהול
+                  </Link>
+                </li>
+              )}
+
+            {!isLoading && sessionInitiallyChecked ? (
               user ? (
                 <li>
-                  <button onClick={handleLogout} className="logout" disabled={isLoading}>
+                  <button
+                    onClick={handleLogout}
+                    className="logout"
+                    disabled={isLoading}
+                  >
                     {isLoading ? "יוצא..." : "יציאה"}
                   </button>
                 </li>
               ) : (
                 <li>
-                  <Link href="/auth" onClick={closeMenu}>התחברות/רישום</Link>
+                  <Link href="/auth" onClick={closeMenu}>
+                    התחברות/רישום
+                  </Link>
                 </li>
               )
-            ) : isLoading ? ( // If still loading, show a placeholder or nothing for auth links
-                <li>
-                    <span style={{padding: "15px 20px", display: "block", color: "var(--foreground-muted, #aaa)"}}>טוען אפשרויות...</span>
-                </li>
-            ) : null }
+            ) : isLoading ? (
+              <li>
+                <span
+                  style={{
+                    padding: "15px 20px",
+                    display: "block",
+                    color: "var(--foreground-muted, #aaa)",
+                  }}
+                >
+                  טוען אפשרויות...
+                </span>
+              </li>
+            ) : null}
           </ul>
         </nav>
       </div>

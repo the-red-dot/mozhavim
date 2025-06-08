@@ -1,17 +1,23 @@
+// ─────────────────────────────────────────────────────────────
 // src/app/lib/depreciationService.ts
+// Keeps a cached, periodically-refreshed “global depreciation” snapshot
+// ─────────────────────────────────────────────────────────────
 import { supabase } from "./supabaseClient";
-import { unstable_cache as nextCache } from 'next/cache';
+import { unstable_cache as nextCache } from "next/cache";
 
-// Constants
-const DEPRECIATION_STATS_ID = 'current_summary';
+/* ---------- constants ---------- */
+const DEPRECIATION_STATS_ID = "current_summary";
 const ONE_WEEK_IN_MS = 7 * 24 * 60 * 60 * 1000;
 
-// Interfaces
+/* ---------- 1. R/T item shape coming from the items_flat SQL view ---------- */
 export interface Item {
+  /* definition-level data */
   id: string;
   name: string;
   description: string;
   image: string;
+
+  /* listing-level data (may be null if no listing) */
   buyregular: string | null;
   buygold: string | null;
   buydiamond: string | null;
@@ -24,166 +30,193 @@ export interface Item {
   date: string | null;
   admin_id: string | null;
   inserted_at: string;
+
+  /** 🆕 unique per‐listing primary key (was added to the view) */
+  listing_id?: string;
+
+  /** `allowed_tiers` exists in the view, but isn’t needed for the maths */
+  // allowed_tiers?: string[];
 }
 
+/* ---------- 2. DB row shape for the snapshot table ---------- */
 export interface DepreciationStats {
   id: string;
   total_items_from_source: number;
   items_with_valid_regular_price: number;
-  average_gold_depreciation: number; // Assuming this can be 0 if no items, not null
+  average_gold_depreciation: number;
   gold_items_count: number;
-  average_diamond_depreciation: number; // Assuming this can be 0 if no items, not null
+  average_diamond_depreciation: number;
   diamond_items_count: number;
-  average_emerald_depreciation: number; // Assuming this can be 0 if no items, not null
+  average_emerald_depreciation: number;
   emerald_items_count: number;
-  updated_at: string; // ISO string date
+  updated_at: string; // ISO
 }
+export type NewDepreciationStats = Omit<
+  DepreciationStats,
+  "id" | "updated_at"
+>;
 
-export type NewDepreciationStats = Omit<DepreciationStats, 'id' | 'updated_at'>;
+export type StatsSourceType =
+  | "DATABASE"
+  | "NEWLY CALCULATED"
+  | "DATABASE (STALE - ITEM FETCH FAILED)"
+  | "DEFAULT (ERROR/NO DATA)";
 
-export type StatsSourceType = 'DATABASE' | 'NEWLY CALCULATED' | 'DATABASE (STALE - ITEM FETCH FAILED)' | 'DEFAULT (ERROR/NO DATA)';
-
-// Helper Functions
+/* ╭──────────────────────────────────────────╮
+   │  Helper : string → number, tolerant      │
+   ╰──────────────────────────────────────────╯ */
 const parsePrice = (priceString: string | null): number | null => {
-  if (priceString === null || typeof priceString === 'undefined') {
-    return null;
-  }
-  const cleanedString = String(priceString).replace(/₪|,/g, '').trim();
-  if (cleanedString === "" || isNaN(parseFloat(cleanedString))) {
-    return null;
-  }
-  return parseFloat(cleanedString);
+  if (priceString == null) return null;
+  const cleaned = `${priceString}`.replace(/₪|,/g, "").trim();
+  const n = parseFloat(cleaned);
+  return Number.isFinite(n) ? n : null;
 };
 
+/* ╭───────────────────────────────────────────────────────────╮
+   │  Cached fetch of ALL listings for the global calculation  │
+   ╰───────────────────────────────────────────────────────────╯ */
 const getCachedItems = nextCache(
   async () => {
-    console.log("depreciationService.getCachedItems: Fetching items from Supabase for caching…");
-    const { data, error } = await supabase.from("items_flat").select("*");
+    console.log(
+      "depreciationService.getCachedItems: querying items_flat for cache…"
+    );
 
+    const { data, error } = await supabase.from("items_flat").select("*");
     if (error) {
-      console.error("depreciationService.getCachedItems: Error fetching items:", error.message);
-      return { items: [], error: error.message };
+      console.error(
+        "depreciationService.getCachedItems: DB error:",
+        error.message
+      );
+      return { items: [] as Item[], error: error.message };
     }
-    console.log("depreciationService.getCachedItems: Fetched", data?.length || 0, "rows for cache.");
-    return { items: data as Item[] || [], error: null }; // Ensure items is always an array
+
+    console.log(
+      "depreciationService.getCachedItems: fetched",
+      data?.length || 0,
+      "rows"
+    );
+    return { items: (data ?? []) as Item[], error: null };
   },
-  ['items_flat_data_v1'],
-  {
-    tags: ['items'],
-  }
+  ["items_flat_data_v1"],
+  { tags: ["items"] }
 );
 
-const calculateDepreciationSummary = (items: Item[]): NewDepreciationStats => {
-  console.log("\ndepreciationService.calculateDepreciationSummary: START CALCULATION");
-  // Changed let to const as these arrays are mutated but not reassigned
-  const allGoldDepreciations: number[] = [];
-  const allDiamondDepreciations: number[] = [];
-  const allEmeraldDepreciations: number[] = [];
-  let itemsWithAnyCalculableData = 0;
+/* ╭──────────────────────────────────────────────╮
+   │  Pure maths – one pass over all listings      │
+   ╰──────────────────────────────────────────────╯ */
+const calculateDepreciationSummary = (
+  items: Item[]
+): NewDepreciationStats => {
+  console.log(
+    "\ndepreciationService.calculateDepreciationSummary: START CALCULATION"
+  );
 
-  if (!items || items.length === 0) {
-    console.log("depreciationService.calculateDepreciationSummary: No items provided.");
+  const gold: number[] = [];
+  const diamond: number[] = [];
+  const emerald: number[] = [];
+  let itemsWithData = 0;
+
+  if (!items.length) {
+    console.log("… no items at all – return zeros.");
     return {
-        total_items_from_source: 0,
-        items_with_valid_regular_price: 0,
-        average_gold_depreciation: 0,
-        gold_items_count: 0,
-        average_diamond_depreciation: 0,
-        diamond_items_count: 0,
-        average_emerald_depreciation: 0,
-        emerald_items_count: 0,
+      total_items_from_source: 0,
+      items_with_valid_regular_price: 0,
+      average_gold_depreciation: 0,
+      gold_items_count: 0,
+      average_diamond_depreciation: 0,
+      diamond_items_count: 0,
+      average_emerald_depreciation: 0,
+      emerald_items_count: 0,
     };
   }
 
-  items.forEach((item) => {
-    const regularPrice = parsePrice(item.buyregular);
-    const actualGoldPrice = parsePrice(item.buygold);
-    const actualDiamondPrice = parsePrice(item.buydiamond);
-    const actualEmeraldPrice = parsePrice(item.buyemerald);
-    let itemHasCalculableData = false;
+  items.forEach((it) => {
+    const p = parsePrice(it.buyregular);
+    if (p == null || p <= 0) return;
 
-    if (regularPrice !== null && regularPrice > 0) {
-      itemHasCalculableData = true;
-      const theoreticalMaxGold = regularPrice * 4;
-      const theoreticalMaxDiamond = regularPrice * 16;
-      const theoreticalMaxEmerald = regularPrice * 64;
+    itemsWithData++;
 
-      if (actualGoldPrice !== null && theoreticalMaxGold > 0) { // Avoid division by zero
-        const depreciation = 100 * (1 - actualGoldPrice / theoreticalMaxGold);
-        if (!isNaN(depreciation) && isFinite(depreciation)) allGoldDepreciations.push(depreciation);
-      }
-      if (actualDiamondPrice !== null && theoreticalMaxDiamond > 0) { // Avoid division by zero
-        const depreciation = 100 * (1 - actualDiamondPrice / theoreticalMaxDiamond);
-        if (!isNaN(depreciation) && isFinite(depreciation)) allDiamondDepreciations.push(depreciation);
-      }
-      if (actualEmeraldPrice !== null && theoreticalMaxEmerald > 0) { // Avoid division by zero
-        const depreciation = 100 * (1 - actualEmeraldPrice / theoreticalMaxEmerald);
-        if (!isNaN(depreciation) && isFinite(depreciation)) allEmeraldDepreciations.push(depreciation);
-      }
-    }
-    if(itemHasCalculableData) itemsWithAnyCalculableData++;
+    const maxG = p * 4;
+    const maxD = p * 16;
+    const maxE = p * 64;
+
+    const pushIf = (arr: number[], actual: number | null, max: number) => {
+      if (actual == null || !max) return;
+      const dep = 100 * (1 - actual / max);
+      if (Number.isFinite(dep)) arr.push(dep);
+    };
+
+    pushIf(gold, parsePrice(it.buygold), maxG);
+    pushIf(diamond, parsePrice(it.buydiamond), maxD);
+    pushIf(emerald, parsePrice(it.buyemerald), maxE);
   });
 
-  const calculateAverage = (arr: number[]): number => {
-    if (arr.length === 0) return 0;
-    const sum = arr.reduce((acc, val) => acc + val, 0);
-    return sum / arr.length;
+  const avg = (a: number[]) =>
+    a.length ? a.reduce((s, v) => s + v, 0) / a.length : 0;
+
+  const out: NewDepreciationStats = {
+    total_items_from_source: items.length,
+    items_with_valid_regular_price: itemsWithData,
+    average_gold_depreciation: avg(gold),
+    gold_items_count: gold.length,
+    average_diamond_depreciation: avg(diamond),
+    diamond_items_count: diamond.length,
+    average_emerald_depreciation: avg(emerald),
+    emerald_items_count: emerald.length,
   };
 
-  const summary: NewDepreciationStats = {
-    total_items_from_source: items.length,
-    items_with_valid_regular_price: itemsWithAnyCalculableData,
-    average_gold_depreciation: calculateAverage(allGoldDepreciations),
-    gold_items_count: allGoldDepreciations.length,
-    average_diamond_depreciation: calculateAverage(allDiamondDepreciations),
-    diamond_items_count: allDiamondDepreciations.length,
-    average_emerald_depreciation: calculateAverage(allEmeraldDepreciations),
-    emerald_items_count: allEmeraldDepreciations.length,
-  };
-  console.log("depreciationService.calculateDepreciationSummary: END CALCULATION", summary);
-  return summary;
+  console.log(
+    "depreciationService.calculateDepreciationSummary: END CALCULATION",
+    out
+  );
+  return out;
 };
 
+/* ---------- tiny DB helpers (get / upsert) ---------- */
 async function getDepreciationStatsFromDB(): Promise<DepreciationStats | null> {
-  console.log("depreciationService.getDepreciationStatsFromDB: Attempting to fetch...");
   const { data, error } = await supabase
-    .from('depreciation_stats')
-    .select('*')
-    .eq('id', DEPRECIATION_STATS_ID)
+    .from("depreciation_stats")
+    .select("*")
+    .eq("id", DEPRECIATION_STATS_ID)
     .single();
-  if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found, which is not an error here
-    console.error("depreciationService.getDepreciationStatsFromDB: Error fetching:", error.message);
+
+  if (error && error.code !== "PGRST116") {
+    console.error(
+      "depreciationService.getDepreciationStatsFromDB: error",
+      error.message
+    );
     return null;
   }
-  if (data) {
-    console.log("depreciationService.getDepreciationStatsFromDB: Successfully fetched.");
-    return data as DepreciationStats;
-  }
-  console.log("depreciationService.getDepreciationStatsFromDB: No existing stats found.");
-  return null;
+  return (data as DepreciationStats) ?? null;
 }
 
-async function storeDepreciationStatsInDB(stats: NewDepreciationStats): Promise<DepreciationStats | null> {
-  console.log("depreciationService.storeDepreciationStatsInDB: Attempting to store/update...");
-  const statsToUpsert: DepreciationStats = {
+async function storeDepreciationStatsInDB(
+  stats: NewDepreciationStats
+): Promise<DepreciationStats | null> {
+  const payload: DepreciationStats = {
     ...stats,
     id: DEPRECIATION_STATS_ID,
     updated_at: new Date().toISOString(),
   };
+
   const { data, error } = await supabase
-    .from('depreciation_stats')
-    .upsert(statsToUpsert, { onConflict: 'id' })
+    .from("depreciation_stats")
+    .upsert(payload, { onConflict: "id" })
     .select()
     .single();
+
   if (error) {
-    console.error("depreciationService.storeDepreciationStatsInDB: Error storing:", error.message);
+    console.error(
+      "depreciationService.storeDepreciationStatsInDB: error",
+      error.message
+    );
     return null;
   }
-  console.log("depreciationService.storeDepreciationStatsInDB: Successfully stored/updated.");
   return data as DepreciationStats;
 }
 
-const defaultInitialStatsData: NewDepreciationStats & { updated_at?: string } = {
+/* ---------- default fallback object ---------- */
+const EMPTY_STATS: NewDepreciationStats & { updated_at?: string } = {
   total_items_from_source: 0,
   items_with_valid_regular_price: 0,
   average_gold_depreciation: 0,
@@ -194,80 +227,56 @@ const defaultInitialStatsData: NewDepreciationStats & { updated_at?: string } = 
   emerald_items_count: 0,
 };
 
+/* ╭──────────────────────────────────────────╮
+   │  Public: fetch + manage + cache snapshot │
+   ╰──────────────────────────────────────────╯ */
 export async function fetchAndManageDepreciationStats(): Promise<{
   data: DepreciationStats | NewDepreciationStats;
   source: StatsSourceType;
   itemFetchError?: string;
 }> {
-  let currentData: DepreciationStats | NewDepreciationStats = { ...defaultInitialStatsData };
-  let source: StatsSourceType = 'DEFAULT (ERROR/NO DATA)';
-  let needsRecalculation = true;
-  let itemFetchErrorForPage: string | undefined = undefined;
+  let current: DepreciationStats | NewDepreciationStats = { ...EMPTY_STATS };
+  let src: StatsSourceType = "DEFAULT (ERROR/NO DATA)";
+  let recalc = true;
+  let listError: string | undefined;
 
-  const existingStats = await getDepreciationStatsFromDB();
-
-  if (existingStats) {
-    const statsAge = Date.now() - new Date(existingStats.updated_at).getTime();
-    if (statsAge < ONE_WEEK_IN_MS) {
-      console.log("depreciationService: Stats from DB are recent.");
-      currentData = existingStats;
-      source = 'DATABASE';
-      needsRecalculation = false;
-    } else {
-      console.log("depreciationService: Stats from DB are stale. Recalculation needed.");
-    }
-  } else {
-    console.log("depreciationService: No stats in DB. Calculation needed.");
-  }
-
-  if (needsRecalculation) {
-    console.log("depreciationService: Fetching items for calculation...");
-    const { items: rawItems, error: itemsError } = await getCachedItems();
-
-    if (itemsError) {
-      console.error("depreciationService: Failed to fetch items for calculation:", itemsError);
-      itemFetchErrorForPage = itemsError;
-      if (existingStats) {
-        console.warn("depreciationService: Using stale stats due to item fetch error.");
-        currentData = existingStats;
-        source = 'DATABASE (STALE - ITEM FETCH FAILED)';
-      } else {
-        console.error("depreciationService: No data available after item fetch error.");
-        source = 'DEFAULT (ERROR/NO DATA)';
-      }
-    } else if (rawItems && rawItems.length > 0) {
-      const newStats = calculateDepreciationSummary(rawItems);
-      const storedStats = await storeDepreciationStatsInDB(newStats);
-      if (storedStats) {
-        currentData = storedStats;
-        source = 'NEWLY CALCULATED';
-      } else {
-        currentData = newStats; 
-        source = 'NEWLY CALCULATED'; 
-        console.warn("depreciationService: Used newly calculated stats, but failed to store them.");
-      }
-    } else {
-      console.log("depreciationService: No items found for calculation.");
-      itemFetchErrorForPage = "No items found in the database.";
-      if (existingStats) {
-        console.warn("depreciationService: No items for recalculation, using stale data.");
-        currentData = existingStats;
-        source = 'DATABASE (STALE - ITEM FETCH FAILED)';
-      } else {
-        source = 'DEFAULT (ERROR/NO DATA)';
-      }
+  /* 1️⃣ maybe use DB */
+  const existing = await getDepreciationStatsFromDB();
+  if (existing) {
+    const age = Date.now() - new Date(existing.updated_at).getTime();
+    if (age < ONE_WEEK_IN_MS) {
+      current = existing;
+      src = "DATABASE";
+      recalc = false;
     }
   }
 
-  console.log(`\n--- depreciationService: Final Depreciation Summary to be returned (Source: ${source}) ---`);
-  console.log(`Total items: ${currentData.total_items_from_source}, Valid for calc: ${currentData.items_with_valid_regular_price}`);
-  // Safely access updated_at for logging
-  if ('updated_at' in currentData && currentData.updated_at) {
-      console.log(`Last Updated: ${new Date(currentData.updated_at).toLocaleString()}`);
-  }
-  console.log("---------------------------------------------------------------------\n");
+  /* 2️⃣ recalc if needed */
+  if (recalc) {
+    const { items, error } = await getCachedItems();
 
-  return { data: currentData, source, itemFetchError: itemFetchErrorForPage };
+    if (error) {
+      listError = error;
+      if (existing) {
+        current = existing;
+        src = "DATABASE (STALE - ITEM FETCH FAILED)";
+      }
+    } else if (items.length) {
+      const fresh = calculateDepreciationSummary(items);
+      const saved = await storeDepreciationStatsInDB(fresh);
+      current = saved ?? fresh;
+      src = "NEWLY CALCULATED";
+    } else if (existing) {
+      current = existing;
+      src = "DATABASE (STALE - ITEM FETCH FAILED)";
+    }
+  }
+
+  console.log(
+    `depreciationService: returning summary (source = ${src}) – total ${current.total_items_from_source}`
+  );
+  return { data: current, source: src, itemFetchError: listError };
 }
 
+/* ---------- re-export for SearchComponent ---------- */
 export { getCachedItems as getSearchComponentItems };
