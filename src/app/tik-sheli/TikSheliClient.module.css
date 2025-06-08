@@ -1,7 +1,7 @@
 /* app/tik-sheli/TikSheliClient.module.css */
 
 /* ───────── Overall Layout & Global Styles ───────── */
-:root {
+:global(:root) {
   --primary-color: #007bff;
   --primary-hover-color: #0056b3;
   --primary-disabled-color: #b0c4de;
