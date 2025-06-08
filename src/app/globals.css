@@ -1,10 +1,43 @@
 /* src/app/globals.css */
 
-/* Dark mode defaults using CSS Variables */
 :root {
   --background: #0a0a0a;
   --foreground: #ededed;
   --font-family: "Assistant", sans-serif;
+  --primary-color: #007bff;
+  --primary-hover-color: #0056b3;
+  --primary-disabled-color: #b0c4de;
+
+  --success-color: #28a745;
+  --error-color: #dc3545;
+  --error-hover-color: #c82333;
+
+  --text-color:  #e0e0e0;
+  --text-light-color:  #ffffff;
+  --background-color:  #151515;
+  --card-background-color:  #1e1e1e;
+  --card-border-color:  #333333;
+  --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+
+  --font-family-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+    "Segoe UI Symbol";
+
+  --border-radius-sm: 4px;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+
+  /* Game Style Specific Colors */
+  --game-bg-dark: #2c3e50;
+  --game-item-bg: #34495e;
+  --game-item-border: #4a6fa5;
+  --game-text-color: #ecf0f1;
+  --game-text-secondary-color: #bdc3c7;
+
+  --tier-regular-accent: #adb5bd;
+  --tier-gold-accent: #FFD700;
+  --tier-diamond-accent: #87CEFA;
+  --tier-emerald-accent: #50C878;
 }
 
 body {
