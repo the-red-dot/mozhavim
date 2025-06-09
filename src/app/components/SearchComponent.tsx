@@ -7,6 +7,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import Image from "next/image";
 import PriceOpinion from "./PriceOpinion";
+import FormattedDate from "./FormattedDate";
 import { supabase } from "../lib/supabaseClient";
 import {
   QuotePoint,
@@ -141,7 +142,6 @@ export default function SearchComponent({
     () => (sel ? initialItems.filter((x) => x.name === sel) : []),
     [sel, initialItems]
   );
-
   const firstSelected = itemsForSel[0]; // meta row
 
   /* reset image error when item changes */
@@ -271,7 +271,6 @@ export default function SearchComponent({
         value={term}
         onChange={(e) => setTerm(e.target.value)}
         onFocus={() => {
-          // only show suggestions if there’s a term, it’s not already selected, and we have suggestions
           if (term.trim() && (!sel || term !== sel) && sugs.length) {
             showDrop(true);
           }
@@ -383,7 +382,7 @@ export default function SearchComponent({
               diamond: calculatedTierPrices.diamond,
               emerald: calculatedTierPrices.emerald,
             }}
-            allowedTiers={allowedTiers} // ✅ NEW: restrict assumption inputs
+            allowedTiers={allowedTiers}
           />
 
           {/* toggle discord / community */}
@@ -409,7 +408,6 @@ export default function SearchComponent({
               {itemsForSel.length ? (
                 <ul>
                   {itemsForSel.map((i) => (
-                    /*  👇 UNIQUE key = listing_id (falls back to definition id) */
                     <li
                       key={i.listing_id ?? i.id}
                       className="result-item"
@@ -430,7 +428,11 @@ export default function SearchComponent({
                       </div>
                       <div className="meta-info">
                         {i.publisher && <span>פורסם ע״י: {i.publisher}</span>}
-                        {i.date && <span>תאריך: {i.date}</span>}
+                        {i.date && (
+                          <span>
+                            תאריך: <FormattedDate date={i.date} showTime />
+                          </span>
+                        )}
                       </div>
                     </li>
                   ))}
