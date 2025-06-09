@@ -263,9 +263,12 @@ export default function SearchComponent({
         placeholder="חפש כאן…"
         value={term}
         onChange={(e) => setTerm(e.target.value)}
-        onFocus={() =>
-          term.trim() && (!sel || term !== sel) && sugs.length && showDrop(true)
-        }
+        onFocus={() => {
+          // only show suggestions if there’s a term, it’s not already selected, and we have suggestions
+          if (term.trim() && (!sel || term !== sel) && sugs.length) {
+            showDrop(true);
+          }
+        }}
       />
 
       {/* suggestions */}
@@ -376,7 +379,6 @@ export default function SearchComponent({
             allowedTiers={allowedTiers} // ✅ NEW: restrict assumption inputs
           />
 
-
           {/* toggle discord / community */}
           <div className="list-toggle">
             <button
@@ -406,19 +408,11 @@ export default function SearchComponent({
                       className="result-item"
                     >
                       <div className="price-info">
-                        {i.buyregular && (
-                          <span>קנייה (רגיל): {i.buyregular}</span>
-                        )}
+                        {i.buyregular && <span>קנייה (רגיל): {i.buyregular}</span>}
                         {i.buygold && <span>קנייה (זהב): {i.buygold}</span>}
-                        {i.buydiamond && (
-                          <span>קנייה (יהלום): {i.buydiamond}</span>
-                        )}
-                        {i.buyemerald && (
-                          <span>קנייה (אמרלד): {i.buyemerald}</span>
-                        )}
-                        {i.sellregular && (
-                          <span>מכירה (רגיל): {i.sellregular}</span>
-                        )}
+                        {i.buydiamond && <span>קנייה (יהלום): {i.buydiamond}</span>}
+                        {i.buyemerald && <span>קנייה (אמרלד): {i.buyemerald}</span>}
+                        {i.sellregular && <span>מכירה (רגיל): {i.sellregular}</span>}
                         {i.sellgold && <span>מכירה (זהב): {i.sellgold}</span>}
                         {i.selldiamond && (
                           <span>מכירה (יהלום): {i.selldiamond}</span>
