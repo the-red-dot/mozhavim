@@ -149,13 +149,20 @@ export default function SearchComponent({
 
   /* ------------------------------------------- assumptions (community) */
   useEffect(() => {
-    if (!sel) return void setAssumps([]);
+    if (!sel) {
+      setAssumps([]);
+      return;
+    }
     (async () => {
       const { data, error } = await supabase
         .from("assumptions")
         .select("*, profiles(username)")
         .eq("item_name", sel);
-      error ? console.error(error) : setAssumps((data as Assumption[]) ?? []);
+      if (error) {
+        console.error(error);
+      } else {
+        setAssumps((data as Assumption[]) ?? []);
+      }
     })();
   }, [sel]);
 
