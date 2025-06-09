@@ -31,7 +31,7 @@ export async function revalidateItemsCacheAction() {
     console.log("actions.ts: ✅ all cache tags revalidated successfully");
   } catch (err) {
     console.error("actions.ts: ❌ cache revalidation failed:", err);
-    // If you want the caller to handle errors, uncomment next line:
+    // re-throw if you want the caller to catch & surface the error
     // throw err;
   }
 }
