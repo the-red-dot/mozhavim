@@ -27,24 +27,29 @@ interface ParsedItemData {
   [key: string]: string | null | undefined;
 }
 
-const fieldMapping: Record<string, string> = {
-  "שם מוזהב": "name",
-  "קנייה (רגיל)": "buyregular",
-  "קנייה": "buyregular",
-  "קנייה (זהב)": "buygold",
-  "קנייה (יהלום)": "buydiamond",
-  "קנייה (אמרלד)": "buyemerald",
-  "מכירה (רגיל)": "sellregular",
-  "מכירה (זהב)": "sellgold",
-  "מכירה (יהלום)": "selldiamond",
-  "מכירה (אמרלד)": "sellemerald",
-  'פורסם ע"י': "publisher",
-  "תאריך פרסום": "date",
-  "תמונה": "image",
-  "תיאור": "description",
+/**
+ * Map the free-text Hebrew labels to our `ParsedItemData` keys.
+ * NOTE: the apostrophe in ע"י is inside a double-quoted string, so TS is happy.
+ */
+const fieldMapping: Record<string, keyof ParsedItemData> = {
+  "שם מוזהב":       "name",
+  "קנייה (רגיל)":   "buyregular",
+  "קנייה":          "buyregular",
+  "קנייה (זהב)":    "buygold",
+  "קנייה (יהלום)":  "buydiamond",
+  "קנייה (אמרלד)":  "buyemerald",
+  "מכירה (רגיל)":   "sellregular",
+  "מכירה (זהב)":    "sellgold",
+  "מכירה (יהלום)":  "selldiamond",
+  "מכירה (אמרלד)":  "sellemerald",
+  "פורסם ע\u05F4י": "publisher",
+  "תאריך פרסום":    "date",
+  "תמונה":          "image",
+  "תיאור":          "description",
 };
 
-const allowedFields = [
+/** Only these keys are allowed in the final `ParsedItemData` */
+const allowedFields = new Set<keyof ParsedItemData>([
   "name",
   "buyregular",
   "buygold",
@@ -58,75 +63,88 @@ const allowedFields = [
   "date",
   "image",
   "description",
-];
+]);
 
 /* -------------------------------------------------
-  2️⃣  helpers — parse free text / JSON
+  2️⃣  Helpers — parse free-text or embedded JSON
 -------------------------------------------------- */
-function normalizeJsonRecord(record: Record<string, unknown> | null | undefined): ParsedItemData {
+function normalizeJsonRecord(
+  record: Record<string, unknown> | null | undefined
+): ParsedItemData {
   const out: ParsedItemData = {};
   if (!record || typeof record !== "object") return out;
 
-  for (const [k, v] of Object.entries(record)) {
-    const key = String(k).replace(/\s/g, "").toLowerCase();
-    if (allowedFields.includes(key)) {
-      out[key as keyof ParsedItemData] =
-        v === "" || v === "אין נתון" || v === undefined || v === null ? null : String(v);
+  for (const [rawKey, rawVal] of Object.entries(record)) {
+    const key = rawKey.replace(/\s+/g, "").toLowerCase();
+    // find a matching allowed field
+    for (const allowed of allowedFields) {
+      if (allowed === key) {
+        const val =
+          rawVal === "" || rawVal === "אין נתון" || rawVal == null
+            ? null
+            : String(rawVal);
+        out[allowed] = val;
+      }
     }
   }
   return out;
 }
 
 function parseFreeForm(block: string): ParsedItemData {
-  const result: ParsedItemData = {};
+  const out: ParsedItemData = {};
   block.split("\n").forEach((line) => {
-    const [key, ...rest] = line.split(":");
-    if (!key || rest.length === 0) return;
-    const val = rest.join(":").trim();
-    const col = fieldMapping[key.trim()];
-    if (col && allowedFields.includes(col)) {
-      result[col as keyof ParsedItemData] = val === "" || val === "אין נתון" ? null : val;
+    const [label, ...rest] = line.split(":");
+    if (!label || rest.length === 0) return;
+    const trimmedLabel = label.trim();
+    const mappedKey = fieldMapping[trimmedLabel];
+    if (mappedKey && allowedFields.has(mappedKey)) {
+      const value = rest.join(":").trim();
+      out[mappedKey] = value === "" || value === "אין נתון" ? null : value;
     }
   });
-  return result;
+  return out;
 }
 
 function parseJsonObjects(block: string): ParsedItemData[] {
-  const matches = block.match(/{[\s\S]*?}/g) ?? [];
-  return matches
-    .map((m) => {
+  // find all {...} fragments
+  const rawMatches = block.match(/{[\s\S]*?}/g) || [];
+  return rawMatches
+    .map((str) => {
       try {
-        return JSON.parse(m);
+        return JSON.parse(str);
       } catch {
         return null;
       }
     })
-    .filter((o): o is Record<string, unknown> => !!o)
+    .filter((obj): obj is Record<string, unknown> => Boolean(obj))
     .map(normalizeJsonRecord);
 }
 
 function parseRecords(text: string): ParsedItemData[] {
-  const trimmed = text.trim();
-  if (!trimmed) return [];
+  const t = text.trim();
+  if (!t) return [];
 
-  if (trimmed.includes("שם מוזהב:")) {
-    return trimmed.split(/\n\s*\n/).map(parseFreeForm);
+  // free-form style if it contains our Hebrew marker
+  if (t.includes("שם מוזהב:")) {
+    return t.split(/\n\s*\n/).map(parseFreeForm);
   }
 
-  if (trimmed[0] === "{" || trimmed[0] === "[") {
+  // JSON style
+  if (t.startsWith("{") || t.startsWith("[")) {
     try {
-      const obj = JSON.parse(trimmed);
-      const arr = Array.isArray(obj) ? obj : [obj];
+      const parsed = JSON.parse(t);
+      const arr = Array.isArray(parsed) ? parsed : [parsed];
       return arr.map(normalizeJsonRecord);
     } catch {
-      return parseJsonObjects(trimmed);
+      return parseJsonObjects(t);
     }
   }
+
   return [];
 }
 
 /* -------------------------------------------------
-  3️⃣  React component
+  3️⃣  Admin React Component
 -------------------------------------------------- */
 export default function AdminManagementPage() {
   const { user, profile, isLoading, sessionInitiallyChecked } = useUser();
@@ -136,22 +154,22 @@ export default function AdminManagementPage() {
   const [error, setError] = useState("");
   const [isPublishing, setIsPublishing] = useState(false);
 
-  /* ---------- fetch / upsert helpers (unchanged) ---------- */
+  /** Upsert (definition) row and return its ID */
   async function getDefinitionId(rec: ParsedItemData): Promise<string | null> {
-    const name = rec.name?.trim();
-    if (!name) return null;
+    const nm = rec.name?.trim();
+    if (!nm) return null;
 
-    const { data, error: upsertErr } = await supabase
+    const { data, error: upsertError } = await supabase
       .from("item_definitions")
       .upsert(
-        { name, description: rec.description ?? null, image: rec.image ?? null },
+        { name: nm, description: rec.description || null, image: rec.image || null },
         { onConflict: "name" }
       )
       .select("id")
       .single();
 
-    if (upsertErr) return null;
-    return data?.id ?? null;
+    if (upsertError || !data) return null;
+    return data.id;
   }
 
   const handlePublish = async () => {
@@ -170,18 +188,19 @@ export default function AdminManagementPage() {
 
     let ok = 0,
       fail = 0;
-    const fails: string[] = [];
+    const failMsgs: string[] = [];
 
     for (const rec of records) {
       if (!rec.name?.trim()) {
         fail++;
-        fails.push("רשומה חסרת שם מוזהב דולגה.");
+        failMsgs.push("רשומה חסרת שם מוזהב דולגה.");
         continue;
       }
+
       const defId = await getDefinitionId(rec);
       if (!defId) {
         fail++;
-        fails.push(`שגיאה עם "${rec.name}" (definition).`);
+        failMsgs.push(`שגיאה ביצירת definition עבור "${rec.name}".`);
         continue;
       }
 
@@ -189,51 +208,53 @@ export default function AdminManagementPage() {
         .from("item_listings")
         .select("id")
         .eq("item_id", defId)
-        .eq("publisher", rec.publisher ?? null)
-        .eq("date", rec.date ?? null)
+        .eq("publisher", rec.publisher || null)
+        .eq("date", rec.date || null)
         .maybeSingle();
 
       if (dupErr) {
         fail++;
-        fails.push(`שגיאה בבדיקת כפילות עבור "${rec.name}".`);
+        failMsgs.push(`שגיאה בבדיקה כפילות עבור "${rec.name}".`);
         continue;
       }
       if (dup) {
         fail++;
-        fails.push(`"${rec.name}" כבר קיים (כפילות).`);
+        failMsgs.push(`"${rec.name}" כבר קיים (כפילות).`);
         continue;
       }
 
       const { error: insErr } = await supabase.from("item_listings").insert({
         item_id: defId,
-        publisher: rec.publisher ?? null,
-        buyregular: rec.buyregular ?? null,
-        buygold: rec.buygold ?? null,
-        buydiamond: rec.buydiamond ?? null,
-        buyemerald: rec.buyemerald ?? null,
-        sellregular: rec.sellregular ?? null,
-        sellgold: rec.sellgold ?? null,
-        selldiamond: rec.selldiamond ?? null,
-        sellemerald: rec.sellemerald ?? null,
-        date: rec.date ?? null,
+        publisher: rec.publisher || null,
+        buyregular: rec.buyregular || null,
+        buygold: rec.buygold || null,
+        buydiamond: rec.buydiamond || null,
+        buyemerald: rec.buyemerald || null,
+        sellregular: rec.sellregular || null,
+        sellgold: rec.sellgold || null,
+        selldiamond: rec.selldiamond || null,
+        sellemerald: rec.sellemerald || null,
+        date: rec.date || null,
         admin_id: user.id,
       });
 
       if (insErr) {
         fail++;
-        fails.push(`שגיאה בהוספת "${rec.name}" לטבלת listings.`);
-      } else ok++;
+        failMsgs.push(`שגיאה בהוספת "${rec.name}" ל־listings.`);
+      } else {
+        ok++;
+      }
     }
 
+    // clear the input if we succeeded at least once
     if (ok) setInputData("");
 
     setMessage(
-      `${ok ? `✅ נוספו ${ok}` : ""}${ok && fail ? " • " : ""}${
-        fail ? `❌ נכשלו ${fail}` : ""
-      }`
+      `${ok ? `✅ נוספו ${ok}` : ""}${ok && fail ? " • " : ""}${fail ? `❌ נכשלו ${fail}` : ""}`
     );
-    setError(fails.join("\n"));
+    setError(failMsgs.join("\n"));
 
+    // ── critical: revalidate the edge‐cache tag so desktop & mobile see the same data ──
     if (ok) {
       try {
         await revalidateItemsCacheAction();
@@ -242,10 +263,11 @@ export default function AdminManagementPage() {
         setMessage((m) => m + " • ⚠️ שגיאה בעדכון המטמון.");
       }
     }
+
     setIsPublishing(false);
   };
 
-  /* ---------- Access guards ---------- */
+  // ── show loading state until we know the session status ──
   if (isLoading || !sessionInitiallyChecked) {
     return (
       <div className="admin-post-creation" style={{ marginTop: "2rem", textAlign: "center" }}>
@@ -255,6 +277,7 @@ export default function AdminManagementPage() {
     );
   }
 
+  // ── guard: only admins can access ──
   if (!user || !profile?.is_admin) {
     return (
       <div className="admin-post-creation" style={{ marginTop: "2rem", textAlign: "center" }}>
@@ -271,27 +294,27 @@ export default function AdminManagementPage() {
     );
   }
 
-  /* -------------------------------------------------
-    4️⃣  UI
-  -------------------------------------------------- */
+  // ── the main textarea + publish button ──
   return (
     <div className="admin-post-creation" style={{ marginTop: "2rem" }}>
       <h1>מערכת הוספת מוזהבים</h1>
 
-      {/* --- textarea + inline instructions (restored) --- */}
       <textarea
         value={inputData}
         onChange={(e) => setInputData(e.target.value)}
-        placeholder={`הזן JSON או טקסט חופשי. רשומות מפרידים בשורה ריקה ("enter enter").
-דוגמה לטקסט חופשי:
+        placeholder={`הזן JSON או טקסט חופשי. רשומות מפרידים ברווח ריק (שורה ריקה).
+
+דוגמה (טקסט חופשי):
+
 שם מוזהב: פריט לדוגמה חדש
 קנייה (רגיל): 1000
 מכירה (רגיל): 1200
 פורסם ע"י: אדמין בדיקה
 תאריך פרסום: 2025-05-17
-תיאור: זהו פריט בדיקה חדש להדגמת המערכת.
-תמונה: (אופציונלי) https://example.com/image.png
+תיאור: זהו פריט בדיקה
+תמונה: https://example.com/image.png
 
+(שורה ריקה)
 שם מוזהב: פריט נוסף
 קנייה (זהב): 50
 מכירה (יהלום): 300`}
@@ -311,8 +334,8 @@ export default function AdminManagementPage() {
       />
 
       <button
-        disabled={isPublishing || !inputData.trim()}
         onClick={handlePublish}
+        disabled={isPublishing || !inputData.trim()}
         style={{
           padding: "0.75rem 1.5rem",
           background: isPublishing || !inputData.trim() ? "#555" : "#4285f4",
