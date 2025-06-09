@@ -177,7 +177,7 @@ export default function TikSheliClient({
 
   /* ───────── DB: COLLECTION ───────── */
   const [collection, setCollection] = useState<CollectionRow[]>([]);
-  const fetchCollection = async () => {
+  const fetchCollection = useCallback(async () => {
     if (!user) return;
     const { data, error } = await supabase
       .from("tik_sheli_collections")
@@ -186,16 +186,11 @@ export default function TikSheliClient({
       .order("inserted_at", { ascending: false });
     if (error) console.error(error);
     else setCollection(data ?? []);
-  };
-
-  // 🔑 wrap in useCallback and depend on `user` only
-  const fetchCollectionCb = useCallback(() => {
-    fetchCollection();
   }, [user]);
 
   useEffect(() => {
-    fetchCollectionCb();
-  }, [fetchCollectionCb]);
+    fetchCollection();
+  }, [fetchCollection]);
 
   /* ───────── REMOVE ITEM ───────── */
   const handleRemove = async (row: CollectionRow) => {
@@ -224,7 +219,7 @@ export default function TikSheliClient({
         .update({ quantity: row.quantity - qty })
         .eq("id", row.id);
     }
-    fetchCollectionCb();
+    fetchCollection();
   };
 
   /* ───────── PRICING (discord + community blend) ───────── */
@@ -331,7 +326,7 @@ export default function TikSheliClient({
               : 1 - Math.min(Math.max(dep, -200), 100) / 100)
         );
 
-  const unitPriceOf = (r: CollectionRow) => {
+  const unitPriceOf = useCallback((r: CollectionRow) => {
     const base = blendedRegular[r.item_id];
     switch (r.item_type) {
       case "זהב":
@@ -343,7 +338,7 @@ export default function TikSheliClient({
       default:
         return base;
     }
-  };
+  }, [blendedRegular, depStats]);
 
   const fmtDate = (d?: string | null) =>
     d ? new Date(d).toLocaleString("he-IL") : "-";
@@ -363,7 +358,7 @@ export default function TikSheliClient({
         (sum, r) => (unitPriceOf(r) ?? 0) * r.quantity + sum,
         0
       ),
-    [collection, blendedRegular, depStats, unitPriceOf]
+    [collection, unitPriceOf]
   );
 
   /* ╭─────────────────────────── UI ───────────────────────────╮ */
