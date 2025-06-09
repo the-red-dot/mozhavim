@@ -6,6 +6,7 @@ import Link from "next/link";
 import { supabase } from "../lib/supabaseClient";
 import { useUser } from "../context/UserContext";
 import { revalidateItemsCacheAction } from "../actions";
+import { revalidatePath } from "next/cache"; // ← new
 
 /* -------------------------------------------------
   1️⃣  Type Definitions & Mappings
@@ -29,23 +30,22 @@ interface ParsedItemData {
 
 /**
  * Map the free-text Hebrew labels to our `ParsedItemData` keys.
- * NOTE: the apostrophe in ע"י is inside a double-quoted string, so TS is happy.
  */
 const fieldMapping: Record<string, keyof ParsedItemData> = {
-  "שם מוזהב":       "name",
-  "קנייה (רגיל)":   "buyregular",
-  "קנייה":          "buyregular",
-  "קנייה (זהב)":    "buygold",
-  "קנייה (יהלום)":  "buydiamond",
-  "קנייה (אמרלד)":  "buyemerald",
-  "מכירה (רגיל)":   "sellregular",
-  "מכירה (זהב)":    "sellgold",
-  "מכירה (יהלום)":  "selldiamond",
-  "מכירה (אמרלד)":  "sellemerald",
+  "שם מוזהב":      "name",
+  "קנייה (רגיל)":  "buyregular",
+  "קנייה":         "buyregular",
+  "קנייה (זהב)":   "buygold",
+  "קנייה (יהלום)": "buydiamond",
+  "קנייה (אמרלד)": "buyemerald",
+  "מכירה (רגיל)":  "sellregular",
+  "מכירה (זהב)":   "sellgold",
+  "מכירה (יהלום)": "selldiamond",
+  "מכירה (אמרלד)": "sellemerald",
   "פורסם ע\u05F4י": "publisher",
-  "תאריך פרסום":    "date",
-  "תמונה":          "image",
-  "תיאור":          "description",
+  "תאריך פרסום":   "date",
+  "תמונה":         "image",
+  "תיאור":         "description",
 };
 
 /** Only these keys are allowed in the final `ParsedItemData` */
@@ -76,14 +76,12 @@ function normalizeJsonRecord(
 
   for (const [rawKey, rawVal] of Object.entries(record)) {
     const key = rawKey.replace(/\s+/g, "").toLowerCase();
-    // find a matching allowed field
     for (const allowed of allowedFields) {
       if (allowed === key) {
-        const val =
+        out[allowed] =
           rawVal === "" || rawVal === "אין נתון" || rawVal == null
             ? null
             : String(rawVal);
-        out[allowed] = val;
       }
     }
   }
@@ -106,7 +104,6 @@ function parseFreeForm(block: string): ParsedItemData {
 }
 
 function parseJsonObjects(block: string): ParsedItemData[] {
-  // find all {...} fragments
   const rawMatches = block.match(/{[\s\S]*?}/g) || [];
   return rawMatches
     .map((str) => {
@@ -124,12 +121,10 @@ function parseRecords(text: string): ParsedItemData[] {
   const t = text.trim();
   if (!t) return [];
 
-  // free-form style if it contains our Hebrew marker
   if (t.includes("שם מוזהב:")) {
     return t.split(/\n\s*\n/).map(parseFreeForm);
   }
 
-  // JSON style
   if (t.startsWith("{") || t.startsWith("[")) {
     try {
       const parsed = JSON.parse(t);
@@ -246,19 +241,20 @@ export default function AdminManagementPage() {
       }
     }
 
-    // clear the input if we succeeded at least once
     if (ok) setInputData("");
-
     setMessage(
       `${ok ? `✅ נוספו ${ok}` : ""}${ok && fail ? " • " : ""}${fail ? `❌ נכשלו ${fail}` : ""}`
     );
     setError(failMsgs.join("\n"));
 
-    // ── critical: revalidate the edge‐cache tag so desktop & mobile see the same data ──
+    // ── CRITICAL: revalidate both the tag **and** the route ──
     if (ok) {
       try {
+        // 1) invalidate the edge-cache tag
         await revalidateItemsCacheAction();
-        setMessage((m) => m + " • ✅ מטמון הפריטים התעדכן.");
+        // 2) force revalidation of the search page so every edge node purges it
+        revalidatePath("/tik-sheli");
+        setMessage((m) => m + " • ✅ מטמון הפריטים והתוכן התעדכן.");
       } catch {
         setMessage((m) => m + " • ⚠️ שגיאה בעדכון המטמון.");
       }
@@ -267,7 +263,7 @@ export default function AdminManagementPage() {
     setIsPublishing(false);
   };
 
-  // ── show loading state until we know the session status ──
+  // ── Loading guard
   if (isLoading || !sessionInitiallyChecked) {
     return (
       <div className="admin-post-creation" style={{ marginTop: "2rem", textAlign: "center" }}>
@@ -277,7 +273,7 @@ export default function AdminManagementPage() {
     );
   }
 
-  // ── guard: only admins can access ──
+  // ── Admin-only guard
   if (!user || !profile?.is_admin) {
     return (
       <div className="admin-post-creation" style={{ marginTop: "2rem", textAlign: "center" }}>
@@ -294,7 +290,7 @@ export default function AdminManagementPage() {
     );
   }
 
-  // ── the main textarea + publish button ──
+  // ── Main UI
   return (
     <div className="admin-post-creation" style={{ marginTop: "2rem" }}>
       <h1>מערכת הוספת מוזהבים</h1>
@@ -302,10 +298,9 @@ export default function AdminManagementPage() {
       <textarea
         value={inputData}
         onChange={(e) => setInputData(e.target.value)}
-        placeholder={`הזן JSON או טקסט חופשי. רשומות מפרידים ברווח ריק (שורה ריקה).
+        placeholder={`הזן JSON או טקסט חופשי. רשומות מפרידים בשורה ריקה.
 
 דוגמה (טקסט חופשי):
-
 שם מוזהב: פריט לדוגמה חדש
 קנייה (רגיל): 1000
 מכירה (רגיל): 1200
