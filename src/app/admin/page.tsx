@@ -6,7 +6,6 @@ import Link from "next/link";
 import { supabase } from "../lib/supabaseClient";
 import { useUser } from "../context/UserContext";
 import { revalidateItemsCacheAction } from "../actions";
-import { revalidatePath } from "next/cache"; // ← new
 
 /* -------------------------------------------------
   1️⃣  Type Definitions & Mappings
@@ -28,27 +27,23 @@ interface ParsedItemData {
   [key: string]: string | null | undefined;
 }
 
-/**
- * Map the free-text Hebrew labels to our `ParsedItemData` keys.
- */
 const fieldMapping: Record<string, keyof ParsedItemData> = {
-  "שם מוזהב":      "name",
-  "קנייה (רגיל)":  "buyregular",
-  "קנייה":         "buyregular",
-  "קנייה (זהב)":   "buygold",
+  "שם מוזהב": "name",
+  "קנייה (רגיל)": "buyregular",
+  "קנייה": "buyregular",
+  "קנייה (זהב)": "buygold",
   "קנייה (יהלום)": "buydiamond",
   "קנייה (אמרלד)": "buyemerald",
-  "מכירה (רגיל)":  "sellregular",
-  "מכירה (זהב)":   "sellgold",
+  "מכירה (רגיל)": "sellregular",
+  "מכירה (זהב)": "sellgold",
   "מכירה (יהלום)": "selldiamond",
   "מכירה (אמרלד)": "sellemerald",
-  "פורסם ע\u05F4י": "publisher",
-  "תאריך פרסום":   "date",
-  "תמונה":         "image",
-  "תיאור":         "description",
+  'פורסם ע"י': "publisher",
+  "תאריך פרסום": "date",
+  "תמונה": "image",
+  "תיאור": "description",
 };
 
-/** Only these keys are allowed in the final `ParsedItemData` */
 const allowedFields = new Set<keyof ParsedItemData>([
   "name",
   "buyregular",
@@ -93,27 +88,23 @@ function parseFreeForm(block: string): ParsedItemData {
   block.split("\n").forEach((line) => {
     const [label, ...rest] = line.split(":");
     if (!label || rest.length === 0) return;
-    const trimmedLabel = label.trim();
-    const mappedKey = fieldMapping[trimmedLabel];
-    if (mappedKey && allowedFields.has(mappedKey)) {
-      const value = rest.join(":").trim();
-      out[mappedKey] = value === "" || value === "אין נתון" ? null : value;
+    const key = label.trim();
+    const mapped = fieldMapping[key];
+    if (mapped && allowedFields.has(mapped)) {
+      const val = rest.join(":").trim();
+      out[mapped] = val === "" || val === "אין נתון" ? null : val;
     }
   });
   return out;
 }
 
 function parseJsonObjects(block: string): ParsedItemData[] {
-  const rawMatches = block.match(/{[\s\S]*?}/g) || [];
-  return rawMatches
+  const matches = block.match(/{[\s\S]*?}/g) || [];
+  return matches
     .map((str) => {
-      try {
-        return JSON.parse(str);
-      } catch {
-        return null;
-      }
+      try { return JSON.parse(str); } catch { return null; }
     })
-    .filter((obj): obj is Record<string, unknown> => Boolean(obj))
+    .filter((o): o is Record<string, unknown> => Boolean(o))
     .map(normalizeJsonRecord);
 }
 
@@ -149,12 +140,12 @@ export default function AdminManagementPage() {
   const [error, setError] = useState("");
   const [isPublishing, setIsPublishing] = useState(false);
 
-  /** Upsert (definition) row and return its ID */
+  /** Upsert definition & return its ID */
   async function getDefinitionId(rec: ParsedItemData): Promise<string | null> {
     const nm = rec.name?.trim();
     if (!nm) return null;
 
-    const { data, error: upsertError } = await supabase
+    const { data, error: upsertErr } = await supabase
       .from("item_definitions")
       .upsert(
         { name: nm, description: rec.description || null, image: rec.image || null },
@@ -163,7 +154,7 @@ export default function AdminManagementPage() {
       .select("id")
       .single();
 
-    if (upsertError || !data) return null;
+    if (upsertErr || !data) return null;
     return data.id;
   }
 
@@ -181,8 +172,7 @@ export default function AdminManagementPage() {
       return;
     }
 
-    let ok = 0,
-      fail = 0;
+    let ok = 0, fail = 0;
     const failMsgs: string[] = [];
 
     for (const rec of records) {
@@ -209,7 +199,7 @@ export default function AdminManagementPage() {
 
       if (dupErr) {
         fail++;
-        failMsgs.push(`שגיאה בבדיקה כפילות עבור "${rec.name}".`);
+        failMsgs.push(`שגיאה בבדיקת כפילות עבור "${rec.name}".`);
         continue;
       }
       if (dup) {
@@ -219,23 +209,23 @@ export default function AdminManagementPage() {
       }
 
       const { error: insErr } = await supabase.from("item_listings").insert({
-        item_id: defId,
-        publisher: rec.publisher || null,
-        buyregular: rec.buyregular || null,
-        buygold: rec.buygold || null,
-        buydiamond: rec.buydiamond || null,
-        buyemerald: rec.buyemerald || null,
-        sellregular: rec.sellregular || null,
-        sellgold: rec.sellgold || null,
-        selldiamond: rec.selldiamond || null,
-        sellemerald: rec.sellemerald || null,
-        date: rec.date || null,
-        admin_id: user.id,
+        item_id:      defId,
+        publisher:    rec.publisher || null,
+        buyregular:   rec.buyregular   || null,
+        buygold:      rec.buygold      || null,
+        buydiamond:   rec.buydiamond   || null,
+        buyemerald:   rec.buyemerald   || null,
+        sellregular:  rec.sellregular  || null,
+        sellgold:     rec.sellgold     || null,
+        selldiamond:  rec.selldiamond  || null,
+        sellemerald:  rec.sellemerald  || null,
+        date:         rec.date         || null,
+        admin_id:     user.id,
       });
 
       if (insErr) {
         fail++;
-        failMsgs.push(`שגיאה בהוספת "${rec.name}" ל־listings.`);
+        failMsgs.push(`שגיאה בהוספת "${rec.name}".`);
       } else {
         ok++;
       }
@@ -247,14 +237,10 @@ export default function AdminManagementPage() {
     );
     setError(failMsgs.join("\n"));
 
-    // ── CRITICAL: revalidate both the tag **and** the route ──
     if (ok) {
       try {
-        // 1) invalidate the edge-cache tag
         await revalidateItemsCacheAction();
-        // 2) force revalidation of the search page so every edge node purges it
-        revalidatePath("/tik-sheli");
-        setMessage((m) => m + " • ✅ מטמון הפריטים והתוכן התעדכן.");
+        setMessage((m) => m + " • ✅ מטמון הפריטים התעדכן.");
       } catch {
         setMessage((m) => m + " • ⚠️ שגיאה בעדכון המטמון.");
       }
@@ -266,23 +252,23 @@ export default function AdminManagementPage() {
   // ── Loading guard
   if (isLoading || !sessionInitiallyChecked) {
     return (
-      <div className="admin-post-creation" style={{ marginTop: "2rem", textAlign: "center" }}>
+      <div style={{ textAlign: "center", marginTop: 32 }}>
         <h1>מערכת הוספת מוזהבים</h1>
         <p>טוען נתונים…</p>
       </div>
     );
   }
 
-  // ── Admin-only guard
+  // ── Admin guard
   if (!user || !profile?.is_admin) {
     return (
-      <div className="admin-post-creation" style={{ marginTop: "2rem", textAlign: "center" }}>
+      <div style={{ textAlign: "center", marginTop: 32 }}>
         <h1>מערכת הוספת מוזהבים</h1>
-        <p style={{ color: "#FF6B6B" }}>
+        <p style={{ color: "#E74C3C" }}>
           {!user ? "עליך להתחבר." : "אין לך הרשאות אדמין."}
         </p>
         {!user && (
-          <Link href="/auth" style={{ color: "#4285f4", textDecoration: "underline" }}>
+          <Link href="/auth" style={{ textDecoration: "underline", color: "#3498DB" }}>
             לדף התחברות
           </Link>
         )}
@@ -292,39 +278,32 @@ export default function AdminManagementPage() {
 
   // ── Main UI
   return (
-    <div className="admin-post-creation" style={{ marginTop: "2rem" }}>
+    <div style={{ margin: "2rem" }}>
       <h1>מערכת הוספת מוזהבים</h1>
 
       <textarea
         value={inputData}
         onChange={(e) => setInputData(e.target.value)}
-        placeholder={`הזן JSON או טקסט חופשי. רשומות מפרידים בשורה ריקה.
+        placeholder={`הזן JSON או טקסט חופשי. הפרד רשומות בשורה ריקה.
 
-דוגמה (טקסט חופשי):
-שם מוזהב: פריט לדוגמה חדש
+דוגמה:
+שם מוזהב: פריט חדש
 קנייה (רגיל): 1000
 מכירה (רגיל): 1200
-פורסם ע"י: אדמין בדיקה
+פורסם ע"י: אדמין
 תאריך פרסום: 2025-05-17
-תיאור: זהו פריט בדיקה
-תמונה: https://example.com/image.png
 
 (שורה ריקה)
-שם מוזהב: פריט נוסף
+שם מוזהב: עוד פריט
 קנייה (זהב): 50
 מכירה (יהלום): 300`}
         style={{
           width: "100%",
-          minHeight: "260px",
-          marginBottom: "1rem",
-          direction: "rtl",
-          whiteSpace: "pre-wrap",
-          padding: "10px",
+          minHeight: 200,
+          padding: 8,
+          fontSize: 14,
           boxSizing: "border-box",
-          backgroundColor: "var(--background-input, #1f1f1f)",
-          color: "var(--foreground-input, #ededed)",
-          border: "1px solid var(--border-color, #444)",
-          borderRadius: 4,
+          marginBottom: 12,
         }}
       />
 
@@ -332,27 +311,18 @@ export default function AdminManagementPage() {
         onClick={handlePublish}
         disabled={isPublishing || !inputData.trim()}
         style={{
-          padding: "0.75rem 1.5rem",
-          background: isPublishing || !inputData.trim() ? "#555" : "#4285f4",
+          padding: "0.5rem 1rem",
+          background: isPublishing || !inputData.trim() ? "#888" : "#2C3E50",
           color: "#fff",
           border: "none",
-          borderRadius: 4,
           cursor: isPublishing || !inputData.trim() ? "not-allowed" : "pointer",
         }}
       >
         {isPublishing ? "מפרסם…" : "פרסם פריטים"}
       </button>
 
-      {message && (
-        <p style={{ color: "var(--success-color, #34A853)", whiteSpace: "pre-wrap", marginTop: "1rem" }}>
-          {message}
-        </p>
-      )}
-      {error && (
-        <p style={{ color: "var(--error-color, #EA4335)", whiteSpace: "pre-wrap", marginTop: "0.5rem" }}>
-          {error}
-        </p>
-      )}
+      {message && <p style={{ color: "#27AE60", whiteSpace: "pre-wrap" }}>{message}</p>}
+      {error   && <p style={{ color: "#C0392B", whiteSpace: "pre-wrap" }}>{error}</p>}
     </div>
   );
 }
