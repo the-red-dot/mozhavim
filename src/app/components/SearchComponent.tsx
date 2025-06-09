@@ -124,10 +124,16 @@ export default function SearchComponent({
 
   /* hide dropdown on outside click */
   useEffect(() => {
-    const h = (e: MouseEvent) =>
-      box.current && !box.current.contains(e.target as Node) && showDrop(false);
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
+    const handleClickOutside = (e: MouseEvent) => {
+      if (box.current && !box.current.contains(e.target as Node)) {
+        showDrop(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, []);
 
   /* ------------------------------------------- selection-related memo’s */

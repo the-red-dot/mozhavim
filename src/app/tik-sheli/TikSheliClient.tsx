@@ -1,7 +1,8 @@
 // src/app/tik-sheli/TikSheliClient.tsx
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
+import Image from "next/image";
 import styles from "./TikSheliClient.module.css";
 import { useUser } from "../context/UserContext";
 import { supabase } from "../lib/supabaseClient";
@@ -104,17 +105,17 @@ export default function TikSheliClient({
     id: string,
     patch: Partial<{ quantity: number; item_type: Tier }>
   ) =>
-    setSelections((p) => ({
-      ...p,
+    setSelections((prev) => ({
+      ...prev,
       [id]: {
-        quantity: p[id]?.quantity ?? 0,
-        item_type: p[id]?.item_type ?? "רגיל",
+        quantity: prev[id]?.quantity ?? 0,
+        item_type: prev[id]?.item_type ?? "רגיל",
         ...patch,
       },
     }));
-  const changeQty = (id: string, d: number) =>
+  const changeQty = (id: string, delta: number) =>
     updateSelection(id, {
-      quantity: Math.max(0, (selections[id]?.quantity ?? 0) + d),
+      quantity: Math.max(0, (selections[id]?.quantity ?? 0) + delta),
     });
   const changeType = (id: string, t: Tier) =>
     updateSelection(id, { item_type: t });
@@ -126,7 +127,7 @@ export default function TikSheliClient({
       return;
     }
     const toSave = Object.entries(selections)
-      .filter(([, v]) => v.quantity)
+      .filter(([, v]) => v.quantity > 0)
       .map(([item_id, v]) => ({
         item_id,
         item_type: v.item_type,
@@ -144,9 +145,9 @@ export default function TikSheliClient({
       .select("item_id,item_type,quantity")
       .eq("user_id", user.id);
 
-    const prev: Record<string, number> = {};
+    const prevMap: Record<string, number> = {};
     (existing ?? []).forEach((r) => {
-      prev[`${r.item_id}|${r.item_type}`] = r.quantity;
+      prevMap[`${r.item_id}|${r.item_type}`] = r.quantity;
     });
 
     const rows = toSave.map(({ item_id, item_type, added }) => ({
@@ -156,7 +157,7 @@ export default function TikSheliClient({
       item_name:
         initialItems.find((x) => x.id === item_id)?.name ?? null,
       item_type,
-      quantity:  (prev[`${item_id}|${item_type}`] ?? 0) + added,
+      quantity:  (prevMap[`${item_id}|${item_type}`] ?? 0) + added,
     }));
 
     const { error } = await supabase
@@ -186,9 +187,15 @@ export default function TikSheliClient({
     if (error) console.error(error);
     else setCollection(data ?? []);
   };
-  useEffect(() => {
+
+  // 🔑 wrap in useCallback and depend on `user` only
+  const fetchCollectionCb = useCallback(() => {
     fetchCollection();
   }, [user]);
+
+  useEffect(() => {
+    fetchCollectionCb();
+  }, [fetchCollectionCb]);
 
   /* ───────── REMOVE ITEM ───────── */
   const handleRemove = async (row: CollectionRow) => {
@@ -217,7 +224,7 @@ export default function TikSheliClient({
         .update({ quantity: row.quantity - qty })
         .eq("id", row.id);
     }
-    fetchCollection();
+    fetchCollectionCb();
   };
 
   /* ───────── PRICING (discord + community blend) ───────── */
@@ -240,8 +247,8 @@ export default function TikSheliClient({
         .in("item_id", ids);
       const m: Record<string, QuotePoint[]> = {};
       data?.forEach((r) => {
-        const buy  = +r.buyregular?.replace(/[^\d]/g, "")! || NaN;
-        const sell = +r.sellregular?.replace(/[^\d]/g, "")! || NaN;
+        const buy  = +r.buyregular?.replace(/[^\d]/g, "") || NaN;
+        const sell = +r.sellregular?.replace(/[^\d]/g, "") || NaN;
         const p = !isNaN(buy) && !isNaN(sell)
           ? (buy + sell) / 2
           : !isNaN(buy)
@@ -356,7 +363,7 @@ export default function TikSheliClient({
         (sum, r) => (unitPriceOf(r) ?? 0) * r.quantity + sum,
         0
       ),
-    [collection, blendedRegular, depStats]
+    [collection, blendedRegular, depStats, unitPriceOf]
   );
 
   /* ╭─────────────────────────── UI ───────────────────────────╮ */
@@ -424,8 +431,7 @@ export default function TikSheliClient({
               const finalAllowed = allowedHeb.length ? allowedHeb : TIERS;
 
               const sel =
-                selections[item.id] ??
-                ({ quantity: 0, item_type: finalAllowed[0] });
+                selections[item.id] ?? { quantity: 0, item_type: finalAllowed[0] };
 
               if (!finalAllowed.includes(sel.item_type)) {
                 sel.item_type = finalAllowed[0];
@@ -439,10 +445,13 @@ export default function TikSheliClient({
                   }`}
                 >
                   {item.imageUrl ? (
-                    <img
+                    <Image
                       src={item.imageUrl}
                       alt={item.name}
                       className={styles.cardImage}
+                      width={160}
+                      height={120}
+                      unoptimized
                     />
                   ) : (
                     <div className={styles.cardPlaceholder} />
@@ -508,7 +517,11 @@ export default function TikSheliClient({
           <>
             <ul className={styles.list}>
               {collection.map((row) => {
-                const meta = initialItems.find((i) => i.id === row.item_id)!;
+                const meta = initialItems.find((i) => i.id === row.item_id);
+                if (!meta) {
+                  console.warn(`Item metadata missing for id=${row.item_id}`);
+                  return null;
+                }
                 const unit = unitPriceOf(row);
                 const total = unit != null ? unit * row.quantity : null;
 
@@ -518,10 +531,13 @@ export default function TikSheliClient({
                     className={`${styles.listItem} ${bgClass(row.item_type)}`}
                   >
                     {meta.imageUrl ? (
-                      <img
+                      <Image
                         src={meta.imageUrl}
                         alt={meta.name}
                         className={styles.listImage}
+                        width={64}
+                        height={64}
+                        unoptimized
                       />
                     ) : (
                       <div className={styles.listPlaceholder} />

@@ -26,9 +26,15 @@ interface Props {
   itemName: string;
   discordAverage: number;
   expectedPrices: ExpectedPrices;
-  /** NEW: only these tiers may be assumed */
+  /** only these tiers may be assumed */
   allowedTiers: TierKey[];
 }
+
+/** Typed row for inserting assumptions */
+type AssumptionRow = {
+  item_name: string;
+  user_id: string;
+} & Partial<Record<TierKey, number | null>>;
 
 /* ╭──────────────────────────╮
    │      PriceOpinion        │
@@ -52,7 +58,7 @@ export default function PriceOpinion({
   const [nextVoteTime, setNextVoteTime] = useState<Date | null>(null);
   const [selectedVote, setSelectedVote] = useState<string | null>(null);
 
-  const [assumptions, setAssumptions] = useState<Record<TierKey,string>>({
+  const [assumptions, setAssumptions] = useState<Record<TierKey, string>>({
     regular: "",
     gold: "",
     diamond: "",
@@ -78,8 +84,8 @@ export default function PriceOpinion({
     const counts = { reasonable: 0, too_low: 0, too_high: 0 };
     data?.forEach((v) => {
       if (v.vote === "reasonable") counts.reasonable++;
-      if (v.vote === "too_low")   counts.too_low++;
-      if (v.vote === "too_high")  counts.too_high++;
+      if (v.vote === "too_low") counts.too_low++;
+      if (v.vote === "too_high") counts.too_high++;
     });
     setVoteCounts(counts);
   }
@@ -138,22 +144,28 @@ export default function PriceOpinion({
 
     // parse inputs
     const parse = (s: string) => (s.trim() ? +s.replace(/,/g, "") : null);
-    const vals: Record<TierKey, number|null> = {
+    const vals: Record<TierKey, number | null> = {
       regular: parse(assumptions.regular),
-      gold:    parse(assumptions.gold),
+      gold: parse(assumptions.gold),
       diamond: parse(assumptions.diamond),
       emerald: parse(assumptions.emerald),
     };
 
     // base on discord/community blend
-    const base: Record<TierKey, number|null> = {
-      regular: expectedPrices.regular  ?? discordAverage,
-      gold:    expectedPrices.gold     ?? (discordAverage > 0 ? discordAverage * 4  : null),
-      diamond: expectedPrices.diamond  ?? (discordAverage > 0 ? discordAverage * 16 : null),
-      emerald: expectedPrices.emerald  ?? (discordAverage > 0 ? discordAverage * 64 : null),
+    const base: Record<TierKey, number | null> = {
+      regular: expectedPrices.regular ?? discordAverage,
+      gold:
+        expectedPrices.gold ??
+        (discordAverage > 0 ? discordAverage * 4 : null),
+      diamond:
+        expectedPrices.diamond ??
+        (discordAverage > 0 ? discordAverage * 16 : null),
+      emerald:
+        expectedPrices.emerald ??
+        (discordAverage > 0 ? discordAverage * 64 : null),
     };
 
-    // validate only **allowed** tiers
+    // validate only allowed tiers
     for (const tier of allowedTiers) {
       const v = vals[tier];
       const b = base[tier];
@@ -162,7 +174,9 @@ export default function PriceOpinion({
         const max = 2.0 * b;
         if (v < min || v > max) {
           setErrorMsg(
-            `ערך ${TIER_LABEL_HE[tier]} לא סביר (הטווח ${Math.round(min)}–${Math.round(max)})`
+            `ערך ${TIER_LABEL_HE[tier]} לא סביר (הטווח ${Math.round(
+              min
+            )}–${Math.round(max)})`
           );
           return;
         }
@@ -179,8 +193,8 @@ export default function PriceOpinion({
 
       const { error } = await supabase.from("votes").insert({
         item_name: itemName,
-        user_id:   user.id,
-        vote:      selectedVote,
+        user_id: user.id,
+        vote: selectedVote,
       });
       if (error) {
         console.error("insert vote:", error.message);
@@ -194,18 +208,15 @@ export default function PriceOpinion({
     }
 
     /* 3.3 save assumptions only for allowed tiers */
-    const row: Record<string, any> = {
+    const row: AssumptionRow = {
       item_name: itemName,
-      user_id:   user.id,
+      user_id: user.id,
     };
     allowedTiers.forEach((tier) => {
       row[tier] = vals[tier];
     });
 
-    const { error: err2 } = await supabase
-      .from("assumptions")
-      .insert(row);
-
+    const { error: err2 } = await supabase.from("assumptions").insert(row);
     if (err2) {
       console.error("insert assumption:", err2.message);
       setErrorMsg("שגיאה בשמירת ההשערה.");
@@ -274,7 +285,6 @@ export default function PriceOpinion({
       {showForm && (
         <div className="assumption-form">
           <p>הזן הערכת מחיר (לא חובה):</p>
-
           {allowedTiers.map((tier) => (
             <label key={tier}>
               {TIER_LABEL_HE[tier]}:
@@ -288,7 +298,6 @@ export default function PriceOpinion({
               />
             </label>
           ))}
-
           <button onClick={handleConfirm}>אישור</button>
         </div>
       )}
