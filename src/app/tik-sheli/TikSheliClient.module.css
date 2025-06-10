@@ -299,6 +299,15 @@
   box-shadow: none;
 }
 
+@media (max-width: 600px) {
+  .wrapper > section {
+    width: 90%;
+    margin: 2rem auto;    /* less top margin, centered */
+    padding: 1rem;        /* some inner breathing room */
+  }
+}
+
+
 .wrapper > section > h2 {
   color: var(--text-light-color);
   border-bottom: 3px solid var(--primary-color);
