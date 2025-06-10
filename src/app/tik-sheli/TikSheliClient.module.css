@@ -457,3 +457,34 @@
   white-space: nowrap;
   border-width: 0;
 }
+
+/* 1. On tablets and small desktops, allow ~3 columns */
+@media (max-width: 768px) {
+  .addGrid {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  }
+}
+
+/* 2. On narrow phones, fallback to two columns */
+@media (max-width: 480px) {
+  .addGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Shrink & stack list items on small screens */
+@media (max-width: 600px) {
+  .listItem {
+    flex-direction: column;     /* stack the image + info vertically */
+    align-items: flex-start;    /* left-align content */
+    padding: 1rem;              /* more internal spacing */
+  }
+  .itemInfo {
+    font-size: 0.9rem;          /* slightly smaller text */
+    line-height: 1.4;           /* improve readability */
+    padding-top: 0.5rem;        /* space above text */
+  }
+  .removeBtn {
+    align-self: flex-end;       /* keep ❌ in top-right of card */
+  }
+}

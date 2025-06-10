@@ -218,14 +218,15 @@ body {
   color: var(--foreground); /* Ensure title color is consistent */
 }
 
+/* src/app/globals.css */
 .item-image {
-  width: 400px;    /* Define the width of the image container */
-  height: 300px;   /* Define the height of the image container */
-  object-fit: contain; /* Scales the image to fit within the container while maintaining its aspect ratio. */
-                       /* Use 'cover' if you want to fill the container, possibly cropping the image. */
+  display: block;
+  margin: 10px auto 15px auto;
+  width: 100%;
+  max-width: 400px;
+  height: auto;
+  object-fit: contain;
   border-radius: 8px;
-  margin: 10px auto 15px auto; /* Center image and add more bottom margin */
-  display: block; /* Ensure margin auto works for centering */
 }
 
 /* --- START: Updated Price Presentation Styles --- */
