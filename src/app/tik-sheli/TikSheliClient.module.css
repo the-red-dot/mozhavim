@@ -458,22 +458,15 @@
   border-width: 0;
 }
 
-/* ─── Tablets & small desktops: 4 columns ─── */
+/* 1. On tablets and small desktops, allow ~3 columns */
 @media (max-width: 768px) {
   .addGrid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
   }
 }
 
-/* ─── Phones ~375–480px wide: 3 columns ─── */
+/* 2. On narrow phones, fallback to two columns */
 @media (max-width: 480px) {
-  .addGrid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-/* ─── Very narrow (under ~360px): 2 columns ─── */
-@media (max-width: 360px) {
   .addGrid {
     grid-template-columns: repeat(2, 1fr);
   }
