@@ -406,14 +406,17 @@
 }
 
 .removeBtn {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
   background: transparent;
   border: none;
   color: var(--error-color);
   font-size: 1.5rem;
-  margin: 0 1rem;
   cursor: pointer;
   transition: color 0.2s ease, transform 0.15s ease;
 }
+
 .removeBtn:hover {
   color: var(--error-hover-color);
   transform: scale(1.1);
@@ -499,10 +502,6 @@
     text-align: center;
     font-size: 0.9rem;
     line-height: 1.4;
-  }
-
-  .removeBtn {
-    align-self: flex-end;
   }
 
   .totalSummary {             /* UPDATED padding */
