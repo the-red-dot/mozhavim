@@ -299,15 +299,6 @@
   box-shadow: none;
 }
 
-@media (max-width: 600px) {
-  .wrapper > section {
-    width: 90%;
-    margin: 2rem auto;    /* less top margin, centered */
-    padding: 1rem;        /* some inner breathing room */
-  }
-}
-
-
 .wrapper > section > h2 {
   color: var(--text-light-color);
   border-bottom: 3px solid var(--primary-color);
@@ -481,19 +472,42 @@
   }
 }
 
-/* Shrink & stack list items on small screens */
 @media (max-width: 600px) {
+  .wrapper {
+    padding: 1rem;
+  }
+
+  .wrapper > section {
+    width: auto;
+    padding: 1rem;
+  }
+
   .listItem {
-    flex-direction: column;     /* stack the image + info vertically */
-    align-items: flex-start;    /* left-align content */
-    padding: 1rem;              /* more internal spacing */
+    width: 100%;
+    flex-direction: column;
+    align-items: center;
   }
+
+  .listImage {
+    margin: 0 auto 1rem;
+  }
+
   .itemInfo {
-    font-size: 0.9rem;          /* slightly smaller text */
-    line-height: 1.4;           /* improve readability */
-    padding-top: 0.5rem;        /* space above text */
+    text-align: center;
+    font-size: 0.9rem;
+    line-height: 1.4;
   }
+
   .removeBtn {
-    align-self: flex-end;       /* keep ❌ in top-right of card */
+    align-self: flex-end;
+  }
+
+  .totalSummary {
+    width: 100%;
+    box-sizing: border-box;
+    margin: 2rem 0 0;
+    padding: 0rem;
   }
 }
+
+
