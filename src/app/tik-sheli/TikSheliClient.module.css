@@ -35,7 +35,7 @@
 /* ───────── Grid for Add-Item Cards ───────── */
 .addGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 1.5rem;
   margin-bottom: 2.5rem;
 }
@@ -458,15 +458,22 @@
   border-width: 0;
 }
 
-/* 1. On tablets and small desktops, allow ~3 columns */
+/* ─── Tablets & small desktops: 4 columns ─── */
 @media (max-width: 768px) {
   .addGrid {
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    grid-template-columns: repeat(4, 1fr);
   }
 }
 
-/* 2. On narrow phones, fallback to two columns */
+/* ─── Phones ~375–480px wide: 3 columns ─── */
 @media (max-width: 480px) {
+  .addGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* ─── Very narrow (under ~360px): 2 columns ─── */
+@media (max-width: 360px) {
   .addGrid {
     grid-template-columns: repeat(2, 1fr);
   }
