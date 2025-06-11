@@ -21,7 +21,7 @@ type Tier = (typeof TIERS)[number];
 /** Map English → Hebrew tier labels (matches DB <-> UI) */
 const TIER_EN2HE: Record<string, Tier> = {
   regular: "רגיל",
-  gold:    "זהב",
+  gold: "זהב",
   diamond: "יהלום",
   emerald: "אמרלד",
 };
@@ -44,7 +44,7 @@ type CollectionRow = {
 };
 
 export interface GeneralDepreciationStats {
-  average_gold_depreciation:    number | null;
+  average_gold_depreciation: number | null;
   average_diamond_depreciation: number | null;
   average_emerald_depreciation: number | null;
 }
@@ -93,32 +93,28 @@ export default function TikSheliClient({
   /* ───────── WALLET control ───────── */
   const [isWalletOpen, setIsWalletOpen] = useState(false);
 
-  /* ───────── ADD-ITEM local state ───────── */
+  /* ───────── ADD-ITEM local state ─────────
+     selections: { itemId → { tier → qty } }
+     currentTier: which tier dropdown is showing for each item card          */
   const [selections, setSelections] = useState<
-    Record<string, { quantity: number; item_type: Tier }>
+    Record<string, Record<Tier, number>>
   >({});
+  const [currentTier, setCurrentTier] = useState<Record<string, Tier>>({});
+
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [isAddItemListOpen, setIsAddItemListOpen] = useState(false);
 
-  const updateSelection = (
-    id: string,
-    patch: Partial<{ quantity: number; item_type: Tier }>
-  ) =>
-    setSelections((prev) => ({
-      ...prev,
-      [id]: {
-        quantity: prev[id]?.quantity ?? 0,
-        item_type: prev[id]?.item_type ?? "רגיל",
-        ...patch,
-      },
-    }));
-  const changeQty = (id: string, delta: number) =>
-    updateSelection(id, {
-      quantity: Math.max(0, (selections[id]?.quantity ?? 0) + delta),
+  /* ---------- helpers to mutate selections ---------- */
+  const setTierQty = (itemId: string, tier: Tier, qty: number) =>
+    setSelections((prev) => {
+      const byTier = { ...(prev[itemId] ?? {}) };
+      byTier[tier] = Math.max(0, qty);
+      return { ...prev, [itemId]: byTier };
     });
-  const changeType = (id: string, t: Tier) =>
-    updateSelection(id, { item_type: t });
+
+  const totalQtyForItem = (itemId: string) =>
+    Object.values(selections[itemId] ?? {}).reduce((s, v) => s + v, 0);
 
   /* ───────── DB: SAVE ITEMS ───────── */
   const handleSave = async () => {
@@ -126,17 +122,19 @@ export default function TikSheliClient({
       setMessage("יש להתחבר כדי לשמור פריטים.");
       return;
     }
-    const toSave = Object.entries(selections)
-      .filter(([, v]) => v.quantity > 0)
-      .map(([item_id, v]) => ({
-        item_id,
-        item_type: v.item_type,
-        added: v.quantity,
-      }));
+
+    // flatten selections → array of rows to save
+    const toSave = Object.entries(selections).flatMap(([item_id, byTier]) =>
+      (Object.entries(byTier) as [Tier, number][])
+        .filter(([, qty]) => qty > 0)
+        .map(([item_type, added]) => ({ item_id, item_type, added }))
+    );
+
     if (!toSave.length) {
       setMessage("בחר לפחות פריט אחד לפני השמירה.");
       return;
     }
+
     setIsSaving(true);
     setMessage(null);
 
@@ -151,13 +149,12 @@ export default function TikSheliClient({
     });
 
     const rows = toSave.map(({ item_id, item_type, added }) => ({
-      user_id:   user.id,
+      user_id: user.id,
       user_name: userName,
       item_id,
-      item_name:
-        initialItems.find((x) => x.id === item_id)?.name ?? null,
+      item_name: initialItems.find((x) => x.id === item_id)?.name ?? null,
       item_type,
-      quantity:  (prevMap[`${item_id}|${item_type}`] ?? 0) + added,
+      quantity: (prevMap[`${item_id}|${item_type}`] ?? 0) + added,
     }));
 
     const { error } = await supabase
@@ -169,6 +166,7 @@ export default function TikSheliClient({
       setMessage("אירעה שגיאה בשמירה.");
     } else {
       setSelections({});
+      setCurrentTier({});
       fetchCollection();
       setMessage("✅ נשמר בהצלחה!");
     }
@@ -209,10 +207,7 @@ export default function TikSheliClient({
     }
 
     if (qty === row.quantity) {
-      await supabase
-        .from("tik_sheli_collections")
-        .delete()
-        .eq("id", row.id);
+      await supabase.from("tik_sheli_collections").delete().eq("id", row.id);
     } else {
       await supabase
         .from("tik_sheli_collections")
@@ -242,7 +237,7 @@ export default function TikSheliClient({
         .in("item_id", ids);
       const m: Record<string, QuotePoint[]> = {};
       data?.forEach((r) => {
-        const buy  = +r.buyregular?.replace(/[^\d]/g, "") || NaN;
+        const buy = +r.buyregular?.replace(/[^\d]/g, "") || NaN;
         const sell = +r.sellregular?.replace(/[^\d]/g, "") || NaN;
         const p = !isNaN(buy) && !isNaN(sell)
           ? (buy + sell) / 2
@@ -260,9 +255,7 @@ export default function TikSheliClient({
 
     // community assumptions
     (async () => {
-      const names = initialItems
-        .filter((i) => ids.includes(i.id))
-        .map((i) => i.name);
+      const names = initialItems.filter((i) => ids.includes(i.id)).map((i) => i.name);
       const { data } = await supabase
         .from("assumptions")
         .select("item_name,regular")
@@ -280,8 +273,8 @@ export default function TikSheliClient({
     collection.forEach((row) => {
       const meta = initialItems.find((i) => i.id === row.item_id);
       if (!meta) return;
-      const pts   = discordPts[row.item_id] ?? [];
-      const ewma  = representativePrice(pts);
+      const pts = discordPts[row.item_id] ?? [];
+      const ewma = representativePrice(pts);
       const disSt = consensusStats(pts.map((p) => p.price));
       if (ewma != null) disSt.price = ewma;
       const comSt = consensusStats(communityVals[meta.name] ?? []);
@@ -306,9 +299,11 @@ export default function TikSheliClient({
       .then(({ data }) => {
         if (data) {
           setDepStats({
-            average_gold_depreciation:    data.average_gold_depreciation    ?? null,
-            average_diamond_depreciation: data.average_diamond_depreciation ?? null,
-            average_emerald_depreciation: data.average_emerald_depreciation ?? null,
+            average_gold_depreciation: data.average_gold_depreciation ?? null,
+            average_diamond_depreciation:
+              data.average_diamond_depreciation ?? null,
+            average_emerald_depreciation:
+              data.average_emerald_depreciation ?? null,
           });
         }
       });
@@ -326,19 +321,30 @@ export default function TikSheliClient({
               : 1 - Math.min(Math.max(dep, -200), 100) / 100)
         );
 
-  const unitPriceOf = useCallback((r: CollectionRow) => {
-    const base = blendedRegular[r.item_id];
-    switch (r.item_type) {
-      case "זהב":
-        return tierPrice(base, 4, depStats?.average_gold_depreciation ?? null);
-      case "יהלום":
-        return tierPrice(base, 16, depStats?.average_diamond_depreciation ?? null);
-      case "אמרלד":
-        return tierPrice(base, 64, depStats?.average_emerald_depreciation ?? null);
-      default:
-        return base;
-    }
-  }, [blendedRegular, depStats]);
+  const unitPriceOf = useCallback(
+    (r: CollectionRow) => {
+      const base = blendedRegular[r.item_id];
+      switch (r.item_type) {
+        case "זהב":
+          return tierPrice(base, 4, depStats?.average_gold_depreciation ?? null);
+        case "יהלום":
+          return tierPrice(
+            base,
+            16,
+            depStats?.average_diamond_depreciation ?? null
+          );
+        case "אמרלד":
+          return tierPrice(
+            base,
+            64,
+            depStats?.average_emerald_depreciation ?? null
+          );
+        default:
+          return base;
+      }
+    },
+    [blendedRegular, depStats]
+  );
 
   const fmtDate = (d?: string | null) =>
     d ? new Date(d).toLocaleString("he-IL") : "-";
@@ -353,11 +359,7 @@ export default function TikSheliClient({
       : styles.bgRegular;
 
   const bagTotal = useMemo(
-    () =>
-      collection.reduce(
-        (sum, r) => (unitPriceOf(r) ?? 0) * r.quantity + sum,
-        0
-      ),
+    () => collection.reduce((sum, r) => (unitPriceOf(r) ?? 0) * r.quantity + sum, 0),
     [collection, unitPriceOf]
   );
 
@@ -379,9 +381,7 @@ export default function TikSheliClient({
             onClick={() => setIsWalletOpen(true)}
             role="button"
             tabIndex={0}
-            onKeyDown={(e) =>
-              ["Enter", " "].includes(e.key) && setIsWalletOpen(true)
-            }
+            onKeyDown={(e) => ["Enter", " "].includes(e.key) && setIsWalletOpen(true)}
           >
             <span className={styles.plusIcon}>+</span>
             <span className={styles.openItemsText}>הוסף ארנק</span>
@@ -425,19 +425,14 @@ export default function TikSheliClient({
                 .filter((h): h is Tier => TIERS.includes(h));
               const finalAllowed = allowedHeb.length ? allowedHeb : TIERS;
 
-              const sel =
-                selections[item.id] ?? { quantity: 0, item_type: finalAllowed[0] };
-
-              if (!finalAllowed.includes(sel.item_type)) {
-                sel.item_type = finalAllowed[0];
-              }
+              const tier = currentTier[item.id] ?? finalAllowed[0];
+              const qty = selections[item.id]?.[tier] ?? 0;
+              const active = totalQtyForItem(item.id) > 0;
 
               return (
                 <div
                   key={item.id}
-                  className={`${styles.card} ${
-                    sel.quantity ? styles.cardActive : ""
-                  }`}
+                  className={`${styles.card} ${active ? styles.cardActive : ""}`}
                 >
                   {item.imageUrl ? (
                     <Image
@@ -456,9 +451,12 @@ export default function TikSheliClient({
 
                   <select
                     className={styles.select}
-                    value={sel.item_type}
+                    value={tier}
                     onChange={(e) =>
-                      changeType(item.id, e.target.value as Tier)
+                      setCurrentTier((c) => ({
+                        ...c,
+                        [item.id]: e.target.value as Tier,
+                      }))
                     }
                   >
                     {finalAllowed.map((t) => (
@@ -471,15 +469,15 @@ export default function TikSheliClient({
                   <div className={styles.qtyControls}>
                     <button
                       className={styles.qtyBtn}
-                      disabled={!sel.quantity}
-                      onClick={() => changeQty(item.id, -1)}
+                      disabled={qty === 0}
+                      onClick={() => setTierQty(item.id, tier, qty - 1)}
                     >
                       –
                     </button>
-                    <div>{sel.quantity}</div>
+                    <div>{qty}</div>
                     <button
                       className={styles.qtyBtn}
-                      onClick={() => changeQty(item.id, +1)}
+                      onClick={() => setTierQty(item.id, tier, qty + 1)}
                     >
                       +
                     </button>
@@ -491,9 +489,7 @@ export default function TikSheliClient({
 
           <button
             className={`${styles.saveBtn} ${
-              user && !isSaving
-                ? styles.saveBtnEnabled
-                : styles.saveBtnDisabled
+              user && !isSaving ? styles.saveBtnEnabled : styles.saveBtnDisabled
             }`}
             onClick={handleSave}
             disabled={!user || isSaving}
