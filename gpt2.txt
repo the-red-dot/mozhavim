@@ -1,0 +1,3489 @@
+this are all the project script are you ready for your task?
+
+Folder: src
+    Folder: app
+        Folder: components
+            File: TraderPanel.module.css
+                Code:
+                /* src/app/components/TraderPanel.module.css */
+                /* ╭──────────────────────────────────────────────────────────╮
+                   │  TraderPanel – trading UI (FULL stylesheet, v5-responsive) │
+                   ╰──────────────────────────────────────────────────────────╯*/
+                
+                /* ─── Section 1 – Panel Shell ────────────────────────────── */
+                .tradePanel {
+                  width: 100%;
+                  max-width: 950px;
+                  margin: 2rem auto;
+                  padding: 2rem 1.5rem;
+                  border: 1px solid #303030;
+                
+                  display: flex;        /* row on desktop … */
+                  flex-wrap: wrap;      /* … but allow children to wrap */
+                  gap: 3rem;
+                  justify-content: center; /* centre when they wrap */
+                  box-sizing: border-box;
+                }
+                
+                /* ─── Section 2 – Side Containers ────────────────────────── */
+                .tradeSide {
+                  flex: 1 1 420px;      /* grows, but never shrinks below ~420 px */
+                  min-width: 320px;     /* keeps 3×3 grid from squeezing too much */
+                  background: transparent;
+                  border: none;
+                  padding: 0;
+                  box-sizing: border-box;
+                }
+                
+                .tradeSide h3 {
+                  margin: 0 0 0.75rem;
+                  font-size: 1.35rem;
+                  color: var(--text-light-color);
+                  text-align: center;
+                }
+                
+                /* ─── Section 3 – Grid & Cells ───────────────────────────── */
+                .tradeGrid {
+                  display: grid;
+                  grid-template-columns: repeat(3, 108px);
+                  grid-auto-rows: 108px;
+                  gap: 0.75rem;
+                  justify-content: center;
+                }
+                
+                /* base cell */
+                .tradeSlot {
+                  width: 108px;
+                  height: 108px;
+                  background: #1a1a1a;
+                  border: 1px solid #454545;
+                  border-radius: var(--border-radius-sm);
+                  position: relative;
+                  padding: 0.35rem;
+                  box-sizing: border-box;
+                  text-align: center;
+                }
+                
+                /* empty cell (dashed) */
+                .empty {
+                  background: #1a1a1a;
+                  border: 1px dashed #555;
+                }
+                
+                /* --- cell content --- */
+                .tradeSlot img {
+                  width: 82%;
+                  height: 64%;
+                  object-fit: contain;
+                  display: block;
+                  margin: 0 auto;
+                }
+                
+                .tradePlaceholder {
+                  width: 100%;
+                  height: 100%;
+                  background: #0003;
+                  border-radius: inherit;
+                }
+                
+                .tradeName {
+                  display: block; 
+                  font-size: 0.78rem;
+                  font-weight: 700; 
+                  color: var(--game-text-color);
+                  white-space: nowrap;
+                  overflow: hidden;
+                  text-overflow: ellipsis;
+                }
+                
+                .tradeTier {
+                  display: block; 
+                  font-size: 0.68rem;
+                  font-weight: 400;
+                  color: var(--game-text-secondary-color);
+                  margin-top: 0.05rem; 
+                }
+                
+                .tradeQty {
+                  position: absolute;
+                  bottom: 4px;
+                  left: 4px;
+                  font-size: 0.72rem;
+                  color: var(--game-text-secondary-color);
+                }
+                
+                /* ─── Section 4 – Remove (✕) Button ─────────────────────── */
+                .tradeRemove {
+                  position: absolute;
+                  top: 2px;
+                  right: 2px;
+                  background: transparent;
+                  border: none;
+                  color: var(--error-color);
+                  font-size: 1rem;
+                  cursor: pointer;
+                }
+                
+                /* ─── Section 5 – Cash & Summary ─────────────────────────── */
+                .tradeCash {
+                  margin-top: 1.25rem;
+                  text-align: center;
+                }
+                
+                .tradeCash label {
+                  font-size: 1rem;
+                  display: inline-block;
+                  color: var(--text-light-color);
+                }
+                
+                .tradeCash input {
+                  display: block;
+                  margin: 0.4rem auto 0;
+                  width: 200px;
+                  max-width: 100%;
+                  padding: 0.45rem 0.6rem;
+                  border-radius: var(--border-radius-sm);
+                  background: #ffffff;
+                  border: 1px solid #555;
+                  color: #000;
+                  font-weight: 600;
+                  text-align: right;
+                }
+                
+                .tradeSummary {
+                  margin-top: 0.9rem;
+                  font-size: 1rem;
+                  color: var(--text-light-color);
+                  text-align: center;
+                  line-height: 1.35;
+                }
+                
+                /* ─── Section 6 – Result Area ────────────────────────────── */
+                .tradeResult {
+                  /* force it onto its own row below the two sides */
+                  flex: 0 0 100%;
+                  margin-top: 2.5rem;
+                  text-align: center;
+                }
+                
+                .tradeResult button {
+                  padding: 0.9rem 2.4rem;
+                  background: #ff0050;
+                  border: none;
+                  border-radius: var(--border-radius-md);
+                  color: #fff;
+                  cursor: pointer;
+                  font-size: 1.15rem;
+                  font-weight: 700;
+                  transition: opacity 0.15s ease;
+                }
+                
+                .tradeResult button:disabled {
+                  opacity: 0.4;
+                  cursor: not-allowed;
+                }
+                
+                .tradeResult button:hover:not(:disabled) {
+                  opacity: 0.85;
+                }
+                
+                .tradeResult p {
+                  margin-top: 1rem;   /* little gap under the button */
+                  font-size: 1.6rem;
+                  font-weight: 700;
+                  color: var(--text-light-color);
+                }
+                
+                /* ─── Section 7 – Tiny “add to trade” Btn ───────────────── */
+                .tradeSmallBtn {
+                  padding: 0.28rem 0.7rem;
+                  font-size: 0.78rem;
+                  background: var(--game-item-border);
+                  border: none;
+                  border-radius: var(--border-radius-sm);
+                  color: var(--text-light-color);
+                  cursor: pointer;
+                  transition: background 0.2s ease;
+                }
+                
+                .tradeSmallBtn:hover {
+                  background: var(--primary-hover-color);
+                }
+                
+                /* ─── Section 8 – Tier Borders ───────────────────────────── */
+                .tierGold    { border: 2px solid var(--tier-gold-accent);    }
+                .tierDiamond { border: 2px solid var(--tier-diamond-accent); }
+                .tierEmerald { border: 2px solid var(--tier-emerald-accent); }
+                
+                /* ─── Section 9 – Responsive tweaks ──────────────────────── */
+                @media (max-width: 680px) {
+                  /* stack sides vertically instead of wrapping in two columns */
+                  .tradePanel {
+                    flex-direction: column;
+                    gap: 2rem;
+                  }
+                
+                  .tradeSide {
+                    flex: 1 1 auto;
+                    min-width: 0;               /* allow it to shrink further */
+                  }
+                
+                  /* keep cells readable but a bit smaller */
+                  .tradeGrid {
+                    grid-template-columns: repeat(3, 92px);
+                    grid-auto-rows: 92px;
+                  }
+                
+                  .tradeSlot {
+                    width: 92px;
+                    height: 92px;
+                  }
+                }
+                
+                /* ─── Section 10 – Result Modal ─────────────────────────── */
+                .resultModalBackdrop {
+                  position: fixed;
+                  inset: 0;
+                  background: #0009;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  z-index: 1100;
+                  animation: fadeIn 0.25s ease;
+                }
+                
+                .resultModal {
+                  position: relative;
+                  background: #1c1c1c;
+                  border: 2px solid #ff0050;
+                  border-radius: var(--border-radius-md);
+                  padding: 2rem 2.5rem 2.2rem;
+                  max-width: 90vw;
+                  width: 420px;
+                  text-align: center;
+                  animation: popIn 0.25s ease;
+                }
+                
+                .modalClose {
+                  position: absolute;
+                  top: 6px;
+                  right: 8px;
+                  background: transparent;
+                  border: none;
+                  font-size: 1.4rem;
+                  color: #fff;
+                  cursor: pointer;
+                }
+                
+                .emoji {
+                  font-size: 3rem;
+                  margin-bottom: 1rem;
+                }
+                
+                .resultText {
+                  font-size: 1.15rem;
+                  color: var(--text-light-color);
+                  line-height: 1.45;
+                  white-space: pre-wrap;
+                }
+                
+                /* simple anims */
+                @keyframes fadeIn {
+                  from { opacity: 0; } to { opacity: 1; }
+                }
+                @keyframes popIn {
+                  from { transform: scale(0.8); opacity: 0; }
+                  to   { transform: scale(1);   opacity: 1; }
+                }
+                /* ─── End Section 10 ────────────────────────────────────── */
+            File: TraderPanel.tsx
+                Code:
+                // src/app/components/TraderPanel.tsx
+                
+                // ─── Section 1: Imports ───────────────────────────────────
+                "use client";
+                
+                import { Fragment, useState, useEffect } from "react";
+                import Image       from "next/image";
+                import confetti    from "canvas-confetti";
+                import {
+                  useTrade,
+                  type AllowedTier,
+                }                 from "../context/TradeContext";
+                import styles      from "./TraderPanel.module.css";
+                // ─── End Section 1 ────────────────────────────────────────
+                
+                
+                
+                // ─── Section 2: Component Definition & Hooks ─────────────
+                export default function TraderPanel() {
+                  const { buy, sell, removeItem, setCash, totals } = useTrade();
+                
+                  /* popup-modal state */
+                  const [open,   setOpen] = useState(false);
+                  const [profit, setP]    = useState(0);
+                
+                  /* confetti + SFX (runs only in the browser) */
+                  useEffect(() => {
+                    if (!open) return;
+                
+                    confetti({ particleCount: 180, spread: 80, origin: { y: 0.6 } });
+                
+                    /* mini “ding” (~150 ms, inline WAV) */
+                    const au = new Audio(
+                      "data:audio/wav;base64,UklGRkQAAABXQVZFZm10IBAAAAABAAEAIlYAAESsAAACABAAZGF0YQgAAAABA"
+                    );
+                    au.volume = 0.55;
+                    au.play().catch(() => {});
+                  }, [open]);
+                // ─── End Section 2 ────────────────────────────────────────
+                
+                
+                
+                // ─── Section 3: UI Rendering & Logic ──────────────────────
+                /* tier → Hebrew label */
+                const TIER_LABELS: Record<AllowedTier, string> = {
+                  regular: "רגיל",
+                  gold:    "זהב",
+                  diamond: "יהלום",
+                  emerald: "אמרלד",
+                };
+                
+                /* verdict helpers */
+                const verdictText = (p: number) =>
+                  p >= 0
+                    ? `הרווח שלך מהטרייד עשוי להיות:\n${p.toLocaleString()} ₪`
+                    : `ההפסד שלך מהטרייד עשוי להיות:\n${Math.abs(p).toLocaleString()} ₪`;
+                
+                const verdictEmoji = (p: number) => {
+                  const abs  = Math.abs(p);
+                  const plus = p >= 0;
+                  if (abs < 1_000)  return plus ? "😀" : "😕";
+                  if (abs < 10_000) return plus ? "🤩" : "😖";
+                  if (abs < 50_000) return plus ? "🥳" : "😩";
+                  return plus ? "🤯" : "😭";
+                };
+                
+                /* helper: does side contain *any* value? */
+                const sideHasValue = (s: ReturnType<typeof useTrade>["buy"]) =>
+                  s.items.length > 0 || s.cash > 0;
+                
+                /* render one trade side */
+                function renderSide(
+                  side   : "buy" | "sell",
+                  title  : string,
+                  state  : ReturnType<typeof useTrade>["buy"],
+                  remove : typeof removeItem,
+                  cashFn : typeof setCash
+                ) {
+                  const itemsValue = state.items.reduce(
+                    (sum, it) => sum + it.unitPrice * it.quantity,
+                    0
+                  );
+                  const totalValue = itemsValue + state.cash;
+                
+                  return (
+                    <div className={styles.tradeSide}>
+                      <h3>{title}</h3>
+                
+                      <div className={styles.tradeGrid}>
+                        {state.items.map((it, idx) => {
+                          const tierClass =
+                            it.tier === "gold"
+                              ? styles.tierGold
+                              : it.tier === "diamond"
+                              ? styles.tierDiamond
+                              : it.tier === "emerald"
+                              ? styles.tierEmerald
+                              : "";
+                
+                          return (
+                            <div
+                              key={`${side}-${idx}`}
+                              className={`${styles.tradeSlot} ${tierClass}`}
+                            >
+                              {it.imageUrl ? (
+                                <Image
+                                  src={it.imageUrl}
+                                  alt={it.name}
+                                  width={64}
+                                  height={64}
+                                  unoptimized
+                                />
+                              ) : (
+                                <div className={styles.tradePlaceholder} />
+                              )}
+                
+                              <span className={styles.tradeName}>{it.name}</span>
+                              <span className={styles.tradeTier}>{TIER_LABELS[it.tier]}</span>
+                              {it.quantity > 1 && (
+                                <span className={styles.tradeQty}>x{it.quantity}</span>
+                              )}
+                
+                              <button
+                                className={styles.tradeRemove}
+                                onClick={() => remove(side, idx)}
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          );
+                        })}
+                
+                        {/* pad to 9 slots */}
+                        {Array.from({ length: 9 - state.items.length }).map((_, i) => (
+                          <div
+                            key={`empty-${i}`}
+                            className={`${styles.tradeSlot} ${styles.empty}`}
+                          />
+                        ))}
+                      </div>
+                
+                      {/* cash input */}
+                      <div className={styles.tradeCash}>
+                        <label>
+                          מזומן (₪):
+                          <input
+                            type="number"
+                            min={0}
+                            value={state.cash}
+                            onChange={(e) => cashFn(side, +e.target.value)}
+                          />
+                        </label>
+                      </div>
+                
+                      {/* side summary */}
+                      <p className={styles.tradeSummary}>
+                        שווי מוזהבים: {itemsValue.toLocaleString()} ₪
+                        <br />
+                        מזומן: {state.cash.toLocaleString()} ₪
+                        <br />
+                        סה&quot;כ: {totalValue.toLocaleString()} ₪
+                      </p>
+                    </div>
+                  );
+                }
+                
+                return (
+                  <Fragment>
+                    <div className={styles.tradePanel}>
+                      {renderSide("buy",  "קנייה (הצד השני)", buy,  removeItem, setCash)}
+                      {renderSide("sell", "מכירה (שלי)",      sell, removeItem, setCash)}
+                
+                      <div className={styles.tradeResult}>
+                        <button
+                          /* enabled when BOTH sides contain either items or cash */
+                          disabled={!(sideHasValue(buy) && sideHasValue(sell))}
+                          onClick={() => {
+                            setP(totals.profit);
+                            setOpen(true);
+                          }}
+                        >
+                          שווה לי?
+                        </button>
+                      </div>
+                    </div>
+                
+                    {open && (
+                      <div className={styles.resultModalBackdrop}>
+                        <div className={styles.resultModal}>
+                          <button
+                            className={styles.modalClose}
+                            onClick={() => setOpen(false)}
+                          >
+                            ✕
+                          </button>
+                          <div className={styles.emoji}>{verdictEmoji(profit)}</div>
+                          <p className={styles.resultText}>{verdictText(profit)}</p>
+                        </div>
+                      </div>
+                    )}
+                  </Fragment>
+                );
+                // ─── End Section 3 ────────────────────────────────────────
+                }
+        Folder: context
+            File: TradeContext.tsx
+                Code:
+                // src/app/context/TradeContext.tsx
+                
+                // ─── Section 1: Imports ───────────────────────────────────
+                "use client";
+                
+                import React, {
+                  createContext,
+                  useContext,
+                  useState,
+                  useMemo,
+                  useEffect,
+                  ReactNode,
+                } from "react";
+                import { supabase } from "../lib/supabaseClient";
+                import { useUser } from "../context/UserContext";
+                // ─── End Section 1 ────────────────────────────────────────
+                
+                
+                
+                // ─── Section 2: Types & Constants ─────────────────────────
+                export type AllowedTier = "regular" | "gold" | "diamond" | "emerald";
+                
+                /** One catalogue entry placed inside a trade-slot */
+                export interface TradeItem {
+                  itemId:    string;            // PK (item_definitions)
+                  name:      string;
+                  imageUrl:  string | null;
+                  tier:      AllowedTier;
+                  quantity:  number;
+                  unitPrice: number;            // ₪ – calculated when the item is added
+                }
+                
+                /** State for one side of the trade (buy / sell) */
+                export interface TradeSideState {
+                  items: TradeItem[];
+                  cash:  number;                // ₪ typed in the cash-input
+                }
+                
+                /** Everything exposed by <TradeProvider> via useTrade() */
+                interface TradeContextValue {
+                  /* live state for each side */
+                  buy:  TradeSideState;         // “קנייה”  – the other player (what we GET)
+                  sell: TradeSideState;         // “מכירה” – us          (what we GIVE)
+                
+                  /* actions */
+                  addItem:    (side: "buy" | "sell", item: TradeItem) => boolean;
+                  removeItem: (side: "buy" | "sell", index: number)  => void;
+                  setCash:    (side: "buy" | "sell", amount: number) => void;
+                
+                  /* commission-free game-pass flag (true ⇒ 0 % tax on cash) */
+                  commissionFree: boolean;
+                  setCommissionFree: (free: boolean) => void;
+                
+                  /* numbers for the UI (button “שווה לי?”) */
+                  totals: {
+                    buy:    number;   // value we get      – ₪
+                    sell:   number;   // value we give     – ₪
+                    profit: number;   // buy − sell        – ₪
+                  };
+                }
+                
+                const MAX_PER_SIDE = 9;
+                // ─── End Section 2 ────────────────────────────────────────
+                
+                
+                
+                // ─── Section 3: Context Creation ──────────────────────────
+                const TradeContext = createContext<TradeContextValue | undefined>(undefined);
+                // ─── End Section 3 ────────────────────────────────────────
+                
+                
+                
+                // ─── Section 4: <TradeProvider> Component ─────────────────
+                export function TradeProvider({ children }: { children: ReactNode }) {
+                  /* ---------- state (slots & cash) ----------------------- */
+                  const [buy,  setBuy ] = useState<TradeSideState>({ items: [], cash: 0 });
+                  const [sell, setSell] = useState<TradeSideState>({ items: [], cash: 0 });
+                
+                  /* ---------- commission-free flag (hydrate from wallet) -- */
+                  const [commissionFree, setCommissionFree] = useState(false);
+                  const { user } = useUser();
+                
+                  useEffect(() => {
+                    (async () => {
+                      if (!user) {
+                        setCommissionFree(false);
+                        return;
+                      }
+                      const { data, error } = await supabase
+                        .from("wallets")
+                        .select("has_commission_free_gamepass")
+                        .eq("user_id", user.id)
+                        .maybeSingle();
+                
+                      if (error) console.error("wallet fetch failed:", error);
+                      setCommissionFree(Boolean(data?.has_commission_free_gamepass));
+                    })();
+                  }, [user]);
+                  /* Wallet.tsx also calls setCommissionFree() right after
+                     a save, so the UI updates instantly and this fetch is
+                     merely for hydration on refresh/login.                  */
+                
+                  /* ---------- public actions ----------------------------- */
+                  const addItem = (side: "buy" | "sell", item: TradeItem): boolean => {
+                    const setter = side === "buy" ? setBuy : setSell;
+                
+                    let added = false;
+                    setter(prev => {
+                      if (prev.items.length >= MAX_PER_SIDE) return prev;      // hard cap = 9
+                      added = true;
+                      return { ...prev, items: [...prev.items, item] };
+                    });
+                    return added;
+                  };
+                
+                  const removeItem = (side: "buy" | "sell", index: number) => {
+                    const setter = side === "buy" ? setBuy : setSell;
+                    setter(prev => ({
+                      ...prev,
+                      items: prev.items.filter((_, i) => i !== index),
+                    }));
+                  };
+                
+                  const setCash = (side: "buy" | "sell", amount: number) => {
+                    const setter = side === "buy" ? setBuy : setSell;
+                    setter(prev => ({ ...prev, cash: Math.max(0, amount) }));
+                  };
+                
+                  /* ---------- totals (memoised) -------------------------- *
+                   * Rule (when no game-pass):
+                   *   • We VALUE the other player's cash after the 20 % fee
+                   *   • We incur the FULL cost of any cash we give
+                   *   • Items are always at face value                      */
+                  const totals = useMemo(() => {
+                    const recvCoeff = commissionFree ? 1 : 0.8;
+                
+                    const itemsVal = (arr: TradeItem[]) =>
+                      arr.reduce((sum, it) => sum + it.unitPrice * it.quantity, 0);
+                
+                    const buyValue  = itemsVal(buy.items)  + buy.cash  * recvCoeff; // what we GET
+                    const sellValue = itemsVal(sell.items) + sell.cash;            // what we GIVE
+                
+                    return {
+                      buy:    buyValue,
+                      sell:   sellValue,
+                      profit: buyValue - sellValue,
+                    };
+                  }, [buy, sell, commissionFree]);
+                
+                  /* ---------- context obj -------------------------------- */
+                  const ctx: TradeContextValue = {
+                    buy,
+                    sell,
+                    commissionFree,
+                    setCommissionFree,
+                    addItem,
+                    removeItem,
+                    setCash,
+                    totals,
+                  };
+                
+                  return <TradeContext.Provider value={ctx}>{children}</TradeContext.Provider>;
+                }
+                // ─── End Section 4 ────────────────────────────────────────
+                
+                
+                
+                // ─── Section 5: useTrade Hook ─────────────────────────────
+                export function useTrade() {
+                  const ctx = useContext(TradeContext);
+                  if (!ctx) throw new Error("useTrade must be used inside <TradeProvider>.");
+                  return ctx;
+                }
+                // ─── End Section 5 ────────────────────────────────────────
+            File: UserContext.tsx
+                Code:
+                // src/app/context/UserContext.tsx
+                "use client";
+                
+                import React, { createContext, useState, useContext, useEffect, ReactNode, useCallback, useRef } from "react";
+                import { supabase } from "../lib/supabaseClient";
+                import { User } from "@supabase/supabase-js"; // Removed unused Session import
+                
+                export type UserProfile = {
+                  id: string;
+                  email: string;
+                  username: string;
+                  is_admin: boolean;
+                  updated_at: string;
+                };
+                
+                type UserContextValue = {
+                  user: User | null;
+                  profile: UserProfile | null;
+                  isLoading: boolean;
+                  sessionInitiallyChecked: boolean;
+                  logout: () => Promise<void>;
+                };
+                
+                const UserContext = createContext<UserContextValue>({
+                  user: null,
+                  profile: null,
+                  isLoading: true,
+                  sessionInitiallyChecked: false,
+                  logout: async () => {},
+                });
+                
+                export function UserProvider({ children }: { children: ReactNode }) {
+                  const [user, setUser] = useState<User | null>(null);
+                  const [profile, setProfile] = useState<UserProfile | null>(null);
+                  const [loadingUserSession, setLoadingUserSession] = useState(true);
+                  const [loadingUserProfile, setLoadingUserProfile] = useState(false);
+                  const [sessionInitiallyChecked, setSessionInitiallyChecked] = useState(false);
+                
+                  const currentUserIdRef = useRef<string | null>(null);
+                
+                  const fetchUserProfile = useCallback(async (userId: string) => {
+                    setLoadingUserProfile(true);
+                    setProfile(prevProfile => {
+                        if (prevProfile?.id === userId) return prevProfile;
+                        return null;
+                    });
+                
+                    try {
+                      const { data: profileData, error: profileError } = await supabase
+                        .from("profiles")
+                        .select("*")
+                        .eq("id", userId)
+                        .single();
+                
+                      if (profileError) {
+                        console.error(`UserContext: Error fetching profile for user ${userId}: ${profileError.message}`, profileError);
+                        setProfile(null);
+                      } else {
+                        setProfile(profileData as UserProfile || null);
+                      }
+                    } catch (e: unknown) { // Changed from 'any' to 'unknown'
+                      const errorMessage = e instanceof Error ? e.message : String(e);
+                      console.error(`UserContext: Exception fetching profile for user ${userId}: ${errorMessage}`, e);
+                      setProfile(null);
+                    } finally {
+                      setLoadingUserProfile(false);
+                    }
+                  }, []); 
+                
+                  useEffect(() => {
+                    setLoadingUserSession(true);
+                    // setSessionInitiallyChecked(false); // This was already part of the onAuthStateChange logic for INITIAL_SESSION
+                
+                    supabase.auth.getSession().then(async ({ data: { session }, error: sessionGetError }) => {
+                      if (sessionGetError) {
+                        console.error("UserContext: Error in initial getSession():", sessionGetError.message);
+                      }
+                      const initialUser = session?.user ?? null;
+                      currentUserIdRef.current = initialUser?.id ?? null;
+                      setUser(initialUser);
+                      
+                      if (initialUser) {
+                        await fetchUserProfile(initialUser.id);
+                      } else {
+                        setProfile(null);
+                        setLoadingUserProfile(false); 
+                      }
+                      setLoadingUserSession(false);
+                      if (!sessionInitiallyChecked) { // Set only if not already set by onAuthStateChange quickly
+                        setSessionInitiallyChecked(true);
+                      }
+                    }).catch(err => {
+                        const errorMessage = err instanceof Error ? err.message : String(err);
+                        console.error("UserContext: Catch block for initial getSession():", errorMessage);
+                        currentUserIdRef.current = null;
+                        setUser(null);
+                        setProfile(null);
+                        setLoadingUserSession(false);
+                        setLoadingUserProfile(false);
+                        if (!sessionInitiallyChecked) {
+                         setSessionInitiallyChecked(true);
+                        }
+                    });
+                
+                    const { data: authListener } = supabase.auth.onAuthStateChange(
+                      async (event, session) => {
+                        const newAuthUser = session?.user ?? null;
+                        const newUserId = newAuthUser?.id ?? null;
+                        const previousUserId = currentUserIdRef.current;
+                
+                        if (newUserId !== previousUserId) {
+                          setLoadingUserSession(true); 
+                          currentUserIdRef.current = newUserId;
+                          setUser(newAuthUser); 
+                
+                          if (newAuthUser) {
+                            await fetchUserProfile(newAuthUser.id);
+                          } else {
+                            setProfile(null); 
+                            setLoadingUserProfile(false); 
+                          }
+                          setLoadingUserSession(false);
+                        } else if (newAuthUser && event === "USER_UPDATED") {
+                          setUser(newAuthUser); 
+                          await fetchUserProfile(newAuthUser.id); 
+                        } else if (newAuthUser && event === "TOKEN_REFRESHED") {
+                          setUser(newAuthUser); 
+                          setLoadingUserSession(false);
+                          setLoadingUserProfile(false);
+                        } else if (!newAuthUser && previousUserId) {
+                            currentUserIdRef.current = null;
+                            setUser(null);
+                            setProfile(null);
+                            setLoadingUserSession(false);
+                            setLoadingUserProfile(false);
+                        }
+                        
+                        // Ensure sessionInitiallyChecked is set reliably after the first relevant event
+                        if (!sessionInitiallyChecked && (event === "INITIAL_SESSION" || event === "SIGNED_IN" || (event === "SIGNED_OUT" && !newAuthUser))) {
+                            setSessionInitiallyChecked(true);
+                        }
+                      }
+                    );
+                
+                    return () => {
+                      authListener.subscription.unsubscribe();
+                    };
+                  }, [fetchUserProfile, sessionInitiallyChecked]); // Added sessionInitiallyChecked to dependency array
+                
+                  const handleLogout = async () => {
+                    const { error } = await supabase.auth.signOut();
+                    if (error) {
+                      console.error("UserContext: Error during sign out:", error.message);
+                      currentUserIdRef.current = null;
+                      setUser(null);
+                      setProfile(null);
+                      setLoadingUserSession(false);
+                      setLoadingUserProfile(false);
+                    }
+                  };
+                
+                  const overallIsLoading = !sessionInitiallyChecked || loadingUserSession || (!!user && loadingUserProfile);
+                 
+                  return (
+                    <UserContext.Provider value={{
+                      user,
+                      profile,
+                      isLoading: overallIsLoading,
+                      sessionInitiallyChecked,
+                      logout: handleLogout,
+                    }}>
+                      {children}
+                    </UserContext.Provider>
+                  );
+                }
+                
+                export function useUser() {
+                  const context = useContext(UserContext);
+                  if (context === undefined) {
+                    throw new Error("useUser must be used within a UserProvider");
+                  }
+                  return context;
+                }
+        Folder: lib
+            File: depreciationService.ts
+                Code:
+                // ─────────────────────────────────────────────────────────────
+                // src/app/lib/depreciationService.ts
+                // Keeps a cached, periodically-refreshed “global depreciation” snapshot
+                // ─────────────────────────────────────────────────────────────
+                /* ─── Section 1: Imports ──────────────────────────────────── */
+                import { supabase } from "./supabaseClient";
+                import { unstable_cache as nextCache } from "next/cache";
+                
+                /* ─── End Section 1 ───────────────────────────────────────── */
+                
+                /* ─── Section 2: Constants ───────────────────────────────── */
+                const DEPRECIATION_STATS_ID = "current_summary";
+                const ONE_WEEK_IN_MS = 7 * 24 * 60 * 60 * 1000;
+                
+                /* ─── End Section 2 ───────────────────────────────────────── */
+                
+                /* ─── Section 3: Types ───────────────────────────────────── */
+                /* 3-A  Listing-view item shape */
+                export interface Item {
+                  id: string;
+                  name: string;
+                  description: string;
+                  image: string;
+                
+                  /* listing-level data (may be null if no listing) */
+                  buyregular: string | null;
+                  buygold: string | null;
+                  buydiamond: string | null;
+                  buyemerald: string | null;
+                  sellregular: string | null;
+                  sellgold: string | null;
+                  selldiamond: string | null;
+                  sellemerald: string | null;
+                  publisher: string | null;
+                  date: string | null;
+                  admin_id: string | null;
+                  inserted_at: string;
+                
+                  /** 🆕 unique per‐listing primary key (was added to the view) */
+                  listing_id?: string;
+                }
+                
+                /* 3-B  Depreciation snapshot rows */
+                export interface DepreciationStats {
+                  id: string;
+                  total_items_from_source: number;
+                  items_with_valid_regular_price: number;
+                  average_gold_depreciation: number;
+                  gold_items_count: number;
+                  average_diamond_depreciation: number;
+                  diamond_items_count: number;
+                  average_emerald_depreciation: number;
+                  emerald_items_count: number;
+                  updated_at: string; // ISO
+                }
+                export type NewDepreciationStats = Omit<
+                  DepreciationStats,
+                  "id" | "updated_at"
+                >;
+                
+                export type StatsSourceType =
+                  | "DATABASE"
+                  | "NEWLY CALCULATED"
+                  | "DATABASE (STALE - ITEM FETCH FAILED)"
+                  | "DEFAULT (ERROR/NO DATA)";
+                
+                  /* ─── End Section 3 ───────────────────────────────────────── */
+                
+                  /* ─── Section 4: Utility – price parser ──────────────────── */
+                /* ╭──────────────────────────────────────────╮
+                   │  Helper : string → number, tolerant      │
+                   ╰──────────────────────────────────────────╯ */
+                const parsePrice = (priceString: string | null): number | null => {
+                  if (priceString == null) return null;
+                  const cleaned = `${priceString}`.replace(/₪|,/g, "").trim();
+                  const n = parseFloat(cleaned);
+                  return Number.isFinite(n) ? n : null;
+                };
+                
+                /* ─── End Section 4 ───────────────────────────────────────── */
+                
+                /* ─── Section 5: Cached fetch of items_flat view ─────────── */
+                const getCachedItems = nextCache(
+                  async () => {
+                    console.log(
+                      "depreciationService.getCachedItems: querying items_flat for cache…"
+                    );
+                
+                    const { data, error } = await supabase.from("items_flat").select("*");
+                    if (error) {
+                      console.error(
+                        "depreciationService.getCachedItems: DB error:",
+                        error.message
+                      );
+                      return { items: [] as Item[], error: error.message };
+                    }
+                
+                    console.log(
+                      "depreciationService.getCachedItems: fetched",
+                      data?.length || 0,
+                      "rows"
+                    );
+                    return { items: (data ?? []) as Item[], error: null };
+                  },
+                  ["items_flat_data_v1"],
+                  { tags: ["items"] }
+                );
+                
+                /* ─── End Section 5 ───────────────────────────────────────── */
+                
+                /* ─── Section 6: Maths – calculate depreciation summary ──── */
+                /* ╭──────────────────────────────────────────────╮
+                   │  Pure maths – one pass over all listings      │
+                   ╰──────────────────────────────────────────────╯ */
+                const calculateDepreciationSummary = (
+                  items: Item[]
+                ): NewDepreciationStats => {
+                  console.log(
+                    "\ndepreciationService.calculateDepreciationSummary: START CALCULATION"
+                  );
+                
+                  const gold: number[] = [];
+                  const diamond: number[] = [];
+                  const emerald: number[] = [];
+                  let itemsWithData = 0;
+                
+                  if (!items.length) {
+                    console.log("… no items at all – return zeros.");
+                    return {
+                      total_items_from_source: 0,
+                      items_with_valid_regular_price: 0,
+                      average_gold_depreciation: 0,
+                      gold_items_count: 0,
+                      average_diamond_depreciation: 0,
+                      diamond_items_count: 0,
+                      average_emerald_depreciation: 0,
+                      emerald_items_count: 0,
+                    };
+                  }
+                
+                  items.forEach((it) => {
+                    const p = parsePrice(it.buyregular);
+                    if (p == null || p <= 0) return;
+                
+                    itemsWithData++;
+                
+                    const maxG = p * 4;
+                    const maxD = p * 16;
+                    const maxE = p * 64;
+                
+                    const pushIf = (arr: number[], actual: number | null, max: number) => {
+                      if (actual == null || !max) return;
+                      const dep = 100 * (1 - actual / max);
+                      if (Number.isFinite(dep)) arr.push(dep);
+                    };
+                
+                    pushIf(gold, parsePrice(it.buygold), maxG);
+                    pushIf(diamond, parsePrice(it.buydiamond), maxD);
+                    pushIf(emerald, parsePrice(it.buyemerald), maxE);
+                  });
+                
+                  const avg = (a: number[]) =>
+                    a.length ? a.reduce((s, v) => s + v, 0) / a.length : 0;
+                
+                  const out: NewDepreciationStats = {
+                    total_items_from_source: items.length,
+                    items_with_valid_regular_price: itemsWithData,
+                    average_gold_depreciation: avg(gold),
+                    gold_items_count: gold.length,
+                    average_diamond_depreciation: avg(diamond),
+                    diamond_items_count: diamond.length,
+                    average_emerald_depreciation: avg(emerald),
+                    emerald_items_count: emerald.length,
+                  };
+                
+                  console.log(
+                    "depreciationService.calculateDepreciationSummary: END CALCULATION",
+                    out
+                  );
+                  return out;
+                };
+                
+                /* ─── End Section 6 ───────────────────────────────────────── */
+                
+                /* ─── Section 7: Tiny DB helpers ─────────────────────────── */
+                async function getDepreciationStatsFromDB(): Promise<DepreciationStats | null> {
+                  const { data, error } = await supabase
+                    .from("depreciation_stats")
+                    .select("*")
+                    .eq("id", DEPRECIATION_STATS_ID)
+                    .single();
+                
+                  if (error && error.code !== "PGRST116") {
+                    console.error(
+                      "depreciationService.getDepreciationStatsFromDB: error",
+                      error.message
+                    );
+                    return null;
+                  }
+                  return (data as DepreciationStats) ?? null;
+                }
+                
+                async function storeDepreciationStatsInDB(
+                  stats: NewDepreciationStats
+                ): Promise<DepreciationStats | null> {
+                  const payload: DepreciationStats = {
+                    ...stats,
+                    id: DEPRECIATION_STATS_ID,
+                    updated_at: new Date().toISOString(),
+                  };
+                
+                  const { data, error } = await supabase
+                    .from("depreciation_stats")
+                    .upsert(payload, { onConflict: "id" })
+                    .select()
+                    .single();
+                
+                  if (error) {
+                    console.error(
+                      "depreciationService.storeDepreciationStatsInDB: error",
+                      error.message
+                    );
+                    return null;
+                  }
+                  return data as DepreciationStats;
+                }
+                
+                /* ─── End Section 7 ───────────────────────────────────────── */
+                
+                /* ─── Section 8: Defaults & Public API ───────────────────── */
+                const EMPTY_STATS: NewDepreciationStats & { updated_at?: string } = {
+                  total_items_from_source: 0,
+                  items_with_valid_regular_price: 0,
+                  average_gold_depreciation: 0,
+                  gold_items_count: 0,
+                  average_diamond_depreciation: 0,
+                  diamond_items_count: 0,
+                  average_emerald_depreciation: 0,
+                  emerald_items_count: 0,
+                };
+                
+                /* ╭──────────────────────────────────────────╮
+                   │  Public: fetch + manage + cache snapshot │
+                   ╰──────────────────────────────────────────╯ */
+                export async function fetchAndManageDepreciationStats(): Promise<{
+                  data: DepreciationStats | NewDepreciationStats;
+                  source: StatsSourceType;
+                  itemFetchError?: string;
+                }> {
+                  let current: DepreciationStats | NewDepreciationStats = { ...EMPTY_STATS };
+                  let src: StatsSourceType = "DEFAULT (ERROR/NO DATA)";
+                  let recalc = true;
+                  let listError: string | undefined;
+                
+                  /* 1️⃣ maybe use DB */
+                  const existing = await getDepreciationStatsFromDB();
+                  if (existing) {
+                    const age = Date.now() - new Date(existing.updated_at).getTime();
+                    if (age < ONE_WEEK_IN_MS) {
+                      current = existing;
+                      src = "DATABASE";
+                      recalc = false;
+                    }
+                  }
+                
+                  /* 2️⃣ recalc if needed */
+                  if (recalc) {
+                    const { items, error } = await getCachedItems();
+                
+                    if (error) {
+                      listError = error;
+                      if (existing) {
+                        current = existing;
+                        src = "DATABASE (STALE - ITEM FETCH FAILED)";
+                      }
+                    } else if (items.length) {
+                      const fresh = calculateDepreciationSummary(items);
+                      const saved = await storeDepreciationStatsInDB(fresh);
+                      current = saved ?? fresh;
+                      src = "NEWLY CALCULATED";
+                    } else if (existing) {
+                      current = existing;
+                      src = "DATABASE (STALE - ITEM FETCH FAILED)";
+                    }
+                  }
+                
+                  console.log(
+                    `depreciationService: returning summary (source = ${src}) – total ${current.total_items_from_source}`
+                  );
+                  return { data: current, source: src, itemFetchError: listError };
+                }
+                
+                /* ---------- re-export for SearchComponent ---------- */
+                export { getCachedItems as getSearchComponentItems };
+                /* ─── End Section 8 ───────────────────────────────────────── */
+            File: itemsService.ts
+                Code:
+                // src/app/lib/itemsService.ts
+                // ─────────────────────────────────────────────────────────────
+                // itemsService – one-stop “item catalogue” layer with edge-cache
+                // ─────────────────────────────────────────────────────────────
+                import { unstable_cache as nextCache, revalidateTag } from "next/cache";
+                import { supabase } from "./supabaseClient";
+                
+                /* ---------- constants ---------- */
+                export const CATALOGUE_TAG = "item_catalogue"; // ⚠️ keep in-sync with admin action
+                
+                /* ---------- types ---------- */
+                /** now includes per-item allowedTiers array (from item_definitions.allowed_tiers) */
+                export interface CatalogueItem {
+                  id: string;
+                  name: string;
+                  description: string | null;
+                  imageUrl: string | null;
+                  allowedTiers: string[] | null;
+                }
+                
+                /* ---------- 1. low-level fetcher (runs only on MISS) ---------- */
+                async function fetchItemDefinitions(): Promise<CatalogueItem[]> {
+                  console.log("itemsService: cache MISS – querying Supabase …");
+                
+                  // include allowed_tiers in the select
+                  const { data, error } = await supabase
+                    .from("item_definitions")
+                    .select("id, name, description, image, allowed_tiers")
+                    .order("name");
+                
+                  if (error) {
+                    console.error("itemsService: DB fetch failed:", error.message);
+                    throw new Error(error.message);
+                  }
+                
+                  return (data ?? []).map((row) => ({
+                    id: row.id,
+                    name: row.name as string,
+                    description: row.description ?? null,
+                    imageUrl: row.image ?? null,
+                    // map the Postgres column into our camelCase field
+                    allowedTiers: row.allowed_tiers ?? null,
+                  }));
+                }
+                
+                /* ---------- 2. cached wrapper ---------- */
+                const getCatalogueCached = nextCache(fetchItemDefinitions, [CATALOGUE_TAG], {
+                  tags: [CATALOGUE_TAG], // enables on-demand revalidation
+                });
+                
+                /* ---------- public helpers ---------- */
+                
+                /** Returns the cached catalogue (edge-region aware). */
+                export async function getCatalogueItems(): Promise<CatalogueItem[]> {
+                  const items = await getCatalogueCached();
+                  console.log("itemsService: cache HIT – returned", items.length, "items");
+                  return items;
+                }
+                
+                /** Triggered after admin changes; busts the tag everywhere. */
+                export async function revalidateCatalogue() {
+                  console.log("itemsService: revalidating", CATALOGUE_TAG);
+                  revalidateTag(CATALOGUE_TAG);
+                }
+            File: supabaseClient.ts
+                Code:
+                // src/lib/supabaseClient.ts
+                import { createClient } from '@supabase/supabase-js';
+                
+                const isServer = typeof window === 'undefined';
+                
+                /* ---------- URL (unchanged) ---------- */
+                const supabaseUrl =
+                  process.env.NEXT_PUBLIC_SUPABASE_URL ||
+                  process.env.SUPABASE_URL!;
+                
+                /* ---------- Keys ---------- */
+                const supabaseKey = isServer
+                  /* On the server prefer SERVICE_ROLE → ANON → NEXT_PUBLIC  */
+                  ? process.env.SUPABASE_SERVICE_ROLE_KEY ||
+                    process.env.SUPABASE_ANON_KEY ||
+                    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+                  /* In the browser pick the public key only               */
+                  : process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+                
+                export const supabase = createClient(supabaseUrl, supabaseKey);
+        Folder: tik-sheli
+            File: page.tsx
+                Code:
+                // src/app/tik-sheli/page.tsx
+                import TikSheliClient from "./TikSheliClient";
+                import { getCatalogueItems } from "../lib/itemsService";
+                import { fetchAndManageDepreciationStats } from "../lib/depreciationService";
+                
+                export default async function TikSheliPage() {
+                  /* ➊ Item-catalogue — returns data from item_definitions via edge cache */
+                  const catalogue = await getCatalogueItems();
+                
+                  const items = catalogue.map((i) => ({
+                    id:           i.id,
+                    name:         i.name,
+                    imageUrl:     i.imageUrl ?? "",
+                    // ★ now we forward the real allowedTiers array
+                    allowedTiers: i.allowedTiers,
+                  }));
+                
+                  /* ➋ Depreciation averages (gold / diamond / emerald) */
+                  const { data: depRaw } = await fetchAndManageDepreciationStats();
+                  const depStatsForClient = {
+                    average_gold_depreciation:    depRaw.average_gold_depreciation    ?? null,
+                    average_diamond_depreciation: depRaw.average_diamond_depreciation ?? null,
+                    average_emerald_depreciation: depRaw.average_emerald_depreciation ?? null,
+                  };
+                
+                  /* ➌ Render client component */
+                  return (
+                    <TikSheliClient
+                      initialItems={items}
+                      generalDepreciationStats={depStatsForClient}
+                    />
+                  );
+                }
+            File: TikSheliClient.module.css
+                Code:
+                /* ╭──────────────────────────────────────────────────────────╮
+                   │  app/tik-sheli/TikSheliClient.module.css                 │
+                   ╰──────────────────────────────────────────────────────────╯*/
+                
+                /* ─── Section 1: Wrapper & Main Title ─────────────────────── */
+                .wrapper {
+                  padding: 2rem;
+                  max-width: 1200px;
+                  width: 100%;
+                  margin: 0 auto;
+                  box-sizing: border-box;
+                  font-family: var(--font-family-main);
+                  background-color: var(--background-color);
+                  color: var(--text-color);
+                  line-height: 1.6;
+                }
+                
+                .wrapper > h1 {
+                  font-size: 2.5rem;
+                  font-weight: 700;
+                  text-align: center;
+                  margin-bottom: 1.5rem;
+                  color: var(--primary-color);
+                }
+                
+                /* ─── End Section 1 ───────────────────────────────────────── */
+                
+                /* ─── Section 2: Top-Bar Triggers Container ───────────────── */
+                .triggersContainer {
+                  display: flex;
+                  justify-content: center;
+                  align-items: center;
+                  flex-wrap: nowrap;    /* ← never wrap to next line */
+                  gap: 1rem;
+                  margin-bottom: 2.5rem;
+                }
+                
+                /* ─── End Section 2 ───────────────────────────────────────── */
+                
+                /* ─── Section 3: Grid for Add-Item Cards ──────────────────── */
+                .addGrid {
+                  display: grid;
+                  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+                  gap: 1.5rem;
+                  margin-bottom: 2.5rem;
+                }
+                
+                /* ─── End Section 3 ───────────────────────────────────────── */
+                
+                /* ─── Section 4: “Add New Gold” Trigger (card) ───────────── */
+                .openItemsTrigger {
+                  display: flex;
+                  flex-direction: column;
+                  align-items: center;
+                  justify-content: center;
+                
+                  /* make them side by side and smaller */
+                  width: calc(50% - 1rem);
+                  max-width: 300px;
+                  margin: 0.5rem;
+                  padding: 1.5rem;
+                
+                  background-color: var(--card-background-color);
+                  border: 2px dashed var(--primary-color);
+                  border-radius: var(--border-radius-md);
+                  color: var(--primary-color);
+                  cursor: pointer;
+                  text-align: center;
+                  transition: background-color 0.3s ease,
+                              border-style     0.3s ease,
+                              box-shadow       0.3s ease;
+                  min-height: 140px;
+                  box-shadow: var(--card-shadow);
+                }
+                .openItemsTrigger:hover,
+                .openItemsTrigger:focus {
+                  border-style: solid;
+                  background-color: var(--card-hover-background);
+                  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.6);
+                  outline: none;
+                }
+                
+                .plusIcon {
+                  font-size: 3rem;
+                  font-weight: 300;
+                  margin-bottom: 0.5rem;
+                }
+                
+                .openItemsText {
+                  font-size: 1rem;
+                  font-weight: 500;
+                }
+                
+                /* ─── End Section 4 ───────────────────────────────────────── */
+                
+                /* ─── Section 5: “Close” Trigger (card) ───────────────────── */
+                .closeItemsTrigger {
+                  display: flex;
+                  flex-direction: column;
+                  align-items: center;
+                  justify-content: center;
+                
+                  /* match the same smaller sizing */
+                  width: calc(50% - 1rem);
+                  max-width: 300px;
+                  margin: 0.5rem;
+                  padding: 1rem;
+                
+                  background-color: var(--card-background-color);
+                  color: var(--error-color);
+                  border: 2px solid var(--error-color);
+                  border-radius: var(--border-radius-md);
+                  cursor: pointer;
+                  transition: background-color 0.3s ease,
+                              border-color     0.3s ease,
+                              color            0.3s ease;
+                }
+                .closeItemsTrigger:hover,
+                .closeItemsTrigger:focus {
+                  background-color: rgba(220, 53, 69, 0.15);
+                  border-color: var(--error-hover-color);
+                  color: var(--error-hover-color);
+                  outline: none;
+                }
+                
+                .minusIcon {
+                  font-size: 2.5rem;
+                  font-weight: bold;
+                  margin-bottom: 0.5rem;
+                }
+                
+                .closeItemsText {
+                  font-size: 0.9rem;
+                  font-weight: 500;
+                }
+                
+                /* ─── End Section 5 ───────────────────────────────────────── */
+                
+                /* ─── Section 6: Add-Item Card Core Styles ────────────────── */
+                .card {
+                  background-color: var(--card-background-color);
+                  border: 1px solid var(--card-border-color);
+                  border-radius: var(--border-radius-md);
+                  padding: 1rem;
+                  text-align: center;
+                  box-shadow: var(--card-shadow);
+                  transition: background-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+                }
+                .card:hover {
+                  transform: translateY(-6px);
+                  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+                  background-color: var(--card-hover-background);
+                }
+                .cardActive {
+                  border: 2px solid var(--primary-color);
+                  box-shadow: 0 0 0 4px rgba(255, 215, 0, 0.25);
+                }
+                
+                .cardImage {
+                  width: 100%;
+                  max-height: 120px;
+                  object-fit: contain;
+                  border-radius: var(--border-radius-sm);
+                  margin-bottom: 0.75rem;
+                  background-color: var(--card-hover-background);
+                }
+                
+                .cardPlaceholder {
+                  width: 100%;
+                  padding-bottom: 75%;
+                  background-color: var(--card-hover-background);
+                  border-radius: var(--border-radius-sm);
+                  margin-bottom: 0.75rem;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  color: var(--text-secondary);
+                }
+                .cardPlaceholder::before {
+                  content: "No Image";
+                  font-size: 0.9rem;
+                }
+                
+                .itemName {
+                  margin: 0.85rem 0;
+                  font-weight: 600;
+                  font-size: 1.05rem;
+                  color: var(--text-light-color);
+                  min-height: 2.2em;
+                }
+                
+                /* ─── End Section 6 ───────────────────────────────────────── */
+                
+                /* ─── Section 7: Select & Quantity Controls ───────────────── */
+                .select {
+                  width: 100%;
+                  padding: 0.6rem 0.85rem;
+                  margin-bottom: 0.85rem;
+                  border-radius: var(--border-radius-sm);
+                  border: 1px solid var(--card-border-color);
+                  background-color: var(--card-background-color);
+                  color: var(--text-light-color);
+                  font-size: 0.95rem;
+                  cursor: pointer;
+                  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+                }
+                .select:focus {
+                  outline: none;
+                  border-color: var(--primary-color);
+                  box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.2);
+                }
+                
+                .qtyControls {
+                  display: flex;
+                  gap: 0.6rem;
+                  align-items: center;
+                  justify-content: center;
+                }
+                .qtyBtn {
+                  padding: 0.5rem 0.85rem;
+                  font-size: 1.1rem;
+                  font-weight: bold;
+                  border: 1px solid var(--card-border-color);
+                  border-radius: var(--border-radius-sm);
+                  background-color: var(--card-hover-background);
+                  color: var(--primary-color);
+                  cursor: pointer;
+                  transition: background-color 0.2s ease, color 0.2s ease, transform 0.1s ease;
+                }
+                .qtyBtn:hover:not(:disabled) {
+                  background-color: var(--primary-color);
+                  color: var(--text-light-color);
+                }
+                .qtyBtn:active:not(:disabled) {
+                  transform: scale(0.92);
+                }
+                .qtyBtn:disabled {
+                  background-color: var(--card-background-color);
+                  color: var(--text-secondary);
+                  border-color: var(--card-border-color);
+                  cursor: not-allowed;
+                }
+                .qtyControls div {
+                  font-size: 1.15rem;
+                  font-weight: 600;
+                  min-width: 35px;
+                  text-align: center;
+                  color: var(--text-light-color);
+                }
+                
+                /* ─── End Section 7 ───────────────────────────────────────── */
+                
+                /* ─── Section 8: Save Buttons & Messages ─────────────────── */
+                .saveBtn {
+                  margin: 1rem auto 2rem;
+                  padding: 0.9rem 2.2rem;
+                  color: var(--text-light-color);
+                  border: none;
+                  border-radius: var(--border-radius-md);
+                  font-size: 1.15rem;
+                  font-weight: 600;
+                  letter-spacing: 0.75px;
+                  text-transform: uppercase;
+                  transition: background 0.3s ease, transform 0.15s ease, box-shadow 0.3s ease;
+                  display: block;
+                  min-width: 280px;
+                  text-align: center;
+                }
+                .saveBtnEnabled {
+                  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover-color) 100%);
+                  cursor: pointer;
+                  box-shadow: 0 5px 15px rgba(0, 123, 255, 0.35);
+                }
+                .saveBtnEnabled:hover {
+                  background: linear-gradient(135deg, var(--primary-hover-color) 0%, var(--primary-color) 100%);
+                  box-shadow: 0 7px 18px rgba(0, 91, 179, 0.45);
+                  transform: translateY(-3px);
+                }
+                .saveBtnEnabled:active {
+                  transform: translateY(1px);
+                  box-shadow: 0 3px 10px rgba(0, 91, 179, 0.3);
+                }
+                .saveBtnDisabled {
+                  background: var(--primary-disabled-color);
+                  color: #6c757d;
+                  cursor: not-allowed;
+                  box-shadow: none;
+                }
+                
+                .message {
+                  margin-bottom: 2rem;
+                  padding: 1rem 1.5rem;
+                  border-radius: var(--border-radius-sm);
+                  text-align: center;
+                  font-weight: 500;
+                  font-size: 1.05rem;
+                  background-color: #d1e7dd;
+                  color: #0f5132;
+                  border: 1px solid #badbcc;
+                }
+                
+                /* ─── End Section 8 ───────────────────────────────────────── */
+                
+                /* ─── Section 9: Personal Bag Section Shell ──────────────── */
+                .wrapper > section {
+                  max-width: 1200px;
+                  width: 100%;
+                  margin: 3rem auto 0;
+                  box-sizing: border-box;
+                
+                  background: transparent;
+                  padding: 2rem 2.5rem;
+                  border-radius: var(--border-radius-lg);
+                  box-shadow: none;
+                }
+                
+                .wrapper > section > h2 {
+                  color: var(--text-light-color);
+                  border-bottom: 3px solid var(--primary-color);
+                  padding-bottom: 0.6rem;
+                  margin: 0 0 1.5rem;
+                  text-align: center;
+                  font-size: 2rem;
+                  text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+                }
+                
+                .wrapper > section > p {
+                  color: var(--game-text-secondary-color);
+                  text-align: center;
+                  font-size: 1.15rem;
+                  padding: 2rem 0;
+                }
+                
+                /* ─── End Section 9 ───────────────────────────────────────── */
+                
+                /* ─── Section 10: List & List-Item Styles ────────────────── */
+                .list {
+                  list-style: none;
+                  padding: 0;
+                  margin: 0;
+                }
+                
+                .listItem {
+                  position: relative;
+                  display: flex;
+                  align-items: center;
+                  background: var(--card-background-color);
+                  border: 1px solid var(--card-border-color);
+                  border-radius: var(--border-radius-md);
+                  margin-bottom: 1.25rem;
+                  box-shadow: var(--card-shadow);
+                  transition:
+                    background-color 0.25s ease,
+                    transform 0.2s ease,
+                    box-shadow 0.25s ease;
+                }
+                
+                .listItem:hover {
+                  background: var(--card-hover-background);
+                  transform: translateY(-4px);
+                  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+                }
+                
+                .listItem::before {
+                  content: "";
+                  position: absolute;
+                  left: 0; top: 0; bottom: 0;
+                  width: 8px;
+                  background: var(--tier-regular-accent);
+                }
+                .bgGold::before {
+                  background: var(--tier-gold-accent);
+                  box-shadow: 0 0 10px var(--tier-gold-accent);
+                }
+                .bgDiamond::before {
+                  background: var(--tier-diamond-accent);
+                  box-shadow: 0 0 10px var(--tier-diamond-accent);
+                }
+                .bgEmerald::before {
+                  background: var(--tier-emerald-accent);
+                  box-shadow: 0 0 10px var(--tier-emerald-accent);
+                }
+                
+                .listImage,
+                .listPlaceholder {
+                  flex-shrink: 0;
+                  width: 64px;
+                  height: 64px;
+                  margin: 1rem;
+                  border-radius: var(--border-radius-sm);
+                  background: var(--card-hover-background);
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                }
+                
+                .listPlaceholder::before {
+                  content: "📦";
+                  font-size: 2rem;
+                  color: var(--text-secondary);
+                }
+                
+                .itemInfo {
+                  flex: 1;
+                  padding: 1rem;
+                  color: var(--text-light-color);
+                  font-size: 0.95rem;
+                  line-height: 1.4;
+                }
+                .itemInfo strong {
+                  display: block;
+                  font-size: 1.1rem;
+                  margin-bottom: 0.3rem;
+                  color: var(--text-light-color);
+                  font-weight: 600;
+                }
+                .itemInfo div {
+                  margin-bottom: 0.2rem;
+                  color: var(--text-secondary);
+                }
+                .itemInfo div:last-child {
+                  margin-bottom: 0;
+                }
+                
+                .removeBtn {
+                  position: absolute;
+                  top: 0.75rem;
+                  right: 0.75rem;
+                  background: transparent;
+                  border: none;
+                  color: var(--error-color);
+                  font-size: 1.5rem;
+                  cursor: pointer;
+                  transition: color 0.2s ease, transform 0.15s ease;
+                }
+                
+                .removeBtn:hover {
+                  color: var(--error-hover-color);
+                  transform: scale(1.1);
+                }
+                .removeBtn:active {
+                  transform: scale(1);
+                }
+                
+                /* ─── End Section 10 ─────────────────────────────────────── */
+                
+                /* ─── Section 11: Portfolio Summary Banner ───────────────── */
+                .totalSummary {
+                  text-align: center;
+                  margin-top: 3rem;
+                  font-size: 1.75rem;
+                  font-weight: 700;
+                  color: var(--tier-gold-accent);
+                  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+                  padding: 1.25rem;
+                  background: linear-gradient(
+                    180deg,
+                    rgba(0, 0, 0, 0.2),
+                    rgba(0, 0, 0, 0.4)
+                  );
+                  border-radius: var(--border-radius-md);
+                  border-top: 2px solid var(--tier-gold-accent);
+                }
+                .totalSummary::before {
+                  content: "💰 ";
+                  margin-right: 0.25em;
+                }
+                
+                /* ─── End Section 11 ─────────────────────────────────────── */
+                
+                /* ─── Section 12: Screen-Reader Utility Class ────────────── */
+                .sr-only {
+                  position: absolute;
+                  width: 1px;
+                  height: 1px;
+                  padding: 0;
+                  margin: -1px;
+                  overflow: hidden;
+                  clip: rect(0,0,0,0);
+                  white-space: nowrap;
+                  border-width: 0;
+                }
+                
+                /* ─── End Section 12 ─────────────────────────────────────── */
+                
+                /* ─── Section 13: Responsive Media Queries ───────────────── */
+                @media (max-width: 768px) {
+                  .addGrid {
+                    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+                  }
+                }
+                
+                /* 2. On narrow phones, fallback to two columns */
+                @media (max-width: 480px) {
+                  .addGrid {
+                    grid-template-columns: repeat(2, 1fr);
+                  }
+                }
+                
+                @media (max-width: 600px) {
+                  .wrapper {
+                    padding: 1rem;
+                  }
+                
+                  .wrapper > section {
+                    width: auto;
+                    padding: 1rem;
+                  }
+                
+                  .listItem {
+                    width: 100%;
+                    flex-direction: column;
+                    align-items: center;
+                    padding-top: 1.5rem;      /* NEW */
+                  }
+                
+                  .listImage {                /* NEW definition */
+                    width: 96px;
+                    height: 96px;
+                    margin: 1rem auto 1.25rem;
+                  }
+                
+                  .itemInfo {
+                    text-align: center;
+                    font-size: 0.9rem;
+                    line-height: 1.4;
+                  }
+                
+                  .totalSummary {             /* UPDATED padding */
+                    width: 100%;
+                    box-sizing: border-box;
+                    margin: 2rem 0 0;
+                    padding: 1rem;
+                  }
+                }
+                /* ─── End Section 13 ─────────────────────────────────────── */
+                
+            File: TikSheliClient.tsx
+                Code:
+                // src/app/tik-sheli/TikSheliClient.tsx
+                // ─── Section 1: Imports ───────────────────────────────────
+                "use client";
+                
+                import React, { useEffect, useMemo, useState, useCallback } from "react";
+                import Image from "next/image";
+                import styles from "./TikSheliClient.module.css";
+                import { useUser } from "../context/UserContext";
+                import { supabase } from "../lib/supabaseClient";
+                import {
+                  QuotePoint,
+                  representativePrice,
+                  consensusStats,
+                  blendPrices,
+                } from "../utils/pricing";
+                import Wallet from "./Wallet";
+                
+                // 🚀 Imports for Trade Simulation
+                import { useTrade, type TradeItem, type AllowedTier } from "../context/TradeContext";
+                import TraderPanel from "../components/TraderPanel";
+                import tradeStyles from "../components/TraderPanel.module.css";
+                // ─── End Section 1 ────────────────────────────────────────
+                
+                // ─── Section 2: Constants & Types ─────────────────────────
+                const TIERS = ["רגיל", "זהב", "יהלום", "אמרלד"] as const;
+                type Tier = (typeof TIERS)[number];
+                
+                /** Map English → Hebrew tier labels (matches DB <-> UI) */
+                const TIER_EN2HE: Record<string, Tier> = {
+                  regular: "רגיל",
+                  gold: "זהב",
+                  diamond: "יהלום",
+                  emerald: "אמרלד",
+                };
+                
+                /** Map Hebrew → English (AllowedTier) */
+                const TIER_HE2EN: Record<Tier, AllowedTier> = {
+                  רגיל: "regular",
+                  זהב: "gold",
+                  יהלום: "diamond",
+                  אמרלד: "emerald",
+                };
+                
+                type Item = {
+                  id: string;
+                  name: string;
+                  imageUrl: string;
+                  /** Which tiers are valid for this item (from item_definitions.allowed_tiers) */
+                  allowedTiers?: string[] | null;
+                };
+                
+                type CollectionRow = {
+                  id: string;
+                  item_id: string;
+                  item_type: Tier;
+                  quantity: number;
+                  inserted_at: string | null;
+                  updated_at: string | null;
+                };
+                
+                export interface GeneralDepreciationStats {
+                  average_gold_depreciation: number | null;
+                  average_diamond_depreciation: number | null;
+                  average_emerald_depreciation: number | null;
+                }
+                
+                // ─── End Section 2 ────────────────────────────────────────
+                
+                /* ╭──────────────────────────────────────────────────────────╮
+                   │  TikSheliClient                                         │
+                   ╰──────────────────────────────────────────────────────────╯*/
+                
+                  // ─── Section 3: Component Signature & Context Hooks ───────
+                  export default function TikSheliClient({
+                    initialItems,
+                    generalDepreciationStats,
+                  }: {
+                    initialItems: Item[];
+                    generalDepreciationStats: GeneralDepreciationStats | null;
+                  }) {
+                    const { user } = useUser();
+                
+                    /*  useTrade נותן לנו גם את הצד “sell” כדי שנוכל לראות
+                        אילו פריטים כבר הוזזו לטרייד ולהפחית אותם זמנית מהתיק  */
+                    const { addItem, buy, sell } = useTrade();
+                
+                // ─── End Section 3 ────────────────────────────────────────
+                
+                // ─── Section 4: Wallet & Username Effects ─────────────────
+                  /* ───────── wallet-existence flag ───────── */
+                  const [hasWallet, setHasWallet] = useState(false);
+                  useEffect(() => {
+                    if (!user) return setHasWallet(false);
+                    supabase
+                      .from("wallets")
+                      .select("id")
+                      .eq("user_id", user.id)
+                      .maybeSingle()
+                      .then(({ data }) => setHasWallet(Boolean(data)));
+                  }, [user]);
+                
+                  /* ─── username (for audit) ─── */
+                  const [userName, setUserName] = useState("");
+                  useEffect(() => {
+                    if (!user) return setUserName("");
+                    supabase
+                      .from("profiles")
+                      .select("username")
+                      .eq("id", user.id)
+                      .single()
+                      .then(({ data }) => setUserName(data?.username ?? user.email ?? user.id));
+                  }, [user]);
+                
+                  // ─── End Section 4 ────────────────────────────────────────
+                
+                // ─── Section 5: Add-Item State & Helpers ──────────────────
+                  /* ───────── WALLET control ───────── */
+                  const [isWalletOpen, setIsWalletOpen] = useState(false);
+                
+                  /* ───────── ADD-ITEM local state ───────── */
+                  const [selections, setSelections] = useState<Record<string, Record<Tier, number>>>({});
+                  const [currentTier, setCurrentTier] = useState<Record<string, Tier>>({});
+                  const [isSaving, setIsSaving] = useState(false);
+                  const [message, setMessage] = useState<string | null>(null);
+                  const [isAddItemListOpen, setIsAddItemListOpen] = useState(false);
+                
+                  /* ---------- helpers to mutate selections ---------- */
+                  const setTierQty = (itemId: string, tier: Tier, qty: number) =>
+                    setSelections((prev) => {
+                      const byTier = { ...(prev[itemId] ?? {}) };
+                      byTier[tier] = Math.max(0, qty);
+                      return { ...prev, [itemId]: byTier };
+                    });
+                
+                  const totalQtyForItem = (itemId: string) =>
+                    Object.values(selections[itemId] ?? {}).reduce((s, v) => s + v, 0);
+                
+                  // ─── End Section 5 ────────────────────────────────────────
+                
+                // ─── Section 6: DB Operations (Save, Fetch, Remove) ───────
+                  /* ─── DB: SAVE ITEMS ─── */
+                  const handleSave = async () => {
+                    if (!user) {
+                      setMessage("יש להתחבר כדי לשמור פריטים.");
+                      return;
+                    }
+                    const toSave = Object.entries(selections).flatMap(([item_id, byTier]) =>
+                      (Object.entries(byTier) as [Tier, number][])
+                        .filter(([, qty]) => qty > 0)
+                        .map(([item_type, added]) => ({ item_id, item_type, added }))
+                    );
+                    if (!toSave.length) {
+                      setMessage("בחר לפחות פריט אחד לפני השמירה.");
+                      return;
+                    }
+                    setIsSaving(true);
+                    setMessage(null);
+                
+                    const { data: existing } = await supabase
+                      .from("tik_sheli_collections")
+                      .select("item_id,item_type,quantity")
+                      .eq("user_id", user.id);
+                
+                    const prevMap: Record<string, number> = {};
+                    (existing ?? []).forEach((r) => {
+                      prevMap[`${r.item_id}|${r.item_type}`] = r.quantity;
+                    });
+                
+                    const rows = toSave.map(({ item_id, item_type, added }) => ({
+                      user_id: user.id,
+                      user_name: userName,
+                      item_id,
+                      item_name: initialItems.find((x) => x.id === item_id)?.name ?? null,
+                      item_type,
+                      quantity: (prevMap[`${item_id}|${item_type}`] ?? 0) + added,
+                    }));
+                
+                    const { error } = await supabase
+                      .from("tik_sheli_collections")
+                      .upsert(rows, { onConflict: "user_id,item_id,item_type" });
+                
+                    if (error) {
+                      console.error(error);
+                      setMessage("אירעה שגיאה בשמירה.");
+                    } else {
+                      setSelections({});
+                      setCurrentTier({});
+                      fetchCollection();
+                      setMessage("✅ נשמר בהצלחה!");
+                    }
+                    setIsSaving(false);
+                  };
+                
+                  /* ───────── DB: COLLECTION ───────── */
+                  const [collection, setCollection] = useState<CollectionRow[]>([]);
+                  const fetchCollection = useCallback(async () => {
+                    if (!user) return;
+                    const { data, error } = await supabase
+                      .from("tik_sheli_collections")
+                      .select("id,item_id,item_type,quantity,inserted_at,updated_at")
+                      .eq("user_id", user.id)
+                      .order("inserted_at", { ascending: false });
+                    if (error) console.error(error);
+                    else setCollection(data ?? []);
+                  }, [user]);
+                
+                  useEffect(() => {
+                    fetchCollection();
+                  }, [fetchCollection]);
+                
+                  /* ───────── REMOVE ITEM ───────── */
+                  const handleRemove = async (row: CollectionRow) => {
+                    let qty = row.quantity;
+                    if (qty > 1) {
+                      const v = prompt(`יש לך ${qty} יחידות. כמה להסיר? (1-${qty})`, "1");
+                      if (v === null) return;
+                      const n = parseInt(v, 10);
+                      if (!Number.isFinite(n) || n < 1 || n > qty) {
+                        alert("כמות לא חוקית.");
+                        return;
+                      }
+                      qty = n;
+                    } else if (!confirm("האם אתה בטוח?")) {
+                      return;
+                    }
+                
+                    if (qty === row.quantity) {
+                      await supabase.from("tik_sheli_collections").delete().eq("id", row.id);
+                    } else {
+                      await supabase
+                        .from("tik_sheli_collections")
+                        .update({ quantity: row.quantity - qty })
+                        .eq("id", row.id);
+                    }
+                    fetchCollection();
+                  };
+                
+                  // ─── End Section 6 ────────────────────────────────────────
+                
+                  // ─── Section 7: Pricing Logic ─────────────────────────────
+                  const [depStats, setDepStats] = useState<GeneralDepreciationStats | null>(
+                    generalDepreciationStats
+                  );
+                
+                  useEffect(() => {
+                    if (depStats) return;                // already have fresh stats
+                    supabase
+                      .from("depreciation_stats")
+                      .select(
+                        "average_gold_depreciation,average_diamond_depreciation,average_emerald_depreciation"
+                      )
+                      .eq("id", "current_summary")
+                      .single()
+                      .then(({ data }) => {
+                        if (data) {
+                          setDepStats({
+                            average_gold_depreciation: data.average_gold_depreciation ?? null,
+                            average_diamond_depreciation: data.average_diamond_depreciation ?? null,
+                            average_emerald_depreciation: data.average_emerald_depreciation ?? null,
+                          });
+                        }
+                      });
+                  }, [depStats]);
+                
+                  /*  ❷  Regular-tier price for **every** catalogue item               */
+                  const [regularPriceMap, setRegularPriceMap] = useState<
+                    Record<string, number | null>
+                  >({});
+                
+                  useEffect(() => {
+                    const ids = initialItems.map((i) => i.id);
+                
+                    (async () => {
+                      // ---------- Discord quotes ----------
+                      const { data: disc } = await supabase
+                        .from("item_listings")
+                        .select("item_id,buyregular,sellregular,date")
+                        .in("item_id", ids);
+                
+                      const discPts: Record<string, QuotePoint[]> = {};
+                      disc?.forEach((r) => {
+                        const buy = +r.buyregular?.replace(/[^\d]/g, "") || NaN;
+                        const sell = +r.sellregular?.replace(/[^\d]/g, "") || NaN;
+                        const p = !isNaN(buy) && !isNaN(sell) ? (buy + sell) / 2 : !isNaN(buy) ? buy : !isNaN(sell) ? sell : NaN;
+                        if (r.date && Number.isFinite(p)) {
+                          (discPts[r.item_id] ??= []).push({ price: p, date: new Date(r.date) });
+                        }
+                      });
+                
+                      // ---------- Community assumptions ----------
+                      const names = initialItems.map((i) => i.name);
+                      const { data: comm } = await supabase
+                        .from("assumptions")
+                        .select("item_name,regular")
+                        .in("item_name", names);
+                
+                      const commVals: Record<string, number[]> = {};
+                      comm?.forEach((r) => {
+                        if (r.regular != null) (commVals[r.item_name] ??= []).push(r.regular);
+                      });
+                
+                      // ---------- Blend & store ----------
+                      const out: Record<string, number | null> = {};
+                      initialItems.forEach((meta) => {
+                        const pts = discPts[meta.id] ?? [];
+                        const ewma = representativePrice(pts);
+                        const disSt = consensusStats(pts.map((p) => p.price));
+                        if (ewma != null) disSt.price = ewma;
+                        const comSt = consensusStats(commVals[meta.name] ?? []);
+                        out[meta.id] = blendPrices(disSt, comSt).final;
+                      });
+                      setRegularPriceMap(out);
+                    })();
+                  }, [initialItems]);
+                
+                  /*  ❸  Price helpers ------------------------------------------------ */
+                  const priceOf = useCallback(
+                    (itemId: string, tier: Tier): number => {
+                      const base = regularPriceMap[itemId];
+                      if (base == null) return 0;
+                
+                      const dep =
+                        tier === "זהב"
+                          ? depStats?.average_gold_depreciation
+                          : tier === "יהלום"
+                          ? depStats?.average_diamond_depreciation
+                          : tier === "אמרלד"
+                          ? depStats?.average_emerald_depreciation
+                          : null;
+                
+                      const mult =
+                        tier === "זהב" ? 4 : tier === "יהלום" ? 16 : tier === "אמרלד" ? 64 : 1;
+                
+                      const factor =
+                        dep == null || isNaN(dep)
+                          ? 1
+                          : 1 - Math.min(Math.max(dep, -200), 100) / 100;
+                
+                      return Math.round(base * mult * factor);
+                    },
+                    [regularPriceMap, depStats]
+                  );
+                
+                  /*  ❹  For bag rows                                                  */
+                  const unitPriceOf = useCallback(
+                    (r: CollectionRow) => priceOf(r.item_id, r.item_type),
+                    [priceOf]
+                  );
+                
+                  /*  ❺  Helper for catalogue “computeUnitPrice”                       */
+                  const computeUnitPrice = useCallback(
+                    (itemId: string, tier: Tier) => priceOf(itemId, tier),
+                    [priceOf]
+                  );
+                
+                  // ─── End Section 7 ────────────────────────────────────────
+                  
+                  // ─── Section 8: Depreciation & Helper Functions ───────────
+                  const fmtDate = (d?: string | null) =>
+                    d ? new Date(d).toLocaleString("he-IL") : "-";
+                
+                  const bgClass = (t: Tier) =>
+                    t === "זהב"
+                      ? styles.bgGold
+                      : t === "יהלום"
+                      ? styles.bgDiamond
+                      : t === "אמרלד"
+                      ? styles.bgEmerald
+                      : styles.bgRegular;
+                
+                  const bagTotal = useMemo(
+                    () =>
+                      collection.reduce(
+                        (sum, r) => priceOf(r.item_id, r.item_type) * r.quantity + sum,
+                        0
+                      ),
+                    [collection, priceOf]
+                  );
+                
+                  // ─── End Section 8 ────────────────────────────────────────
+                
+                  // ─── Section 9: UI Return ──────────────────────────────────
+                    return (
+                      <main className={styles.wrapper}>
+                        <h1>ניהול תיק מוזהבים</h1>
+                
+                        <Wallet
+                          formOpen={isWalletOpen}
+                          setFormOpen={setIsWalletOpen}
+                          onWalletChange={setHasWallet}
+                        />
+                
+                        {/* ───── טריגרים עליונים ───── */}
+                        <div className={styles.triggersContainer}>
+                          {!isWalletOpen && !hasWallet && (
+                            <div
+                              className={styles.openItemsTrigger}
+                              onClick={() => setIsWalletOpen(true)}
+                              role="button"
+                              tabIndex={0}
+                            >
+                              <span className={styles.plusIcon}>+</span>
+                              <span className={styles.openItemsText}>הוסף ארנק</span>
+                            </div>
+                          )}
+                
+                          {!isAddItemListOpen ? (
+                            <div
+                              className={styles.openItemsTrigger}
+                              onClick={() => setIsAddItemListOpen(true)}
+                              role="button"
+                              tabIndex={0}
+                            >
+                              <span className={styles.plusIcon}>+</span>
+                              <span className={styles.openItemsText}>הוסף מוזהבים לתיק/לטרייד</span>
+                            </div>
+                          ) : (
+                            <div
+                              className={`${styles.card} ${styles.closeItemsTrigger}`}
+                              onClick={() => setIsAddItemListOpen(false)}
+                              role="button"
+                              tabIndex={0}
+                            >
+                              <span className={styles.minusIcon}>-</span>
+                              <span className={styles.closeItemsText}>סגור רשימת מוזהבים</span>
+                            </div>
+                          )}
+                        </div>
+                
+                        {/* 🚩 Trade Simulation Panel */}
+                        <TraderPanel />
+                        {/* ─── End Section 9 ────────────────────────────────── */}
+                
+                        {/* ─── Section 10 ────────────────────────────────── */}
+                        {/* ───── בחירת מוזהבים מהקטלוג ───── */}
+                        {isAddItemListOpen && (
+                          <>
+                            <div className={styles.addGrid}>
+                              {initialItems.map((item) => {
+                                const allowedHeb = (item.allowedTiers ?? [])
+                                  .map((en) => TIER_EN2HE[en] ?? en)
+                                  .filter((h): h is Tier => TIERS.includes(h));
+                                const finalAllowed = allowedHeb.length ? allowedHeb : TIERS;
+                
+                                const tier   = currentTier[item.id] ?? finalAllowed[0];
+                                const qty    = selections[item.id]?.[tier] ?? 0;
+                                const active = totalQtyForItem(item.id) > 0;
+                
+                                return (
+                                  <div
+                                    key={item.id}
+                                    className={`${styles.card} ${active ? styles.cardActive : ""}`}
+                                  >
+                                    {item.imageUrl ? (
+                                      <Image
+                                        src={item.imageUrl}
+                                        alt={item.name}
+                                        className={styles.cardImage}
+                                        width={160}
+                                        height={120}
+                                        unoptimized
+                                      />
+                                    ) : (
+                                      <div className={styles.cardPlaceholder} />
+                                    )}
+                
+                                    <div className={styles.itemName}>{item.name}</div>
+                
+                                    <select
+                                      className={styles.select}
+                                      value={tier}
+                                      onChange={(e) =>
+                                        setCurrentTier((c) => ({
+                                          ...c,
+                                          [item.id]: e.target.value as Tier,
+                                        }))
+                                      }
+                                    >
+                                      {finalAllowed.map((t) => (
+                                        <option key={t} value={t}>
+                                          {t}
+                                        </option>
+                                      ))}
+                                    </select>
+                
+                                    <div className={styles.qtyControls}>
+                                      <button
+                                        className={styles.qtyBtn}
+                                        disabled={qty === 0}
+                                        onClick={() => setTierQty(item.id, tier, qty - 1)}
+                                      >
+                                        –
+                                      </button>
+                                      <div>{qty}</div>
+                                      <button
+                                        className={styles.qtyBtn}
+                                        onClick={() => setTierQty(item.id, tier, qty + 1)}
+                                      >
+                                        +
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                
+                            {/* 🔵 הוסף ל-BUY (קנייה) */}
+                            <button
+                              className={`${styles.saveBtn} ${styles.saveBtnEnabled}`}
+                              onClick={() => {
+                                let current = buy.items.length;
+                                const entries = Object.entries(selections) as [
+                                  string,
+                                  Record<Tier, number>
+                                ][];
+                
+                                for (const [id, byTier] of entries) {
+                                  for (const [tierHeb, qty] of Object.entries(
+                                    byTier
+                                  ) as [Tier, number][]) {
+                                    for (let i = 0; i < qty; i++) {
+                                      if (current >= 9) {
+                                        alert("הגעת למגבלת 9 פריטים בצד הקנייה");
+                                        return;
+                                      }
+                                      const meta = initialItems.find((m) => m.id === id);
+                                      if (!meta) continue;
+                
+                                      addItem("buy", {
+                                        itemId:   id,
+                                        name:     meta.name,
+                                        imageUrl: meta.imageUrl,
+                                        tier:     TIER_HE2EN[tierHeb],
+                                        quantity: 1,
+                                        unitPrice: priceOf(id, tierHeb),
+                                      });
+                                      current++;
+                                    }
+                                  }
+                                }
+                
+                                /* מאפסים בחירות אך משאירים את החלון פתוח */
+                                setSelections({});
+                                setCurrentTier({});
+                              }}
+                            >
+                              הוסף מוזהבים לטרייד
+                            </button>
+                
+                            {/* 🟢 הוסף לתיק */}
+                            <button
+                              className={`${styles.saveBtn} ${
+                                user && !isSaving ? styles.saveBtnEnabled : styles.saveBtnDisabled
+                              }`}
+                              onClick={handleSave}
+                              disabled={!user || isSaving}
+                            >
+                              {isSaving ? "שומר…" : "הוסף מוזהבים לתיק"}
+                            </button>
+                            {message && <p className={styles.message}>{message}</p>}
+                          </>
+                        )}
+                
+                        {/* ─── End Section 10 ────────────────────────────────── */}
+                
+                        {/* ─── Section 11 ────────────────────────────────── */}
+                        {/* ───── התיק האישי שלי ───── */}
+                        <section>
+                          <h2>התיק האישי שלי</h2>
+                          {!collection.length ? (
+                            <p>עדיין לא הוספת פריטים.</p>
+                          ) : (
+                            <>
+                              <ul className={styles.list}>
+                                {/* ✨ Alphabetical order by Hebrew name (א ← ת) */}
+                                {[...collection]
+                                  .sort((a, b) => {
+                                    const nameA =
+                                      initialItems.find((i) => i.id === a.item_id)?.name ?? "";
+                                    const nameB =
+                                      initialItems.find((i) => i.id === b.item_id)?.name ?? "";
+                                    return nameA.localeCompare(nameB, "he");
+                                  })
+                                  .map((row) => {
+                                    /* כמה יחידות כבר “שמורות” לצד המכירה ב-Trade */
+                                    const reserved = sell.items.filter(
+                                      (it) =>
+                                        it.itemId === row.item_id &&
+                                        it.tier === TIER_HE2EN[row.item_type]
+                                    ).length;
+                
+                                    const remaining = row.quantity - reserved;
+                                    if (remaining <= 0) return null;
+                
+                                    const meta = initialItems.find(
+                                      (i) => i.id === row.item_id
+                                    );
+                                    if (!meta) return null;
+                
+                                    const unit = priceOf(row.item_id, row.item_type as Tier);
+                                    const total = unit * remaining;
+                
+                                    return (
+                                      <li
+                                        key={row.id}
+                                        className={`${styles.listItem} ${bgClass(
+                                          row.item_type
+                                        )}`}
+                                      >
+                                        {meta.imageUrl ? (
+                                          <Image
+                                            src={meta.imageUrl}
+                                            alt={meta.name}
+                                            className={styles.listImage}
+                                            width={64}
+                                            height={64}
+                                            unoptimized
+                                          />
+                                        ) : (
+                                          <div className={styles.listPlaceholder} />
+                                        )}
+                
+                                        <div className={styles.itemInfo}>
+                                          <strong>{meta.name}</strong>
+                                          <div>סוג: {row.item_type}</div>
+                                          <div>כמות זמינה: {remaining}</div>
+                                          <div>נוסף ב-: {fmtDate(row.inserted_at)}</div>
+                                          <div>עודכן: {fmtDate(row.updated_at)}</div>
+                                          <div>מחיר ליחידה: {unit.toLocaleString()} ₪</div>
+                                          {remaining > 1 && (
+                                            <div>שווי כולל: {total.toLocaleString()} ₪</div>
+                                          )}
+                                        </div>
+                
+                                        {/* ❌ מחיקה קבועה מהתיק */}
+                                        <button
+                                          className={styles.removeBtn}
+                                          onClick={() => handleRemove(row)}
+                                        >
+                                          ❌
+                                        </button>
+                
+                                        {/* ➕ הוספה זמנית ל-SELL */}
+                                        <button
+                                          className={tradeStyles.tradeSmallBtn}
+                                          onClick={() => {
+                                            const max = remaining;
+                                            const toAdd =
+                                              max > 1
+                                                ? Number(
+                                                    prompt(
+                                                      `כמה יחידות להוסיף לטרייד? (1-${max})`,
+                                                      "1"
+                                                    )
+                                                  ) || 0
+                                                : 1;
+                
+                                            if (toAdd < 1 || toAdd > max) return;
+                
+                                            let current = sell.items.length;
+                                            if (current >= 9) {
+                                              alert(
+                                                "הגעת למגבלת 9 פריטים בצד המכירה"
+                                              );
+                                              return;
+                                            }
+                
+                                            for (let i = 0; i < toAdd; i++) {
+                                              if (current >= 9) {
+                                                alert(
+                                                  "הגעת למגבלת 9 פריטים בצד המכירה"
+                                                );
+                                                break;
+                                              }
+                
+                                              addItem("sell", {
+                                                itemId: row.item_id,
+                                                name: meta.name,
+                                                imageUrl: meta.imageUrl,
+                                                tier: TIER_HE2EN[row.item_type],
+                                                quantity: 1,
+                                                unitPrice: unit,
+                                              });
+                                              current++;
+                                            }
+                                          }}
+                                        >
+                                          הוסף לטרייד
+                                        </button>
+                                      </li>
+                                    );
+                                  })}
+                              </ul>
+                
+                              <h3 className={styles.totalSummary}>
+                                שווי תיק כולל: {bagTotal.toLocaleString()} ₪
+                              </h3>
+                            </>
+                          )}
+                        </section>
+                      </main>
+                    );
+                  }
+                {/* ─── End Section 11 ────────────────────────────────── */}
+                
+            File: Wallet.module.css
+                Code:
+                /* src/app/tik-sheli/Wallet.module.css */
+                
+                /* Container */
+                .container {
+                  margin-bottom: 3rem;
+                }
+                
+                /* Card variants */
+                /* We assume you’re still combining these with your clientStyles.card,
+                   so here we just add the width, centering and an inner padding. */
+                .cardSmall {
+                  max-width: 420px;
+                  margin: 0 auto;
+                  padding: 1rem;
+                }
+                .cardLarge {
+                  max-width: 460px;
+                  margin: 0 auto;
+                  padding: 1rem;
+                }
+                
+                /* Make ALL text & number inputs inside the wallet container fill 100% of their parent,
+                   and include box-sizing so padding doesn’t break the layout. */
+                .container input[type="text"],
+                .container input[type="number"] {
+                  width: 100%;
+                  box-sizing: border-box;
+                }
+                
+                /* Disclaimer box */
+                .disclaimer {
+                  background: #fff4ce;
+                  border: 1px solid #ffd75e;
+                  border-radius: 8px;
+                  padding: 0.75rem 1rem;
+                  margin-bottom: 1rem;
+                  font-size: 0.9rem;
+                  line-height: 1.5;
+                }
+                .disclaimerTitle {
+                  margin: 0 0 0.4rem;
+                  font-weight: 700;
+                  text-align: center;
+                }
+                .disclaimerText {
+                  margin: 0;
+                  text-align: center;
+                }
+                .disclaimerList {
+                  margin: 0.4rem 0 0.4rem 1.2rem;
+                  padding: 0;
+                  direction: rtl;
+                }
+                
+                /* Utility margin */
+                .mtSmall {
+                  margin-top: 0.75rem;
+                }
+                
+                /* Base label */
+                .baseLabel {
+                  font-size: 0.9rem;
+                  display: block;
+                  margin-top: 0.75rem;
+                }
+                
+                /* Avatar image */
+                .avatar {
+                  width: 120px;
+                  height: 120px;
+                  display: block;
+                  margin: 0.75rem auto 0.25rem;
+                  border-radius: 8px;
+                }
+                .avatarView {
+                  margin: 0.5rem auto;
+                }
+                
+                /* Confirmation checkbox label */
+                .confirmLabel {
+                  font-size: 0.85rem;
+                  display: block;
+                  text-align: center;
+                }
+                
+                /* Lock-warning text */
+                .lockMessage {
+                  font-size: 0.8rem;
+                  color: #AA0000;
+                  margin: 0.25rem 0;
+                  text-align: center;
+                }
+                
+                /* Helper / status text under the avatar */
+                .helperText {
+                  font-size: 0.85rem;
+                  margin: 0.25rem 0;
+                  text-align: center;
+                }
+                
+                /* Group‐badge lines */
+                .groupsBadgeItem {
+                  font-size: 0.9rem;
+                  margin: 0.3rem 0;
+                }
+                
+                /* Headings & paragraphs in “view” mode */
+                .headingNoMargin {
+                  margin: 0;
+                }
+                .amount {
+                  font-size: 1.8rem;
+                  font-weight: 700;
+                  margin: 0.5rem 0;
+                }
+                .gamepass {
+                  font-size: 0.9rem;
+                  margin: 0.4rem 0;
+                }
+                .username {
+                  font-size: 1rem;
+                  font-weight: 500;
+                  margin: 0;
+                  text-align: center;
+                }
+                .timestamps {
+                  font-size: 0.85rem;
+                  color: #666;
+                  margin-bottom: 1.25rem;
+                  text-align: center;
+                  white-space: pre-line;
+                }
+                
+                /* Button container */
+                .buttonGroup {
+                  display: flex;
+                  gap: 0.5rem;
+                  justify-content: center;
+                }
+                
+                /* Button tweaks */
+                .btnMinWidth {
+                  min-width: 120px;
+                }
+                .errorBtn {
+                  background: var(--error-color);
+                  color: #fff;
+                }
+            File: Wallet.tsx
+                Code:
+                // src/app/components/Wallet.tsx
+                // ─────────────────────────────────────────────────────────────
+                // Wallet – create / update / delete a game-wallet for the user
+                // (controlled by the parent – formOpen + setFormOpen are injected)
+                // ─────────────────────────────────────────────────────────────
+                "use client";
+                
+                /* ─── Section 1: Imports ─────────────────────────────────── */
+                
+                import React, { useEffect, useRef, useState } from "react";
+                import Image from "next/image";
+                import clientStyles from "./TikSheliClient.module.css";
+                import styles from "../tik-sheli/Wallet.module.css";
+                import { useUser } from "../context/UserContext";
+                import { supabase } from "../lib/supabaseClient";
+                
+                /* ─── End Section 1 ───────────────────────────────────────── */
+                
+                /* ─── Section 2: Types & Constants ────────────────────────── */
+                /* ╭─────────────── DB row mapping ────────────────╮ */
+                type WalletRow = {
+                  id: string;
+                  amount: number;
+                  roblox_username: string | null;
+                  roblox_user_id: number | null;
+                  roblox_thumb: string | null;
+                  has_commission_free_gamepass: boolean;
+                  in_blooming: boolean;
+                  blooming_role: string | null;
+                  in_merkaz: boolean;
+                  merkaz_role: string | null;
+                  roblox_confirmed_at: string | null;
+                  roblox_change_attempt_at: string | null;
+                  inserted_at: string | null;
+                  updated_at: string | null;
+                };
+                
+                /* props passed from the parent */
+                export interface WalletProps {
+                  formOpen: boolean;
+                  setFormOpen: React.Dispatch<React.SetStateAction<boolean>>;
+                  /** let the parent know if a wallet exists (true) or was removed (false) */
+                  onWalletChange?: (hasWallet: boolean) => void;
+                }
+                
+                /* ╭────────────────────── Helpers ───────────────────────╮ */
+                const fmtDate = (d?: string | null) =>
+                  d ? new Date(d).toLocaleString("he-IL") : "—";
+                
+                const RAW_BASE =
+                  process.env.NEXT_PUBLIC_ROBLOX_API_URL ||
+                  "https://roblox-api-67sv.onrender.com";
+                const RENDER_BASE = (() => {
+                  try {
+                    return new URL(RAW_BASE).origin;
+                  } catch {
+                    return RAW_BASE.replace(/\/(get_user_id|lookup).*$/, "");
+                  }
+                })();
+                const avatarSrc = (id: number) => `${RENDER_BASE}/avatar/${id}`;
+                
+                /* ─── End Section 2 ───────────────────────────────────────── */
+                
+                /* ─── Section 3: Wallet Component ─────────────────────────── */
+                
+                export default function Wallet({
+                  formOpen,
+                  setFormOpen,
+                  onWalletChange,
+                }: WalletProps) {
+                  /* ── 3-A: User & Profile ──────────────────────────────── */
+                  const { user } = useUser();
+                
+                  const [profileName, setProfileName] = useState("");
+                  useEffect(() => {
+                    if (!user) {
+                      setProfileName("");
+                      return;
+                    }
+                    supabase
+                      .from("profiles")
+                      .select("username")
+                      .eq("id", user.id)
+                      .single()
+                      .then(({ data }) =>
+                        setProfileName(data?.username ?? user.email ?? user.id)
+                      );
+                  }, [user]);
+                
+                  /* ── End 3-A ──────────────────────────────────────────── */
+                
+                  /* ── 3-B: Wallet State & Drafts ───────────────────────── */
+                  const [wallet, setWallet] = useState<WalletRow | null>(null);
+                
+                  /* whenever wallet state changes – notify parent */
+                  useEffect(() => {
+                    onWalletChange?.(Boolean(wallet));
+                  }, [wallet, onWalletChange]);
+                
+                  /* draft fields for the form */
+                  const [amountDraft, setAmountDraft] = useState("");
+                  const [robloxDraft, setRobloxDraft] = useState("");
+                  const [robloxId, setRobloxId] = useState<number | null>(null);
+                  const [robloxThumb, setRobloxThumb] = useState<string | null>(null);
+                  const [confirmSelf, setConfirmSelf] = useState(false);
+                  const [hasPassDraft, setHasPassDraft] = useState(false);
+                
+                  /* group flags */
+                  const [inBlooming, setInBlooming] = useState(false);
+                  const [bloomRole, setBloomRole] = useState<string | null>(null);
+                  const [inMerkaz, setInMerkaz] = useState(false);
+                  const [merkazRole, setMerkazRole] = useState<string | null>(null);
+                
+                  type RStatus = "idle" | "loading" | "found" | "notfound" | "error";
+                  const [robloxStatus, setRobloxStatus] = useState<RStatus>("idle");
+                
+                  /* ── End 3-B ──────────────────────────────────────────── */
+                
+                  /* ── 3-C: Fetch Wallet (DB) ───────────────────────────── */
+                  const fetchWallet = async () => {
+                    if (!user) {
+                      setWallet(null);
+                      return;
+                    }
+                    const { data } = await supabase
+                      .from("wallets")
+                      .select(
+                        `id,amount,roblox_username,roblox_user_id,roblox_thumb,
+                         has_commission_free_gamepass,in_blooming,blooming_role,
+                         in_merkaz,merkaz_role,roblox_confirmed_at,roblox_change_attempt_at,
+                         inserted_at,updated_at`
+                      )
+                      .eq("user_id", user.id)
+                      .maybeSingle();
+                
+                    setWallet(data ?? null);
+                
+                    /* prime the draft fields */
+                    setAmountDraft(data ? String(data.amount) : "");
+                    setRobloxDraft(data?.roblox_username ?? "");
+                    setRobloxId(data?.roblox_user_id ?? null);
+                    setRobloxThumb(
+                      data?.roblox_thumb ??
+                        (data?.roblox_user_id ? avatarSrc(data.roblox_user_id) : null)
+                    );
+                    setHasPassDraft(data?.has_commission_free_gamepass ?? false);
+                    setInBlooming(data?.in_blooming ?? false);
+                    setBloomRole(data?.blooming_role ?? null);
+                    setInMerkaz(data?.in_merkaz ?? false);
+                    setMerkazRole(data?.merkaz_role ?? null);
+                
+                    if (data?.roblox_username) {
+                      setRobloxStatus("found");
+                      setConfirmSelf(true);
+                    } else {
+                      setRobloxStatus("idle");
+                      setConfirmSelf(false);
+                    }
+                  };
+                  useEffect(() => {
+                    fetchWallet();
+                    // eslint-disable-next-line react-hooks/exhaustive-deps
+                  }, [user]);
+                
+                  /* ── End 3-C ──────────────────────────────────────────── */
+                
+                  /* ── 3-D: Roblox Lookup (debounced) ───────────────────── */
+                  const API_URL = `${RENDER_BASE}/lookup`;
+                  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+                
+                  useEffect(() => {
+                    const uname = robloxDraft.trim();
+                
+                    /* unchanged == short-circuit */
+                    if (wallet && uname === wallet.roblox_username) {
+                      setRobloxId(wallet.roblox_user_id);
+                      setRobloxThumb(
+                        wallet.roblox_thumb ??
+                          (wallet.roblox_user_id ? avatarSrc(wallet.roblox_user_id) : null)
+                      );
+                      setInBlooming(wallet.in_blooming);
+                      setBloomRole(wallet.blooming_role);
+                      setInMerkaz(wallet.in_merkaz);
+                      setMerkazRole(wallet.merkaz_role);
+                      setRobloxStatus("found");
+                      setConfirmSelf(true);
+                      return;
+                    }
+                
+                    if (debounceRef.current) {
+                      clearTimeout(debounceRef.current);
+                    }
+                
+                    if (!uname) {
+                      setRobloxStatus("idle");
+                      setRobloxId(null);
+                      setRobloxThumb(null);
+                      setConfirmSelf(false);
+                      setInBlooming(false);
+                      setBloomRole(null);
+                      setInMerkaz(false);
+                      setMerkazRole(null);
+                      return;
+                    }
+                
+                    setRobloxStatus("loading");
+                    setConfirmSelf(false);
+                
+                    debounceRef.current = setTimeout(async () => {
+                      try {
+                        const stripped = uname.startsWith("@") ? uname.slice(1) : uname;
+                        const res = await fetch(
+                          `${API_URL}?username=${encodeURIComponent(stripped)}`
+                        );
+                        const json = await res.json();
+                
+                        if (res.ok && json.user_id) {
+                          const idNum = Number(json.user_id);
+                          setRobloxId(idNum);
+                          setRobloxThumb(avatarSrc(idNum));
+                          setInBlooming(json.in_blooming);
+                          setBloomRole(json.blooming_role);
+                          setInMerkaz(json.in_merkaz);
+                          setMerkazRole(json.merkaz_role);
+                          setRobloxStatus("found");
+                        } else if (res.status === 404) {
+                          setRobloxStatus("notfound");
+                          setRobloxId(null);
+                          setRobloxThumb(null);
+                        } else {
+                          throw new Error();
+                        }
+                      } catch {
+                        setRobloxStatus("error");
+                        setRobloxId(null);
+                        setRobloxThumb(null);
+                      }
+                    }, 500);
+                  }, [robloxDraft, wallet, API_URL]);
+                
+                  /* ── End 3-D ──────────────────────────────────────────── */
+                
+                  /* ── 3-E: Helper Functions ────────────────────────────── */
+                  const validAmount = () => {
+                    const n = parseFloat(amountDraft);
+                    return Number.isFinite(n) && n >= 0;
+                  };
+                  const robloxOK =
+                    robloxDraft.trim() === ""
+                      ? true
+                      : robloxStatus === "found" && confirmSelf;
+                
+                  const robloxHelper = () => {
+                    switch (robloxStatus) {
+                      case "loading":
+                        return "בודק…";
+                      case "found":
+                        return confirmSelf
+                          ? `אומת (ID: ${robloxId})`
+                          : `נמצא (ID: ${robloxId}) – נא אשר/י`;
+                      case "notfound":
+                        return "לא נמצא";
+                      case "error":
+                        return "שגיאה בבדיקה";
+                      default:
+                        return "";
+                    }
+                  };
+                
+                  const GroupsBadge = () => (
+                    <>
+                      <p className={styles.groupsBadgeItem}>
+                        Blooming Ent.: {inBlooming ? "✅" : "❌"}
+                        {inBlooming && bloomRole ? ` — ${bloomRole}` : ""}
+                      </p>
+                      <p className={styles.groupsBadgeItem}>
+                        Merkaz Ent.: {inMerkaz ? "✅" : "❌"}
+                        {inMerkaz && merkazRole ? ` — ${merkazRole}` : ""}
+                      </p>
+                    </>
+                  );
+                
+                  /* ── End 3-E ──────────────────────────────────────────── */
+                
+                  /* ── 3-F: Save & Delete Handlers ──────────────────────── */
+                  const saveWallet = async () => {
+                    if (!user) {
+                      alert("יש להתחבר תחילה.");
+                      return;
+                    }
+                    if (!validAmount()) {
+                      alert("סכום לא תקין.");
+                      return;
+                    }
+                    if (!robloxOK) {
+                      alert("יש לאשר שזה הפרופיל שלך.");
+                      return;
+                    }
+                
+                    const amt = parseFloat(amountDraft);
+                    const robloxName = robloxDraft.trim() || null;
+                    const nowISO = new Date().toISOString();
+                
+                    /* --------------- existing wallet --------------- */
+                    if (wallet) {
+                      const usernameChanged = robloxName !== wallet.roblox_username;
+                
+                      /* amount / flags only */
+                      if (!usernameChanged) {
+                        await supabase
+                          .from("wallets")
+                          .update({
+                            amount: amt,
+                            has_commission_free_gamepass: hasPassDraft,
+                            in_blooming: inBlooming,
+                            blooming_role: bloomRole,
+                            in_merkaz: inMerkaz,
+                            merkaz_role: merkazRole,
+                          })
+                          .eq("id", wallet.id);
+                        await fetchWallet();
+                        setFormOpen(false);
+                        return;
+                      }
+                
+                      /* username change – enforce locks */
+                      const confirmedAt = wallet.roblox_confirmed_at
+                        ? new Date(wallet.roblox_confirmed_at).getTime()
+                        : null;
+                      const lastAttemptAt = wallet.roblox_change_attempt_at
+                        ? new Date(wallet.roblox_change_attempt_at).getTime()
+                        : null;
+                      const now = Date.now();
+                
+                      if (!confirmedAt /* first ever confirm */) {
+                        await supabase
+                          .from("wallets")
+                          .update({
+                            amount: amt,
+                            roblox_username: robloxName,
+                            roblox_user_id: robloxId,
+                            roblox_thumb: robloxThumb,
+                            has_commission_free_gamepass: hasPassDraft,
+                            in_blooming: inBlooming,
+                            blooming_role: bloomRole,
+                            in_merkaz: inMerkaz,
+                            merkaz_role: merkazRole,
+                            roblox_confirmed_at: nowISO,
+                            roblox_change_attempt_at: nowISO,
+                          })
+                          .eq("id", wallet.id);
+                        await fetchWallet();
+                        setFormOpen(false);
+                        return;
+                      }
+                
+                      if (confirmedAt && now - confirmedAt < 24 * 60 * 60 * 1000) {
+                        alert(
+                          "אין באפשרותך לשנות את שם המשתמש במשך 24 שעות לאחר האישור האחרון."
+                        );
+                        return;
+                      }
+                
+                      if (lastAttemptAt && now - lastAttemptAt < 7 * 24 * 60 * 60 * 1000) {
+                        alert(
+                          "ניתן לשנות שם משתמש רק פעם אחת בכל שבוע אחרי ניסיון השינוי האחרון."
+                        );
+                        return;
+                      }
+                
+                      await supabase
+                        .from("wallets")
+                        .update({
+                          amount: amt,
+                          roblox_username: robloxName,
+                          roblox_user_id: robloxId,
+                          roblox_thumb: robloxThumb,
+                          has_commission_free_gamepass: hasPassDraft,
+                          in_blooming: inBlooming,
+                          blooming_role: bloomRole,
+                          in_merkaz: inMerkaz,
+                          merkaz_role: merkazRole,
+                          roblox_confirmed_at: nowISO,
+                          roblox_change_attempt_at: nowISO,
+                        })
+                        .eq("id", wallet.id);
+                      await fetchWallet();
+                      setFormOpen(false);
+                      return;
+                    }
+                
+                    /* --------------- insert NEW wallet --------------- */
+                    await supabase.from("wallets").insert({
+                      amount: amt,
+                      roblox_username: robloxName,
+                      roblox_user_id: robloxId,
+                      roblox_thumb: robloxThumb,
+                      has_commission_free_gamepass: hasPassDraft,
+                      in_blooming: inBlooming,
+                      blooming_role: bloomRole,
+                      in_merkaz: inMerkaz,
+                      merkaz_role: merkazRole,
+                      roblox_confirmed_at: nowISO,
+                      roblox_change_attempt_at: nowISO,
+                      user_id: user.id,
+                      user_name: profileName,
+                    });
+                    await fetchWallet();
+                    setFormOpen(false);
+                  };
+                
+                  /* ───────── DELETE ───────── */
+                  const deleteWallet = async () => {
+                    if (!wallet) return;
+                    if (!confirm("למחוק את הארנק?")) return;
+                    await supabase.from("wallets").delete().eq("id", wallet.id);
+                    await fetchWallet();
+                  };
+                
+                  /* ── End 3-F ──────────────────────────────────────────── */
+                
+                  /* ── 3-G: JSX Return ──────────────────────────────────── */
+                  return (
+                    <section className={styles.container}>
+                      {!wallet ? (
+                        formOpen ? (
+                          <div className={`${clientStyles.card} ${styles.cardSmall}`}>
+                            {/* disclaimer omitted for brevity */}
+                            <input
+                              type="number"
+                              className={clientStyles.select}
+                              min={0}
+                              value={amountDraft}
+                              onChange={(e) => setAmountDraft(e.target.value)}
+                              placeholder="סכום במשחק"
+                            />
+                            <input
+                              type="text"
+                              className={`${clientStyles.select} ${styles.mtSmall}`}
+                              value={robloxDraft}
+                              onChange={(e) => setRobloxDraft(e.target.value)}
+                              placeholder='שם Roblox ("MyUser" או "@MyUser")'
+                            />
+                            <label className={styles.baseLabel}>
+                              <input
+                                type="checkbox"
+                                checked={hasPassDraft}
+                                onChange={(e) => setHasPassDraft(e.target.checked)}
+                              />{" "}
+                              האם ברשותך גיים-פאס ללא עמלות?
+                            </label>
+                
+                            {robloxStatus === "found" && robloxThumb && (
+                              <>
+                                <Image
+                                  src={robloxThumb}
+                                  alt="Avatar"
+                                  className={styles.avatar}
+                                  width={120}
+                                  height={120}
+                                  unoptimized
+                                />
+                                <label className={styles.confirmLabel}>
+                                  <input
+                                    type="checkbox"
+                                    checked={confirmSelf}
+                                    onChange={(e) => setConfirmSelf(e.target.checked)}
+                                  />{" "}
+                                  מאשר/ת שזה הפרופיל שלי
+                                </label>
+                                <GroupsBadge />
+                              </>
+                            )}
+                
+                            {robloxDraft && (
+                              <p className={styles.helperText}>{robloxHelper()}</p>
+                            )}
+                
+                            <button
+                              className={`${clientStyles.saveBtn} ${
+                                robloxOK
+                                  ? clientStyles.saveBtnEnabled
+                                  : clientStyles.saveBtnDisabled
+                              }`}
+                              disabled={!robloxOK}
+                              onClick={saveWallet}
+                            >
+                              שמור
+                            </button>
+                            <button
+                              className={`${clientStyles.saveBtn} ${clientStyles.saveBtnEnabled}`}
+                              onClick={() => setFormOpen(false)}
+                            >
+                              ביטול
+                            </button>
+                          </div>
+                        ) : null
+                      ) : (
+                        <div className={`${clientStyles.card} ${styles.cardLarge}`}>
+                          <h3 className={styles.headingNoMargin}>💳 הארנק שלי</h3>
+                          {!formOpen ? (
+                            <>
+                              <p className={styles.amount}>
+                                {wallet.amount.toLocaleString()} ₪
+                              </p>
+                              <p className={styles.gamepass}>
+                                גיים-פאס ללא עמלות:{" "}
+                                {wallet.has_commission_free_gamepass ? "✅" : "❌"}
+                              </p>
+                              <GroupsBadge />
+                
+                              {wallet.roblox_username && (
+                                <>
+                                  <Image
+                                    src={wallet.roblox_thumb ?? avatarSrc(wallet.roblox_user_id!)}
+                                    alt="Avatar"
+                                    className={`${styles.avatar} ${styles.avatarView}`}
+                                    width={120}
+                                    height={120}
+                                    unoptimized
+                                  />
+                                  <p className={styles.username}>
+                                    <a
+                                      href={`https://www.roblox.com/users/${wallet.roblox_user_id}/profile`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                    >
+                                      {wallet.roblox_username}
+                                    </a>
+                                  </p>
+                                  <p className={styles.helperText}>
+                                    Roblox ID: {wallet.roblox_user_id}
+                                  </p>
+                                </>
+                              )}
+                
+                              <p className={styles.timestamps}>
+                                {`נוצר: ${fmtDate(wallet.inserted_at)}\nעודכן: ${fmtDate(
+                                  wallet.updated_at
+                                )}`}
+                              </p>
+                
+                              <div className={styles.buttonGroup}>
+                                <button
+                                  className={`${clientStyles.saveBtn} ${clientStyles.saveBtnEnabled} ${styles.btnMinWidth}`}
+                                  onClick={() => {
+                                    setConfirmSelf(Boolean(wallet.roblox_username));
+                                    setFormOpen(true);
+                                  }}
+                                >
+                                  עדכן
+                                </button>
+                                <button
+                                  className={`${clientStyles.saveBtn} ${clientStyles.saveBtnDisabled} ${styles.btnMinWidth} ${styles.errorBtn}`}
+                                  onClick={deleteWallet}
+                                >
+                                  מחיקה
+                                </button>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <input
+                                type="number"
+                                className={clientStyles.select}
+                                min={0}
+                                value={amountDraft}
+                                onChange={(e) => setAmountDraft(e.target.value)}
+                                placeholder="סכום חדש"
+                              />
+                              <input
+                                type="text"
+                                className={`${clientStyles.select} ${styles.mtSmall}`}
+                                value={robloxDraft}
+                                onChange={(e) => setRobloxDraft(e.target.value)}
+                                placeholder="שם Roblox"
+                              />
+                              <label className={styles.baseLabel}>
+                                <input
+                                  type="checkbox"
+                                  checked={hasPassDraft}
+                                  onChange={(e) => setHasPassDraft(e.target.checked)}
+                                />{" "}
+                                גיים-פאס ללא עמלות?
+                              </label>
+                
+                              {robloxStatus === "found" && robloxThumb && (
+                                <>
+                                  <Image
+                                    src={robloxThumb}
+                                    alt="Avatar"
+                                    className={styles.avatar}
+                                    width={120}
+                                    height={120}
+                                    unoptimized
+                                  />
+                                  <label className={styles.confirmLabel}>
+                                    <input
+                                      type="checkbox"
+                                      checked={confirmSelf}
+                                      onChange={(e) => setConfirmSelf(e.target.checked)}
+                                      disabled={wallet.roblox_username === robloxDraft.trim()}
+                                    />{" "}
+                                    מאשר/ת שזה הפרופיל שלי
+                                  </label>
+                                  {wallet.roblox_username !== robloxDraft.trim() && (
+                                    <p className={styles.lockMessage}>
+                                      * לאחר אישור אין באפשרותך לשנות המשתמש למשך 24 שעות, ואחר
+                                      כך – פעם בשבוע בלבד.
+                                    </p>
+                                  )}
+                                  <GroupsBadge />
+                                </>
+                              )}
+                
+                              {robloxDraft && (
+                                <p className={styles.helperText}>{robloxHelper()}</p>
+                              )}
+                
+                              <button
+                                className={`${clientStyles.saveBtn} ${
+                                  robloxOK
+                                    ? clientStyles.saveBtnEnabled
+                                    : clientStyles.saveBtnDisabled
+                                }`}
+                                disabled={!robloxOK}
+                                onClick={saveWallet}
+                              >
+                                שמור
+                              </button>
+                              <button
+                                className={`${clientStyles.saveBtn} ${clientStyles.saveBtnEnabled}`}
+                                onClick={() => {
+                                  setFormOpen(false);
+                                  fetchWallet();
+                                }}
+                              >
+                                ביטול
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </section>
+                  );
+                  /* ── End 3-G ──────────────────────────────────────────── */
+                }
+                /* ─── End Section 3 ───────────────────────────────────────── */
+        Folder: tradingPage
+            File: page.tsx
+                Code:
+                // src/app/tradingPage/page.tsx
+                import React from 'react';
+                import '../globals.css'; // Ensures global styles can be applied
+                
+                const TradingPage = () => {
+                  return (
+                    <div className="page-container" style={{ textAlign: 'center' }}> {/* Using existing page-container for general layout and centering text */}
+                      <h1 className="title">טריידים</h1> {/* Using existing title class */}
+                      <p style={{ fontSize: '1.2rem', marginTop: '1rem' }}>
+                        עדכון חדש בקרוב
+                      </p>
+                    </div>
+                  );
+                };
+                
+                export default TradingPage;
+        Folder: utils
+            File: pricing.ts
+                Code:
+                // ────────────────────────────────────────────
+                // src/app/utils/pricing.ts
+                // ────────────────────────────────────────────
+                /*
+                  ➊ representativePrice – מחיר “גולמי” מדיסקורד (EWMA + Winsor)
+                  ➋ consensusStats      – ממוצע קהילה + CV + גודל-מדגם
+                  ➌ blendPrices         – שקלול דיסקורד-קהילה
+                */
+                
+                export interface QuotePoint {
+                    /** Price in “regular” currency */
+                    price: number;
+                    date: Date | string;
+                  }
+                  
+                  /* ╭──────────────────────┐
+                     │ 1. דיסקורד : EWMA   │
+                     ╰──────────────────────┘ */
+                  const HALF_LIFE_MO = 1;
+                  const ALPHA = 0.6;
+                  const CLIP_SIGMA = 2.5;
+                  
+                  const ageInMonths = (then: Date, now = new Date()) =>
+                    (now.getFullYear() - then.getFullYear()) * 12 +
+                    (now.getMonth() - then.getMonth()) +
+                    (now.getDate() - then.getDate()) / 30.44;
+                  
+                  const weight = (ageMo: number) => Math.pow(0.5, (ALPHA * ageMo) / HALF_LIFE_MO);
+                  
+                  /** מחיר מנוכה-רעש, או null אם < 3 נקודות */
+                  export function representativePrice(points: QuotePoint[]): number | null {
+                    const pts: { p: number; d: Date }[] = [];
+                  
+                    for (const q of points ?? []) {
+                      const p = +q.price;
+                      if (!Number.isFinite(p) || p <= 0) continue;
+                      const d = q.date instanceof Date ? q.date : new Date(q.date);
+                      if (Number.isNaN(+d)) continue;
+                      pts.push({ p, d });
+                    }
+                    if (pts.length < 3) return null;
+                  
+                    const w = pts.map(({ d }) => weight(ageInMonths(d)));
+                    const W = w.reduce((a, b) => a + b, 0);
+                  
+                    const μ0 = pts.reduce((s, { p }, i) => s + p * w[i], 0) / W;
+                    const σ0 =
+                      Math.sqrt(pts.reduce((s, { p }, i) => s + (p - μ0) ** 2 * w[i], 0) / W) ||
+                      1;
+                  
+                    const lo = μ0 - CLIP_SIGMA * σ0;
+                    const hi = μ0 + CLIP_SIGMA * σ0;
+                  
+                    const μ =
+                      pts.reduce((s, { p }, i) => {
+                        const c = Math.min(hi, Math.max(lo, p)); // winsorise
+                        return s + c * w[i];
+                      }, 0) / W;
+                  
+                    return Math.round(μ);
+                  }
+                  
+                  /* ╭──────────────────────────────┐
+                     │ 2. קהילה : μ , σ , CV , n   │
+                     ╰──────────────────────────────┘ */
+                  export interface ConsensusStats {
+                    price: number | null;
+                    cv: number | null;
+                    n: number;
+                  }
+                  
+                  /** ממוצע + CV + גודל-מדגם */
+                  export function consensusStats(values: number[]): ConsensusStats {
+                    const nums = values.filter((v) => Number.isFinite(v) && v > 0);
+                    const n = nums.length;
+                  
+                    if (n < 3) return { price: null, cv: null, n };
+                  
+                    const μ = nums.reduce((a, b) => a + b, 0) / n;
+                    const σ = Math.sqrt(nums.reduce((s, x) => s + (x - μ) ** 2, 0) / n);
+                    const cv = σ / μ;
+                  
+                    return { price: Math.round(μ), cv, n };
+                  }
+                  
+                  /* ╭───────────────────────────────────────────┐
+                     │ 3. בלנד דיסקורד-קהילה → מחיר סופי        │
+                     ╰───────────────────────────────────────────┘ */
+                  export interface BlendedPrice {
+                    final: number | null;
+                    weightD: number;
+                    weightC: number;
+                    discord: ConsensusStats;
+                    community: ConsensusStats;
+                  }
+                  
+                  export const BLEND_CFG = {
+                    baseDiscord: 1.0, // b_D
+                    baseCommunity: 0.8, // b_C
+                    saturationK: 5, // k – גודל מדגם “רוויה”
+                  };
+                  
+                  /** משקל ∝ b · n/(n+k) · 1/(1+CV) */
+                  function calcWeight({ n, cv }: ConsensusStats, base: number, k: number) {
+                    if (!n || n < 3 || cv === null) return 0;
+                    return base * (n / (n + k)) * (1 / (1 + cv));
+                  }
+                  
+                  /** שקול דיסקורד-קהילה והחזר מחיר סופי + משקלים */
+                  export function blendPrices(
+                    discord: ConsensusStats,
+                    community: ConsensusStats
+                  ): BlendedPrice {
+                    const wD = calcWeight(discord, BLEND_CFG.baseDiscord, BLEND_CFG.saturationK);
+                    const wC = calcWeight(
+                      community,
+                      BLEND_CFG.baseCommunity,
+                      BLEND_CFG.saturationK
+                    );
+                  
+                    const Z = wD + wC;
+                    const nD = Z ? wD / Z : 0;
+                    const nC = Z ? wC / Z : 0;
+                  
+                    const final =
+                      discord.price !== null && community.price !== null && Z
+                        ? Math.round(discord.price * nD + community.price * nC)
+                        : discord.price ?? community.price ?? null;
+                  
+                    return { final, weightD: nD, weightC: nC, discord, community };
+                  }
+                  
+

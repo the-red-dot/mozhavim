@@ -16,7 +16,7 @@ import {
 import Wallet from "./Wallet";
 
 // 🚀 Imports for Trade Simulation
-import { useTrade, type TradeItem, type AllowedTier } from "../context/TradeContext";
+import { useTrade, type AllowedTier } from "../context/TradeContext";
 import TraderPanel from "../components/TraderPanel";
 import tradeStyles from "../components/TraderPanel.module.css";
 // ─── End Section 1 ────────────────────────────────────────
@@ -243,7 +243,7 @@ export interface GeneralDepreciationStats {
   );
 
   useEffect(() => {
-    if (depStats) return;                // already have fresh stats
+    if (depStats) return; // already have fresh stats
     supabase
       .from("depreciation_stats")
       .select(
@@ -262,7 +262,7 @@ export interface GeneralDepreciationStats {
       });
   }, [depStats]);
 
-  /*  ❷  Regular-tier price for **every** catalogue item               */
+  /* ❷  Regular-tier price for **every** catalogue item */
   const [regularPriceMap, setRegularPriceMap] = useState<
     Record<string, number | null>
   >({});
@@ -281,7 +281,14 @@ export interface GeneralDepreciationStats {
       disc?.forEach((r) => {
         const buy = +r.buyregular?.replace(/[^\d]/g, "") || NaN;
         const sell = +r.sellregular?.replace(/[^\d]/g, "") || NaN;
-        const p = !isNaN(buy) && !isNaN(sell) ? (buy + sell) / 2 : !isNaN(buy) ? buy : !isNaN(sell) ? sell : NaN;
+        const p =
+          !isNaN(buy) && !isNaN(sell)
+            ? (buy + sell) / 2
+            : !isNaN(buy)
+            ? buy
+            : !isNaN(sell)
+            ? sell
+            : NaN;
         if (r.date && Number.isFinite(p)) {
           (discPts[r.item_id] ??= []).push({ price: p, date: new Date(r.date) });
         }
@@ -313,7 +320,7 @@ export interface GeneralDepreciationStats {
     })();
   }, [initialItems]);
 
-  /*  ❸  Price helpers ------------------------------------------------ */
+  /* ❸  Price helpers ------------------------------------------------ */
   const priceOf = useCallback(
     (itemId: string, tier: Tier): number => {
       const base = regularPriceMap[itemId];
@@ -340,19 +347,6 @@ export interface GeneralDepreciationStats {
     },
     [regularPriceMap, depStats]
   );
-
-  /*  ❹  For bag rows                                                  */
-  const unitPriceOf = useCallback(
-    (r: CollectionRow) => priceOf(r.item_id, r.item_type),
-    [priceOf]
-  );
-
-  /*  ❺  Helper for catalogue “computeUnitPrice”                       */
-  const computeUnitPrice = useCallback(
-    (itemId: string, tier: Tier) => priceOf(itemId, tier),
-    [priceOf]
-  );
-
   // ─── End Section 7 ────────────────────────────────────────
   
   // ─── Section 8: Depreciation & Helper Functions ───────────
