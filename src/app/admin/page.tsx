@@ -1,15 +1,15 @@
 // src/app/admin/page.tsx
 "use client";
 
+/* ─── Section 1: Imports ─────────────────────────────────── */
 import { useState } from "react";
 import Link from "next/link";
 import { supabase } from "../lib/supabaseClient";
 import { useUser } from "../context/UserContext";
 import { revalidateItemsCacheAction } from "../actions";
+/* ─── End Section 1 ───────────────────────────────────────── */
 
-/* -------------------------------------------------
-  1️⃣  Type Definitions & Mappings
--------------------------------------------------- */
+/* ─── Section 2: Type Definitions & Field Maps ───────────── */
 interface ParsedItemData {
   name?: string | null;
   buyregular?: string | null;
@@ -59,10 +59,9 @@ const allowedFields = [
   "image",
   "description",
 ];
+/* ─── End Section 2 ───────────────────────────────────────── */
 
-/* -------------------------------------------------
-  2️⃣  helpers — parse free text / JSON
--------------------------------------------------- */
+/* ─── Section 3: Text / JSON Parsing Helpers ─────────────── */
 function normalizeJsonRecord(record: Record<string, unknown> | null | undefined): ParsedItemData {
   const out: ParsedItemData = {};
   if (!record || typeof record !== "object") return out;
@@ -124,29 +123,40 @@ function parseRecords(text: string): ParsedItemData[] {
   }
   return [];
 }
+/* ─── End Section 3 ───────────────────────────────────────── */
 
-/* -------------------------------------------------
-  3️⃣  React component
--------------------------------------------------- */
+/* ─── Section 4: AdminManagementPage Component ───────────── */
 export default function AdminManagementPage() {
+  /* ── 4-A Hooks & Primitive State ──────────────────────── */
   const { user, profile, isLoading, sessionInitiallyChecked } = useUser();
 
   const [inputData, setInputData] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [isPublishing, setIsPublishing] = useState(false);
+  /* ── End 4-A ───────────────────────────────────────────── */
 
-  /* ---------- fetch / upsert helpers (unchanged) ---------- */
+  /* ── 4-B DB Helpers ───────────────────────────────────── */
   async function getDefinitionId(rec: ParsedItemData): Promise<string | null> {
     const name = rec.name?.trim();
     if (!name) return null;
 
+    // Build the payload dynamically – only include fields that were actually
+    // present in the admin’s record. If a field is missing, we leave the
+    // existing DB value untouched; if it is present (even as an empty string),
+    // we upsert it.
+    const payload: Record<string, unknown> = { name };
+
+    if ("description" in rec) {
+      payload.description = rec.description ?? null;
+    }
+    if ("image" in rec) {
+      payload.image = rec.image ?? null;
+    }
+
     const { data, error: upsertErr } = await supabase
       .from("item_definitions")
-      .upsert(
-        { name, description: rec.description ?? null, image: rec.image ?? null },
-        { onConflict: "name" }
-      )
+      .upsert(payload, { onConflict: "name" })
       .select("id")
       .single();
 
@@ -244,8 +254,9 @@ export default function AdminManagementPage() {
     }
     setIsPublishing(false);
   };
+  /* ── End 4-B ───────────────────────────────────────────── */
 
-  /* ---------- Access guards ---------- */
+  /* ── 4-C Access Guards ────────────────────────────────── */
   if (isLoading || !sessionInitiallyChecked) {
     return (
       <div className="admin-post-creation" style={{ marginTop: "2rem", textAlign: "center" }}>
@@ -270,10 +281,9 @@ export default function AdminManagementPage() {
       </div>
     );
   }
+  /* ── End 4-C ───────────────────────────────────────────── */
 
-  /* -------------------------------------------------
-    4️⃣  UI
-  -------------------------------------------------- */
+  /* ── 4-D UI Return ────────────────────────────────────── */
   return (
     <div className="admin-post-creation" style={{ marginTop: "2rem" }}>
       <h1>מערכת הוספת מוזהבים</h1>
@@ -337,4 +347,6 @@ export default function AdminManagementPage() {
       )}
     </div>
   );
+  /* ── End 4-D ───────────────────────────────────────────── */
 }
+/* ─── End Section 4 ───────────────────────────────────────── */

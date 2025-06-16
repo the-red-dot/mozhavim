@@ -1,6 +1,8 @@
-/* app/tik-sheli/TikSheliClient.module.css */
+/* ╭──────────────────────────────────────────────────────────╮
+   │  app/tik-sheli/TikSheliClient.module.css                 │
+   ╰──────────────────────────────────────────────────────────╯*/
 
-/* ───────── Wrapper & Main Title ───────── */
+/* ─── Section 1: Wrapper & Main Title ─────────────────────── */
 .wrapper {
   padding: 2rem;
   max-width: 1200px;
@@ -21,7 +23,9 @@
   color: var(--primary-color);
 }
 
-/* app/tik-sheli/TikSheliClient.module.css */
+/* ─── End Section 1 ───────────────────────────────────────── */
+
+/* ─── Section 2: Top-Bar Triggers Container ───────────────── */
 .triggersContainer {
   display: flex;
   justify-content: center;
@@ -31,8 +35,9 @@
   margin-bottom: 2.5rem;
 }
 
+/* ─── End Section 2 ───────────────────────────────────────── */
 
-/* ───────── Grid for Add-Item Cards ───────── */
+/* ─── Section 3: Grid for Add-Item Cards ──────────────────── */
 .addGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -40,7 +45,9 @@
   margin-bottom: 2.5rem;
 }
 
-/* ───────── “Add New Gold” Trigger ───────── */
+/* ─── End Section 3 ───────────────────────────────────────── */
+
+/* ─── Section 4: “Add New Gold” Trigger (card) ───────────── */
 .openItemsTrigger {
   display: flex;
   flex-direction: column;
@@ -84,7 +91,9 @@
   font-weight: 500;
 }
 
-/* ───────── “Close” Trigger (Edit Mode) ───────── */
+/* ─── End Section 4 ───────────────────────────────────────── */
+
+/* ─── Section 5: “Close” Trigger (card) ───────────────────── */
 .closeItemsTrigger {
   display: flex;
   flex-direction: column;
@@ -125,7 +134,9 @@
   font-weight: 500;
 }
 
-/* ───────── Add-Item Card Styles ───────── */
+/* ─── End Section 5 ───────────────────────────────────────── */
+
+/* ─── Section 6: Add-Item Card Core Styles ────────────────── */
 .card {
   background-color: var(--card-background-color);
   border: 1px solid var(--card-border-color);
@@ -178,7 +189,9 @@
   min-height: 2.2em;
 }
 
-/* ───────── Select & Quantity Controls ───────── */
+/* ─── End Section 6 ───────────────────────────────────────── */
+
+/* ─── Section 7: Select & Quantity Controls ───────────────── */
 .select {
   width: 100%;
   padding: 0.6rem 0.85rem;
@@ -235,8 +248,9 @@
   color: var(--text-light-color);
 }
 
+/* ─── End Section 7 ───────────────────────────────────────── */
 
-/* ───────── Save Button & Messages ───────── */
+/* ─── Section 8: Save Buttons & Messages ─────────────────── */
 .saveBtn {
   margin: 1rem auto 2rem;
   padding: 0.9rem 2.2rem;
@@ -285,9 +299,10 @@
   border: 1px solid #badbcc;
 }
 
-/* ───────── Personal Bag Section ───────── */
+/* ─── End Section 8 ───────────────────────────────────────── */
+
+/* ─── Section 9: Personal Bag Section Shell ──────────────── */
 .wrapper > section {
-  /* remove dark background, match width/padding to .openItemsTrigger */
   max-width: 1200px;
   width: 100%;
   margin: 3rem auto 0;
@@ -316,7 +331,9 @@
   padding: 2rem 0;
 }
 
-/* ───────── List & List-Item ───────── */
+/* ─── End Section 9 ───────────────────────────────────────── */
+
+/* ─── Section 10: List & List-Item Styles ────────────────── */
 .list {
   list-style: none;
   padding: 0;
@@ -425,7 +442,9 @@
   transform: scale(1);
 }
 
-/* ───────── Summary ───────── */
+/* ─── End Section 10 ─────────────────────────────────────── */
+
+/* ─── Section 11: Portfolio Summary Banner ───────────────── */
 .totalSummary {
   text-align: center;
   margin-top: 3rem;
@@ -447,8 +466,9 @@
   margin-right: 0.25em;
 }
 
+/* ─── End Section 11 ─────────────────────────────────────── */
 
-/* ───────── Screen-reader Only ───────── */
+/* ─── Section 12: Screen-Reader Utility Class ────────────── */
 .sr-only {
   position: absolute;
   width: 1px;
@@ -461,7 +481,9 @@
   border-width: 0;
 }
 
-/* 1. On tablets and small desktops, allow ~3 columns */
+/* ─── End Section 12 ─────────────────────────────────────── */
+
+/* ─── Section 13: Responsive Media Queries ───────────────── */
 @media (max-width: 768px) {
   .addGrid {
     grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
@@ -511,5 +533,5 @@
     padding: 1rem;
   }
 }
-
+/* ─── End Section 13 ─────────────────────────────────────── */
 

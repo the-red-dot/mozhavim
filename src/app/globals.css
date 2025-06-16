@@ -1,5 +1,9 @@
-/* src/app/globals.css */
+/* ╭──────────────────────────────────────────────────────────╮
+   │  src/app/globals.css                                     │
+   ╰──────────────────────────────────────────────────────────╯*/
 
+
+/* ─── Section 1: CSS Variables (‛:root’) ──────────────────── */
 :root {
   --background: #0a0a0a;
   --foreground: #ededed;
@@ -40,6 +44,9 @@
   --tier-emerald-accent: #50C878;
 }
 
+/* ─── End Section 1 ───────────────────────────────────────── */
+
+/* ─── Section 2: Base Layout & Typography ─────────────────── */
 body {
   background: var(--background);
   color: var(--foreground);
@@ -50,7 +57,9 @@ body {
   padding: 0;
 }
 
-/* Homepage Styles */
+/* ─── End Section 2 ───────────────────────────────────────── */
+
+/* ─── Section 3: Homepage Title & Layout ──────────────────── */
 .page-container {
   display: flex;
   flex-direction: column;
@@ -79,7 +88,9 @@ body {
   color: #34a853;
 }
 
-/* Search Container */
+/* ─── End Section 3 ───────────────────────────────────────── */
+
+/* ─── Section 4: Search Bar & Suggestions ─────────────────── */
 .search-container {
   position: relative;
   width: 100%;
@@ -190,7 +201,9 @@ body {
   top: calc(100% - 1px);
 }
 
-/* Results Container */
+/* ─── End Section 4 ───────────────────────────────────────── */
+
+/* ─── Section 5: Results & Item Representation ────────────── */
 .results-container {
   margin-top: 2rem;
   width: 100%;
@@ -292,9 +305,10 @@ body {
   color: #aaaaaa;   
   text-align: center; 
 }
-/* --- END: Updated Price Presentation Styles --- */
 
-/* Voting / Assumptions Container */
+/* ─── End Section 5 ───────────────────────────────────────── */
+
+/* ─── Section 6: Voting & Assumption Blocks ──────────────── */
 .price-opinion-container {
   margin-top: 1rem;
   background: #1a1a1a;
@@ -372,7 +386,9 @@ body {
   background: #357abd;
 }
 
-/* Community Averages */
+/* ─── End Section 6 ───────────────────────────────────────── */
+
+/* ─── Section 7: Community & Matching Lists ──────────────── */
 .community-container {
   margin-top: 1rem;
   background: #1a1a1a;
@@ -510,10 +526,6 @@ body {
   margin-bottom: 2rem; 
 }
 
-/* .results-container duplication was noted, ensure styles are harmonized or use distinct classes if needed.
-    The one at line ~100 already has margin-bottom: 3rem. The one at ~270 is identical. This is fine.
-*/
-
 .success {
   color: #4CAF50; /* Brighter green for success */
   text-align: center;
@@ -521,7 +533,9 @@ body {
   font-weight: 500;
 }
 
-/* NavMenu / Sidebar Styles */
+/* ─── End Section 7 ───────────────────────────────────────── */
+
+/* ─── Section 8: Nav Menu / Sidebar ──────────────────────── */
 .nav-burger {
   position: fixed;
   top: 1.5rem;
@@ -635,7 +649,9 @@ body {
   background: #c62828; /* Darker red on hover */
 }
 
-/* Authentication Page Styles */
+/* ─── End Section 8 ───────────────────────────────────────── */
+
+/* ─── Section 9: Authentication Pages ────────────────────── */
 .auth-container {
   max-width: 400px;
   margin: 3rem auto; 
@@ -724,7 +740,9 @@ body {
   line-height: 1.5;
 }
 
-/* InfoUpdates Page Styles */
+/* ─── End Section 9 ───────────────────────────────────────── */
+
+/* ─── Section 10: Admin “Info Updates” Page ──────────────── */
 .info-updates-container {
   max-width: 800px;
   margin: 2rem auto;
@@ -833,7 +851,9 @@ body {
   background: #357abd;
 }
 
-/* Error Message */
+/* ─── End Section 10 ─────────────────────────────────────── */
+
+/* ─── Section 11: Utility / Feedback Colours ─────────────── */
 .error {
   color: #FF5252; /* Brighter red for errors */
   text-align: center;
@@ -841,7 +861,9 @@ body {
   font-weight: 500;
 }
 
-/* Responsive Adjustments */
+/* ─── End Section 11 ─────────────────────────────────────── */
+
+/* ─── Section 12: Responsive Breakpoints ─────────────────── */
 @media (max-width: 768px) { /* Slightly larger breakpoint for some adjustments */
    .voting-buttons button {
        font-size: 0.9rem; /* Adjust font size for smaller screens */
@@ -915,4 +937,5 @@ body {
   .post h1 {
     font-size: 1.5rem;
   }
+  /* ─── End Section 12 ─────────────────────────────────────── */
 }

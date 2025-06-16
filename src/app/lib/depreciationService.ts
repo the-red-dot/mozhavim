@@ -2,16 +2,21 @@
 // src/app/lib/depreciationService.ts
 // Keeps a cached, periodically-refreshed “global depreciation” snapshot
 // ─────────────────────────────────────────────────────────────
+/* ─── Section 1: Imports ──────────────────────────────────── */
 import { supabase } from "./supabaseClient";
 import { unstable_cache as nextCache } from "next/cache";
 
-/* ---------- constants ---------- */
+/* ─── End Section 1 ───────────────────────────────────────── */
+
+/* ─── Section 2: Constants ───────────────────────────────── */
 const DEPRECIATION_STATS_ID = "current_summary";
 const ONE_WEEK_IN_MS = 7 * 24 * 60 * 60 * 1000;
 
-/* ---------- 1. R/T item shape coming from the items_flat SQL view ---------- */
+/* ─── End Section 2 ───────────────────────────────────────── */
+
+/* ─── Section 3: Types ───────────────────────────────────── */
+/* 3-A  Listing-view item shape */
 export interface Item {
-  /* definition-level data */
   id: string;
   name: string;
   description: string;
@@ -33,12 +38,9 @@ export interface Item {
 
   /** 🆕 unique per‐listing primary key (was added to the view) */
   listing_id?: string;
-
-  /** `allowed_tiers` exists in the view, but isn’t needed for the maths */
-  // allowed_tiers?: string[];
 }
 
-/* ---------- 2. DB row shape for the snapshot table ---------- */
+/* 3-B  Depreciation snapshot rows */
 export interface DepreciationStats {
   id: string;
   total_items_from_source: number;
@@ -62,6 +64,9 @@ export type StatsSourceType =
   | "DATABASE (STALE - ITEM FETCH FAILED)"
   | "DEFAULT (ERROR/NO DATA)";
 
+  /* ─── End Section 3 ───────────────────────────────────────── */
+
+  /* ─── Section 4: Utility – price parser ──────────────────── */
 /* ╭──────────────────────────────────────────╮
    │  Helper : string → number, tolerant      │
    ╰──────────────────────────────────────────╯ */
@@ -72,9 +77,9 @@ const parsePrice = (priceString: string | null): number | null => {
   return Number.isFinite(n) ? n : null;
 };
 
-/* ╭───────────────────────────────────────────────────────────╮
-   │  Cached fetch of ALL listings for the global calculation  │
-   ╰───────────────────────────────────────────────────────────╯ */
+/* ─── End Section 4 ───────────────────────────────────────── */
+
+/* ─── Section 5: Cached fetch of items_flat view ─────────── */
 const getCachedItems = nextCache(
   async () => {
     console.log(
@@ -101,6 +106,9 @@ const getCachedItems = nextCache(
   { tags: ["items"] }
 );
 
+/* ─── End Section 5 ───────────────────────────────────────── */
+
+/* ─── Section 6: Maths – calculate depreciation summary ──── */
 /* ╭──────────────────────────────────────────────╮
    │  Pure maths – one pass over all listings      │
    ╰──────────────────────────────────────────────╯ */
@@ -172,7 +180,9 @@ const calculateDepreciationSummary = (
   return out;
 };
 
-/* ---------- tiny DB helpers (get / upsert) ---------- */
+/* ─── End Section 6 ───────────────────────────────────────── */
+
+/* ─── Section 7: Tiny DB helpers ─────────────────────────── */
 async function getDepreciationStatsFromDB(): Promise<DepreciationStats | null> {
   const { data, error } = await supabase
     .from("depreciation_stats")
@@ -215,7 +225,9 @@ async function storeDepreciationStatsInDB(
   return data as DepreciationStats;
 }
 
-/* ---------- default fallback object ---------- */
+/* ─── End Section 7 ───────────────────────────────────────── */
+
+/* ─── Section 8: Defaults & Public API ───────────────────── */
 const EMPTY_STATS: NewDepreciationStats & { updated_at?: string } = {
   total_items_from_source: 0,
   items_with_valid_regular_price: 0,
@@ -280,3 +292,4 @@ export async function fetchAndManageDepreciationStats(): Promise<{
 
 /* ---------- re-export for SearchComponent ---------- */
 export { getCachedItems as getSearchComponentItems };
+/* ─── End Section 8 ───────────────────────────────────────── */

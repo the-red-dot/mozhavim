@@ -1,11 +1,14 @@
 // src/app/components/PriceOpinion.tsx
 "use client";
 
+/* ─── Section 1: Imports ─────────────────────────────────── */
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useUser } from "../context/UserContext";
 
-/* ---------- types ---------- */
+/* ─── End Section 1 ───────────────────────────────────────── */
+
+/* ─── Section 2: Types, Labels & Helpers ─────────────────── */
 export interface ExpectedPrices {
   regular: number | null;
   gold: number | null;
@@ -36,18 +39,18 @@ type AssumptionRow = {
   user_id: string;
 } & Partial<Record<TierKey, number | null>>;
 
-/* ╭──────────────────────────╮
-   │      PriceOpinion        │
-   ╰──────────────────────────╯ */
+/* ─── End Section 2 ───────────────────────────────────────── */
+
+/* ─── Section 3: Component ───────────────────────────────── */
 export default function PriceOpinion({
   itemName,
   discordAverage,
   expectedPrices,
   allowedTiers,
 }: Props) {
-  const { user } = useUser();
 
-  /* ---------- 1. state ---------- */
+  /* 3-A  User & primitive state --------------------------- */
+  const { user } = useUser();
   const [voteCounts, setVoteCounts] = useState({
     reasonable: 0,
     too_low: 0,
@@ -69,7 +72,7 @@ export default function PriceOpinion({
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
-  /* ---------- 2. helpers ---------- */
+  /* 3-B  Helpers (load counts, check last vote) ----------- */
   async function loadVoteCounts() {
     const { data, error } = await supabase
       .from("votes")
@@ -128,7 +131,7 @@ export default function PriceOpinion({
     setShowForm(true);
   };
 
-  /* ---------- 3. confirm ---------- */
+  /* 3-C  Confirm handler (save vote + assumptions) -------- */
   async function handleConfirm() {
     setErrorMsg("");
     setSuccessMsg("");
@@ -232,14 +235,14 @@ export default function PriceOpinion({
     setTimeout(() => setSuccessMsg(""), 3000);
   }
 
-  /* ---------- 4. init ---------- */
+  /* 3-D  Init -------------------------------------------- */
   useEffect(() => {
     loadVoteCounts();
     checkUserVote();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itemName]);
 
-  /* ---------- 5. render ---------- */
+  /* 3-E  Render ------------------------------------------ */
   return (
     <div className="price-opinion-container">
       <p className="vote-question">האם המחיר נראה לך הגיוני?</p>
@@ -307,3 +310,4 @@ export default function PriceOpinion({
     </div>
   );
 }
+/* ─── End Section 3 ─────────────────────────────────────── */

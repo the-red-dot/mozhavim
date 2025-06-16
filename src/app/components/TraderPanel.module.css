@@ -1,0 +1,291 @@
+/* src/app/components/TraderPanel.module.css */
+/* ╭──────────────────────────────────────────────────────────╮
+   │  TraderPanel – trading UI (FULL stylesheet, v5-responsive) │
+   ╰──────────────────────────────────────────────────────────╯*/
+
+/* ─── Section 1 – Panel Shell ────────────────────────────── */
+.tradePanel {
+  width: 100%;
+  max-width: 950px;
+  margin: 2rem auto;
+  padding: 2rem 1.5rem;
+  border: 1px solid #303030;
+
+  display: flex;        /* row on desktop … */
+  flex-wrap: wrap;      /* … but allow children to wrap */
+  gap: 3rem;
+  justify-content: center; /* centre when they wrap */
+  box-sizing: border-box;
+}
+
+/* ─── Section 2 – Side Containers ────────────────────────── */
+.tradeSide {
+  flex: 1 1 420px;      /* grows, but never shrinks below ~420 px */
+  min-width: 320px;     /* keeps 3×3 grid from squeezing too much */
+  background: transparent;
+  border: none;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.tradeSide h3 {
+  margin: 0 0 0.75rem;
+  font-size: 1.35rem;
+  color: var(--text-light-color);
+  text-align: center;
+}
+
+/* ─── Section 3 – Grid & Cells ───────────────────────────── */
+.tradeGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 108px);
+  grid-auto-rows: 108px;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+/* base cell */
+.tradeSlot {
+  width: 108px;
+  height: 108px;
+  background: #1a1a1a;
+  border: 1px solid #454545;
+  border-radius: var(--border-radius-sm);
+  position: relative;
+  padding: 0.35rem;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+/* empty cell (dashed) */
+.empty {
+  background: #1a1a1a;
+  border: 1px dashed #555;
+}
+
+/* --- cell content --- */
+.tradeSlot img {
+  width: 82%;
+  height: 64%;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+}
+
+.tradePlaceholder {
+  width: 100%;
+  height: 100%;
+  background: #0003;
+  border-radius: inherit;
+}
+
+.tradeName {
+  display: block; 
+  font-size: 0.78rem;
+  font-weight: 700; 
+  color: var(--game-text-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tradeTier {
+  display: block; 
+  font-size: 0.68rem;
+  font-weight: 400;
+  color: var(--game-text-secondary-color);
+  margin-top: 0.05rem; 
+}
+
+.tradeQty {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  font-size: 0.72rem;
+  color: var(--game-text-secondary-color);
+}
+
+/* ─── Section 4 – Remove (✕) Button ─────────────────────── */
+.tradeRemove {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: transparent;
+  border: none;
+  color: var(--error-color);
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+/* ─── Section 5 – Cash & Summary ─────────────────────────── */
+.tradeCash {
+  margin-top: 1.25rem;
+  text-align: center;
+}
+
+.tradeCash label {
+  font-size: 1rem;
+  display: inline-block;
+  color: var(--text-light-color);
+}
+
+.tradeCash input {
+  display: block;
+  margin: 0.4rem auto 0;
+  width: 200px;
+  max-width: 100%;
+  padding: 0.45rem 0.6rem;
+  border-radius: var(--border-radius-sm);
+  background: #ffffff;
+  border: 1px solid #555;
+  color: #000;
+  font-weight: 600;
+  text-align: right;
+}
+
+.tradeSummary {
+  margin-top: 0.9rem;
+  font-size: 1rem;
+  color: var(--text-light-color);
+  text-align: center;
+  line-height: 1.35;
+}
+
+/* ─── Section 6 – Result Area ────────────────────────────── */
+.tradeResult {
+  /* force it onto its own row below the two sides */
+  flex: 0 0 100%;
+  margin-top: 2.5rem;
+  text-align: center;
+}
+
+.tradeResult button {
+  padding: 0.9rem 2.4rem;
+  background: #ff0050;
+  border: none;
+  border-radius: var(--border-radius-md);
+  color: #fff;
+  cursor: pointer;
+  font-size: 1.15rem;
+  font-weight: 700;
+  transition: opacity 0.15s ease;
+}
+
+.tradeResult button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.tradeResult button:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.tradeResult p {
+  margin-top: 1rem;   /* little gap under the button */
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text-light-color);
+}
+
+/* ─── Section 7 – Tiny “add to trade” Btn ───────────────── */
+.tradeSmallBtn {
+  padding: 0.28rem 0.7rem;
+  font-size: 0.78rem;
+  background: var(--game-item-border);
+  border: none;
+  border-radius: var(--border-radius-sm);
+  color: var(--text-light-color);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.tradeSmallBtn:hover {
+  background: var(--primary-hover-color);
+}
+
+/* ─── Section 8 – Tier Borders ───────────────────────────── */
+.tierGold    { border: 2px solid var(--tier-gold-accent);    }
+.tierDiamond { border: 2px solid var(--tier-diamond-accent); }
+.tierEmerald { border: 2px solid var(--tier-emerald-accent); }
+
+/* ─── Section 9 – Responsive tweaks ──────────────────────── */
+@media (max-width: 680px) {
+  /* stack sides vertically instead of wrapping in two columns */
+  .tradePanel {
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .tradeSide {
+    flex: 1 1 auto;
+    min-width: 0;               /* allow it to shrink further */
+  }
+
+  /* keep cells readable but a bit smaller */
+  .tradeGrid {
+    grid-template-columns: repeat(3, 92px);
+    grid-auto-rows: 92px;
+  }
+
+  .tradeSlot {
+    width: 92px;
+    height: 92px;
+  }
+}
+
+/* ─── Section 10 – Result Modal ─────────────────────────── */
+.resultModalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: #0009;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  animation: fadeIn 0.25s ease;
+}
+
+.resultModal {
+  position: relative;
+  background: #1c1c1c;
+  border: 2px solid #ff0050;
+  border-radius: var(--border-radius-md);
+  padding: 2rem 2.5rem 2.2rem;
+  max-width: 90vw;
+  width: 420px;
+  text-align: center;
+  animation: popIn 0.25s ease;
+}
+
+.modalClose {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  background: transparent;
+  border: none;
+  font-size: 1.4rem;
+  color: #fff;
+  cursor: pointer;
+}
+
+.emoji {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.resultText {
+  font-size: 1.15rem;
+  color: var(--text-light-color);
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+/* simple anims */
+@keyframes fadeIn {
+  from { opacity: 0; } to { opacity: 1; }
+}
+@keyframes popIn {
+  from { transform: scale(0.8); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+/* ─── End Section 10 ────────────────────────────────────── */

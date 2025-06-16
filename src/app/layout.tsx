@@ -1,6 +1,8 @@
+// src/app/layout.tsx
 import "./globals.css";
 import NavMenu from "./components/NavMenu";
 import { UserProvider } from "./context/UserContext";
+import { TradeProvider } from "./context/TradeContext";
 
 export default function RootLayout({
   children,
@@ -10,10 +12,12 @@ export default function RootLayout({
   return (
     <html lang="he" dir="rtl">
       <body>
-        {/* Wrap the entire app in UserProvider */}
+        {/* Wrap the entire app in UserProvider and TradeProvider */}
         <UserProvider>
-          <NavMenu />
-          {children}
+          <TradeProvider>
+            <NavMenu />
+            {children}
+          </TradeProvider>
         </UserProvider>
       </body>
     </html>

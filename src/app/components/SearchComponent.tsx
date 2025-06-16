@@ -4,6 +4,7 @@
 // ─────────────────────────────────────────────────────────────
 "use client";
 
+/* ─── Section 1: Imports ─────────────────────────────────── */
 import { useState, useEffect, useRef, useMemo } from "react";
 import Image from "next/image";
 import PriceOpinion from "./PriceOpinion";
@@ -21,19 +22,13 @@ import DepreciationSummary, {
 } from "./DepreciationSummary";
 import { Item as DepreciationItemFromService } from "../lib/depreciationService";
 
-/* ------------------------------------------------------- */
-/*  🗂️  Types & helpers                                    */
-/* ------------------------------------------------------- */
+/* ─── End Section 1 ───────────────────────────────────────── */
 
+/* ─── Section 2: Types & Helpers ──────────────────────────── */
 type AllowedTier = "regular" | "gold" | "diamond" | "emerald";
 
-/** Item rows now ALSO carry a unique `listing_id` coming
-    straight from the SQL view. */
 type Item = DepreciationItemFromService & {
-  /** From the item_definitions table */
   allowed_tiers?: AllowedTier[];
-  /** NEW: unique per-listing primary key (may be undefined for
-      definition-only rows that have no listing) */
   listing_id?: string;
 };
 
@@ -82,15 +77,15 @@ const TIER_LABELS: Record<AllowedTier, string> = {
   emerald: "אמרלד",
 };
 
-/* ------------------------------------------------------- */
-/*  🔎  Component                                           */
-/* ------------------------------------------------------- */
+/* ─── End Section 2 ───────────────────────────────────────── */
+
+/* ─── Section 3: Component ───────────────────────────────── */
 export default function SearchComponent({
   initialItems,
   generalDepreciationStats,
   generalDepreciationSource,
 }: Props) {
-  /* ------------------------------------------- state */
+  /* 3-A  Local state -------------------------------------- */
   const [term, setTerm] = useState("");
   const [sugs, setSugs] = useState<string[]>([]);
   const [sel, setSel] = useState<string | null>(null);
@@ -101,7 +96,7 @@ export default function SearchComponent({
 
   const box = useRef<HTMLDivElement>(null);
 
-  /* ------------------------------------------- autocomplete */
+  /* 3-B  Autocomplete effects ----------------------------- */
   useEffect(() => {
     if (!term.trim()) {
       setSugs([]);
@@ -137,14 +132,30 @@ export default function SearchComponent({
     };
   }, []);
 
-  /* ------------------------------------------- selection-related memo’s */
-  const itemsForSel = useMemo(
-    () => (sel ? initialItems.filter((x) => x.name === sel) : []),
-    [sel, initialItems]
-  );
-  const firstSelected = itemsForSel[0]; // meta row
+  /* 3-C  Selection-related memo’s ------------------------- */
+  const itemsForSel = useMemo(() => {
+    if (!sel) return [];
 
-  /* reset image error when item changes */
+    /* 
+      ➊ keep only rows for the selected item name  
+      ➋ clone with slice() so we never mutate the original array  
+      ➌ sort by `date` DESC so the **newest publication is always first**  
+          – invalid / missing dates are treated as 0 and therefore sink to the bottom
+    */
+    return initialItems
+      .filter((x) => x.name === sel)
+      .slice()
+      .sort((a, b) => {
+        const ta = a.date ? Date.parse(a.date) : 0;
+        const tb = b.date ? Date.parse(b.date) : 0;
+        return tb - ta;           // larger timestamp = newer ⇒ go first
+      });
+  }, [sel, initialItems]);
+
+  const firstSelected = itemsForSel[0]; // meta row
+  /* ─── End Section 3-C ─────────────────────────────────── */
+
+  /* 3-D  Community assumptions --------------------------- */
   useEffect(() => setImageHasError(false), [firstSelected?.image]);
 
   /* ------------------------------------------- assumptions (community) */
@@ -166,7 +177,7 @@ export default function SearchComponent({
     })();
   }, [sel]);
 
-  /* ------------------------------------------- stats calculations */
+  /* 3-E  Stats calculations ------------------------------ */
   const discordStats = useMemo(() => {
     const pts = toQuotePoints(itemsForSel);
     const ewma = representativePrice(pts);
@@ -184,7 +195,7 @@ export default function SearchComponent({
     [discordStats, communityStats]
   );
 
-  /* ------------------------------------------- price per tier */
+  /* 3-F  Tier prices & allowed tiers --------------------- */
   const calculatedTierPrices = useMemo(() => {
     if (!blended.final || !generalDepreciationStats)
       return { gold: null, diamond: null, emerald: null };
@@ -222,7 +233,7 @@ export default function SearchComponent({
     );
   }, [firstSelected]);
 
-  /* ------------------------------------------- price-lines list */
+  /* 3-G  Price lines list ------------------------------- */
   const priceLines = useMemo(() => {
     const base = [
       {
@@ -259,9 +270,9 @@ export default function SearchComponent({
     );
   }, [blended.final, calculatedTierPrices, allowedTiers]);
 
-  /* ------------------------------------------------------- */
-  /*  🎨  Render                                              */
-  /* ------------------------------------------------------- */
+  /* ─── End Section 3 ──────────────────────────────────── */
+
+  /* ─── Section 4: Render ───────────────────────────────── */
   return (
     <div className="search-container" ref={box}>
       {/* 🔍 search box */}
@@ -488,3 +499,4 @@ export default function SearchComponent({
     </div>
   );
 }
+/* ─── End Section 4 ─────────────────────────────────────── */

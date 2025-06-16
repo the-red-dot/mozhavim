@@ -5,6 +5,8 @@
 // ─────────────────────────────────────────────────────────────
 "use client";
 
+/* ─── Section 1: Imports ─────────────────────────────────── */
+
 import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import clientStyles from "./TikSheliClient.module.css";
@@ -12,6 +14,9 @@ import styles from "../tik-sheli/Wallet.module.css";
 import { useUser } from "../context/UserContext";
 import { supabase } from "../lib/supabaseClient";
 
+/* ─── End Section 1 ───────────────────────────────────────── */
+
+/* ─── Section 2: Types & Constants ────────────────────────── */
 /* ╭─────────────── DB row mapping ────────────────╮ */
 type WalletRow = {
   id: string;
@@ -54,13 +59,16 @@ const RENDER_BASE = (() => {
 })();
 const avatarSrc = (id: number) => `${RENDER_BASE}/avatar/${id}`;
 
-/* ╭──────────────────── Wallet component ───────────────────╮ */
+/* ─── End Section 2 ───────────────────────────────────────── */
+
+/* ─── Section 3: Wallet Component ─────────────────────────── */
+
 export default function Wallet({
   formOpen,
   setFormOpen,
   onWalletChange,
 }: WalletProps) {
-  /* ───────── USER ───────── */
+  /* ── 3-A: User & Profile ──────────────────────────────── */
   const { user } = useUser();
 
   const [profileName, setProfileName] = useState("");
@@ -79,7 +87,9 @@ export default function Wallet({
       );
   }, [user]);
 
-  /* ───────── WALLET STATE ───────── */
+  /* ── End 3-A ──────────────────────────────────────────── */
+
+  /* ── 3-B: Wallet State & Drafts ───────────────────────── */
   const [wallet, setWallet] = useState<WalletRow | null>(null);
 
   /* whenever wallet state changes – notify parent */
@@ -104,7 +114,9 @@ export default function Wallet({
   type RStatus = "idle" | "loading" | "found" | "notfound" | "error";
   const [robloxStatus, setRobloxStatus] = useState<RStatus>("idle");
 
-  /* ───────── FETCH WALLET ───────── */
+  /* ── End 3-B ──────────────────────────────────────────── */
+
+  /* ── 3-C: Fetch Wallet (DB) ───────────────────────────── */
   const fetchWallet = async () => {
     if (!user) {
       setWallet(null);
@@ -150,7 +162,9 @@ export default function Wallet({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  /* ───────── Roblox look-up (debounced) ───────── */
+  /* ── End 3-C ──────────────────────────────────────────── */
+
+  /* ── 3-D: Roblox Lookup (debounced) ───────────────────── */
   const API_URL = `${RENDER_BASE}/lookup`;
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -224,7 +238,9 @@ export default function Wallet({
     }, 500);
   }, [robloxDraft, wallet, API_URL]);
 
-  /* ───────── helpers ───────── */
+  /* ── End 3-D ──────────────────────────────────────────── */
+
+  /* ── 3-E: Helper Functions ────────────────────────────── */
   const validAmount = () => {
     const n = parseFloat(amountDraft);
     return Number.isFinite(n) && n >= 0;
@@ -264,7 +280,9 @@ export default function Wallet({
     </>
   );
 
-  /* ───────── SAVE ───────── */
+  /* ── End 3-E ──────────────────────────────────────────── */
+
+  /* ── 3-F: Save & Delete Handlers ──────────────────────── */
   const saveWallet = async () => {
     if (!user) {
       alert("יש להתחבר תחילה.");
@@ -399,7 +417,9 @@ export default function Wallet({
     await fetchWallet();
   };
 
-  /* ╭──────────────────────── UI ─────────────────────────╮ */
+  /* ── End 3-F ──────────────────────────────────────────── */
+
+  /* ── 3-G: JSX Return ──────────────────────────────────── */
   return (
     <section className={styles.container}>
       {!wallet ? (
@@ -623,4 +643,6 @@ export default function Wallet({
       )}
     </section>
   );
+  /* ── End 3-G ──────────────────────────────────────────── */
 }
+/* ─── End Section 3 ───────────────────────────────────────── */
