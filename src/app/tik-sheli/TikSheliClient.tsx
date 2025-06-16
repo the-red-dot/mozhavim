@@ -560,7 +560,32 @@ export interface GeneralDepreciationStats {
         {/* ─── Section 11 ────────────────────────────────── */}
         {/* ───── התיק האישי שלי ───── */}
         <section>
-          <h2>התיק האישי שלי</h2>
+          {/* header row = title + “delete-all” button */}
+          <div className={styles.sectionTopBar}>
+            <h2 className={styles.sectionTitle}>התיק האישי שלי</h2>
+
+            {/* 🔴 remove-all button */}
+            {collection.length > 0 && (
+              <button
+                className={styles.clearBagBtn}
+                onClick={async () => {
+                  if (
+                    !user ||
+                    !window.confirm("האם אתה בטוח? פעולה זו תמחק את כל הפריטים מהתיק.")
+                  )
+                    return;
+                  await supabase
+                    .from("tik_sheli_collections")
+                    .delete()
+                    .eq("user_id", user.id);
+                  fetchCollection();
+                }}
+              >
+                מחק את כל התיק
+              </button>
+            )}
+          </div>
+
           {!collection.length ? (
             <p>עדיין לא הוספת פריטים.</p>
           ) : (
@@ -569,11 +594,11 @@ export interface GeneralDepreciationStats {
                 {/* ✨ Alphabetical order by Hebrew name (א ← ת) */}
                 {[...collection]
                   .sort((a, b) => {
-                    const nameA =
+                    const nA =
                       initialItems.find((i) => i.id === a.item_id)?.name ?? "";
-                    const nameB =
+                    const nB =
                       initialItems.find((i) => i.id === b.item_id)?.name ?? "";
-                    return nameA.localeCompare(nameB, "he");
+                    return nA.localeCompare(nB, "he");
                   })
                   .map((row) => {
                     /* כמה יחידות כבר “שמורות” לצד המכירה ב-Trade */
@@ -591,7 +616,7 @@ export interface GeneralDepreciationStats {
                     );
                     if (!meta) return null;
 
-                    const unit = priceOf(row.item_id, row.item_type as Tier);
+                    const unit  = priceOf(row.item_id, row.item_type as Tier);
                     const total = unit * remaining;
 
                     return (
@@ -626,7 +651,7 @@ export interface GeneralDepreciationStats {
                           )}
                         </div>
 
-                        {/* ❌ מחיקה קבועה מהתיק */}
+                        {/* ❌ מחיקה בודדת */}
                         <button
                           className={styles.removeBtn}
                           onClick={() => handleRemove(row)}
@@ -653,17 +678,13 @@ export interface GeneralDepreciationStats {
 
                             let current = sell.items.length;
                             if (current >= 9) {
-                              alert(
-                                "הגעת למגבלת 9 פריטים בצד המכירה"
-                              );
+                              alert("הגעת למגבלת 9 פריטים בצד המכירה");
                               return;
                             }
 
                             for (let i = 0; i < toAdd; i++) {
                               if (current >= 9) {
-                                alert(
-                                  "הגעת למגבלת 9 פריטים בצד המכירה"
-                                );
+                                alert("הגעת למגבלת 9 פריטים בצד המכירה");
                                 break;
                               }
 
@@ -696,4 +717,3 @@ export interface GeneralDepreciationStats {
     );
   }
 {/* ─── End Section 11 ────────────────────────────────── */}
-
